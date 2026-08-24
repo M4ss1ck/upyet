@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Alarm could not be created or saved: the editor was a non-scrolling column taller than a phone screen,
+  so Save and Cancel were clipped off the bottom. They now live in a fixed bottom bar and the form scrolls
+- Editing an existing alarm showed 07:00 instead of its real time, because the time picker was remembered
+  before the stored alarm had loaded (saving then overwrote the alarm's time)
+- The seven weekday chips were clipped on narrow screens; they wrap now
+- Settings could not be scrolled, hiding controls below the fold on short screens
+- The ringing screen's Snooze and Dismiss could be pushed off screen by the camera preview or a long label;
+  they are now pinned outside the scrolling area
+
+### Added
+- Default snooze duration setting and an app-version row in Settings
+- Compose regression test asserting Save stays reachable in a small viewport
+
 ## [0.1.0] - 2026-08-24
 
 First installable baseline. Everything below is compile-verified, unit-tested and lint-clean; the alarm,

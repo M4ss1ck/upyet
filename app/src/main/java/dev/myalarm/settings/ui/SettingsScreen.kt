@@ -3,8 +3,11 @@ package dev.myalarm.settings.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -30,7 +33,11 @@ import dev.myalarm.settings.data.RetentionPolicy
 fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(false) }
-    Column(Modifier.padding(16.dp)) {
+    // Scrollable: this screen grows withevery new setting and must never hide one below the fold.
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Text(stringResource(R.string.evidence_retention))
         Button(onClick = { expanded = true }) { Text(stringResource(retentionResource(settings?.retention ?: RetentionPolicy.SEVEN_DAYS))) }
         DropdownMenu(expanded, { expanded = false }) {

@@ -46,6 +46,8 @@ data class AlarmEditorUiState(
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val evidence: Boolean = true,
     val soundUri: String? = null,
+    /** False until the stored alarm (or the defaults) have been read; the time picker must wait for it. */
+    val isLoaded: Boolean = false,
     @StringRes val errorRes: Int? = null,
     val showReliabilityAction: Boolean = false,
 )
@@ -67,6 +69,7 @@ class AlarmEditorViewModel @Inject constructor(
             val existing = alarmId?.let { repository.getAlarm(AlarmId(it)) }
             if (hasDraft()) {
                 // A draft survived process recreation; it wins over both the stored alarm and the defaults.
+                update { it.copy(isLoaded = true) }
             } else if (existing != null) {
                 updateFromAlarm(existing)
             } else {
@@ -76,6 +79,7 @@ class AlarmEditorViewModel @Inject constructor(
                         vibration = defaults.defaultVibrationEnabled,
                         snoozeMinutes = defaults.defaultSnoozeMinutes,
                         evidence = defaults.evidenceEnabledByDefault,
+                        isLoaded = true,
                     )
                 }
             }
@@ -97,6 +101,7 @@ class AlarmEditorViewModel @Inject constructor(
                 alarm.snoozeMinutes,
                 alarm.evidenceEnabled,
                 alarm.soundUri,
+                isLoaded = true,
             )
         saveDraft(_state.value)
     }

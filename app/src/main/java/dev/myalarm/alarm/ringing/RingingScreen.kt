@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,15 +32,20 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
     val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(LocalConfiguration.current.locales[0])
     val snoozeLabel = pluralStringResource(R.plurals.snooze_alarm, state.snoozeMinutes, state.snoozeMinutes)
     val dismissLabel = stringResource(R.string.dismiss_alarm)
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(formatter.format(state.currentTime), style = MaterialTheme.typography.displayLarge)
-        state.label?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
-        Spacer(Modifier.height(24.dp))
-        evidenceContent()
+    Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Snooze and Dismiss are pinned outside this weighted, scrollable area: whatever the evidence UI
+        // does - preview, error text, a long label - it can never push the alarm controls off screen.
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(formatter.format(state.currentTime), style = MaterialTheme.typography.displayLarge)
+            state.label?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
+            Spacer(Modifier.height(24.dp))
+            evidenceContent()
+        }
+        Spacer(Modifier.height(16.dp))
         Button(
             onClick = onSnooze,
             modifier = Modifier.fillMaxWidth().height(64.dp).semantics {
