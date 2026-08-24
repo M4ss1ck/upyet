@@ -6,4 +6,15 @@
     <string name="alarm_ringing_text">Wake up</string>
     <string name="snooze_alarm">Snooze %1$d minutes</string>
     <string name="dismiss_alarm">Dismiss alarm</string>
+    <string name="evidence_recording">Recording evidence</string>
+    <string name="evidence_recording_elapsed">%1$s · %2$d:%3$02d</string>
+    <string name="evidence_recording_indicator">Evidence recording in progress</string>
+    <string name="evidence_preparing">Preparing evidence recording</string>
+    <string name="evidence_finished">Evidence recording finished</string>
+    <string name="evidence_unavailable">Evidence unavailable</string>
+    <string name="evidence_permission_denied">Camera permission denied</string>
+    <string name="evidence_camera_unavailable">Front camera unavailable</string>
+    <string name="evidence_camera_in_use">Camera is in use</string>
+    <string name="evidence_direct_boot_unavailable">Evidence unavailable until device unlock</string>
+    <string name="evidence_disabled">Evidence disabled</string>
 </resources>
