@@ -11,6 +11,7 @@ import dev.myalarm.alarm.domain.AlarmId
 import dev.myalarm.alarm.domain.OccurrenceId
 import dev.myalarm.core.directboot.AlarmMirror
 import dev.myalarm.core.directboot.MirroredAlarm
+import dev.myalarm.core.directboot.MirroredRecurrence
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,7 +44,26 @@ class AndroidAlarmScheduler @Inject constructor(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAt.toEpochMilli(), showIntent), operation)
-            mirror.put(MirroredAlarm(alarm.id, kind, triggerAt, alarm.snoozeMinutes, alarm.vibrationEnabled, alarm.soundUri))
+            val mask = (alarm.recurrence as? dev.myalarm.alarm.domain.Recurrence.Weekly)
+                ?.days?.sumOf { 1 shl (it.value - 1) } ?: 0
+            val recurrenceType = when (alarm.recurrence) {
+                dev.myalarm.alarm.domain.Recurrence.OneTime -> "ONE_TIME"
+                dev.myalarm.alarm.domain.Recurrence.Daily -> "DAILY"
+                is dev.myalarm.alarm.domain.Recurrence.Weekly -> "WEEKLY"
+            }
+            mirror.put(
+                MirroredAlarm(
+                    alarm.id,
+                    kind,
+                    triggerAt,
+                    alarm.snoozeMinutes,
+                    alarm.vibrationEnabled,
+                    alarm.soundUri,
+                    alarm.time.toSecondOfDay() / 60,
+                    recurrenceType,
+                    mask,
+                ),
+            )
             SchedulingResult.Scheduled
         } catch (exception: SecurityException) {
             SchedulingResult.Failed(exception)
@@ -65,4 +85,8 @@ class AndroidAlarmScheduler @Inject constructor(
     }
 
     override fun nextScheduledTrigger(): Instant? = mirror.nextTrigger()
+
+    private companion object {
+        const val MINUTES_PER_HOUR = 60
+    }
 }

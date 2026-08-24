@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MyAlarm</string>
+    <string name="alarm_channel_name">Alarm ringing</string>
+    <string name="alarm_ringing_title">Alarm ringing</string>
+    <string name="alarm_ringing_text">Wake up</string>
+    <string name="snooze_alarm">Snooze %1$d minutes</string>
+    <string name="dismiss_alarm">Dismiss alarm</string>
 </resources>

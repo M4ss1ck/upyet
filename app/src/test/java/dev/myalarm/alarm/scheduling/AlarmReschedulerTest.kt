@@ -44,7 +44,19 @@ class AlarmReschedulerTest {
     @Test
     fun lockedPathNeverQueriesRepository() = runTest {
         val repository = FakeRepository(emptyList())
-        val mirror = FakeMirror(MirroredAlarm(AlarmId(1), AlarmOccurrenceKind.MAIN, now.plusSeconds(3600), 5, true, null))
+        val mirror = FakeMirror(
+            MirroredAlarm(
+                alarmId = AlarmId(1),
+                kind = AlarmOccurrenceKind.MAIN,
+                triggerAt = now.plusSeconds(3600),
+                snoozeMinutes = 5,
+                vibrationEnabled = true,
+                soundUri = null,
+                minuteOfDay = 7 * 60,
+                recurrenceType = "ONE_TIME",
+                weekdayMask = 0,
+            ),
+        )
         val report = AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror).rescheduleAll()
         assertThat(repository.queried).isFalse()
         assertThat(report.scheduled).isEqualTo(1)

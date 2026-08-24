@@ -16,6 +16,9 @@ data class MirroredAlarm(
     val snoozeMinutes: Int,
     val vibrationEnabled: Boolean,
     val soundUri: String?,
+    val minuteOfDay: Int,
+    val recurrenceType: String,
+    val weekdayMask: Int,
 )
 
 interface AlarmMirror {
@@ -39,6 +42,9 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                 record.snoozeMinutes,
                 record.vibrationEnabled,
                 record.soundUri ?: "",
+                record.minuteOfDay,
+                record.recurrenceType,
+                record.weekdayMask,
             ).joinToString("|"),
         )
             .apply()
@@ -51,7 +57,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
     override fun all(): List<MirroredAlarm> = preferences.all.mapNotNull { (key, value) ->
         if (value !is String) return@mapNotNull null
         val parts = value.split('|')
-        if (parts.size != 4) return@mapNotNull null
+        if (parts.size !in 4..7) return@mapNotNull null
         runCatching {
             val identity = key.split(':')
             MirroredAlarm(
@@ -63,6 +69,9 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                 parts[3].ifEmpty {
                     null
                 },
+                parts.getOrNull(4)?.toInt() ?: 0,
+                parts.getOrNull(5) ?: "ONE_TIME",
+                parts.getOrNull(6)?.toInt() ?: 0,
             )
         }.getOrNull()
     }

@@ -7,12 +7,11 @@ import dev.myalarm.alarm.domain.NextOccurrenceCalculator
 import dev.myalarm.alarm.domain.OccurrenceId
 import dev.myalarm.alarm.domain.Recurrence
 import dev.myalarm.core.directboot.AlarmMirror
-import dev.myalarm.core.directboot.MirroredAlarm
 import dev.myalarm.core.directboot.UserUnlockState
+import dev.myalarm.core.directboot.toAlarm
 import dev.myalarm.core.time.TimeProvider
 import kotlinx.coroutines.flow.first
 import java.time.Instant
-import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,29 +63,24 @@ class AlarmRescheduler @Inject constructor(
         var unavailable = false
         val failures = mutableListOf<AlarmId>()
         mirror.all().forEach { record ->
-            if (record.triggerAt <= now) {
-                skipped++
-            } else {
-                val alarm = Alarm(
-                    id = record.alarmId,
-                    time = record.triggerAt.atZone(timeProvider.zone()).toLocalTime(),
-                    enabled = true,
-                    label = "",
-                    recurrence = Recurrence.OneTime,
-                    soundUri = record.soundUri,
-                    vibrationEnabled = record.vibrationEnabled,
-                    snoozeMinutes = record.snoozeMinutes,
-                    evidenceEnabled = false,
-                    createdAt = Instant.EPOCH,
-                    updatedAt = Instant.EPOCH,
-                )
-                val result =
-                    alarmScheduler.schedule(alarm, record.triggerAt, record.kind)
-                when (result) {
-                    SchedulingResult.Scheduled -> scheduled++
-                    SchedulingResult.ExactAlarmsUnavailable -> unavailable = true
-                    is SchedulingResult.Failed -> failures += record.alarmId
+            val alarm = record.toAlarm()
+            // A recurring alarm must recompute its next local occurrence even before first unlock;
+            // a one-off or snooze alarm keeps its stored trigger as long as it is still in the future.
+            val trigger =
+                if (record.kind == AlarmOccurrenceKind.MAIN && alarm.recurrence != Recurrence.OneTime) {
+                    NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now)
+                } else {
+                    record.triggerAt.takeIf { it > now }
                 }
+            if (trigger == null) {
+                skipped++
+                return@forEach
+            }
+            val result = alarmScheduler.schedule(alarm, trigger, record.kind)
+            when (result) {
+                SchedulingResult.Scheduled -> scheduled++
+                SchedulingResult.ExactAlarmsUnavailable -> unavailable = true
+                is SchedulingResult.Failed -> failures += record.alarmId
             }
         }
         return RescheduleReport(scheduled, skipped, failures, unavailable)

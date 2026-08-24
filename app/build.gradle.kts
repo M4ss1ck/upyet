@@ -136,7 +136,12 @@ dependencies {
 spotless {
     // Kotlin's official code style (ktlint calls it "intellij_idea"); ktlint's own opinionated
     // "ktlint_official" style is deliberately not used.
-    val ktlintConfig = mapOf("ktlint_code_style" to "intellij_idea", "max_line_length" to "140")
+    val ktlintConfig =
+        mapOf(
+            "ktlint_code_style" to "intellij_idea",
+            "max_line_length" to "140",
+            "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+        )
     kotlin {
         target("src/**/*.kt")
         ktlint(libs.versions.ktlint.get()).editorConfigOverride(ktlintConfig)

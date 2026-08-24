@@ -8,6 +8,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.myalarm.alarm.playback.ServiceRingingLauncher
 import dev.myalarm.core.directboot.AlarmMirror
 import dev.myalarm.core.directboot.AndroidUserUnlockState
 import dev.myalarm.core.directboot.DirectBootAlarmStore
@@ -17,7 +18,7 @@ import dev.myalarm.core.directboot.UserUnlockState
 @InstallIn(SingletonComponent::class)
 abstract class AlarmSchedulingModule {
     @Binds
-    abstract fun bindRingingLauncher(launcher: NoOpRingingLauncher): RingingLauncher
+    abstract fun bindRingingLauncher(launcher: ServiceRingingLauncher): RingingLauncher
 
     @Binds
     abstract fun bindAlarmScheduler(scheduler: AndroidAlarmScheduler): AlarmScheduler
