@@ -49,6 +49,17 @@ import java.util.Locale
 @Composable
 fun AlarmListScreen(onEdit: (Long) -> Unit, onReliability: () -> Unit, viewModel: AlarmListViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    AlarmListContent(state, onEdit, onReliability, { alarm, enabled -> viewModel.setEnabled(alarm, enabled) }, { viewModel.delete(it) })
+}
+
+@Composable
+fun AlarmListContent(
+    state: AlarmListUiState,
+    onEdit: (Long) -> Unit,
+    onReliability: () -> Unit,
+    onEnabled: (Alarm, Boolean) -> Unit = { _, _ -> },
+    onDelete: (dev.myalarm.alarm.domain.AlarmId) -> Unit = {},
+) {
     Scaffold(floatingActionButton = {
         FloatingActionButton(onClick = { onEdit(-1) }) { Icon(Icons.Default.Add, stringResource(R.string.create_alarm)) }
     }) { padding ->
@@ -56,7 +67,7 @@ fun AlarmListScreen(onEdit: (Long) -> Unit, onReliability: () -> Unit, viewModel
             state.errorRes?.let { error -> item { SchedulingBanner(error, state.showReliabilityAction, onReliability) } }
             items(state.alarms, key = {
                 it.id.value
-            }) { alarm -> AlarmRow(alarm, { viewModel.setEnabled(alarm, it) }, { onEdit(alarm.id.value) }, { viewModel.delete(alarm.id) }) }
+            }) { alarm -> AlarmRow(alarm, { onEnabled(alarm, it) }, { onEdit(alarm.id.value) }, { onDelete(alarm.id) }) }
             if (state.alarms.isEmpty()) item { Text(stringResource(R.string.no_alarms)) }
         }
     }

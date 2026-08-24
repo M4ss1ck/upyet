@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -26,7 +27,7 @@ import java.util.Locale
 @Composable
 fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> Unit, evidenceContent: @Composable () -> Unit = {}) {
     val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(LocalConfiguration.current.locales[0])
-    val snoozeLabel = stringResource(R.string.snooze_alarm, state.snoozeMinutes)
+    val snoozeLabel = pluralStringResource(R.plurals.snooze_alarm, state.snoozeMinutes, state.snoozeMinutes)
     val dismissLabel = stringResource(R.string.dismiss_alarm)
     Column(
         Modifier.fillMaxSize().padding(24.dp),

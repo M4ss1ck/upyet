@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,7 +45,10 @@ private fun OccurrenceRow(item: HistoryViewModel.HistoryItem, formatter: DateTim
         Text(stringResource(outcomeResource(occurrence.outcome)))
         Text(stringResource(evidenceSummaryResource(item.segments)))
         val duration = item.segments.sumOf { it.durationMs ?: 0L }
-        if (duration > 0) Text(stringResource(R.string.evidence_total_duration, duration / 1000))
+        if (duration > 0) {
+            val seconds = duration / 1000
+            Text(pluralStringResource(R.plurals.evidence_total_duration, seconds.toInt(), seconds))
+        }
     }
 }
 

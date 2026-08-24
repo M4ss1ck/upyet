@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -91,10 +92,12 @@ fun AlarmEditorScreen(
         SettingSwitch(stringResource(R.string.vibration), state.vibration) { value -> viewModel.update { it.copy(vibration = value) } }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(stringResource(R.string.snooze_minutes))
-            Button(onClick = { snoozeExpanded = true }) { Text(stringResource(R.string.snooze_option, state.snoozeMinutes)) }
+            Button(onClick = {
+                snoozeExpanded = true
+            }) { Text(pluralStringResource(R.plurals.snooze_option, state.snoozeMinutes, state.snoozeMinutes)) }
             DropdownMenu(snoozeExpanded, { snoozeExpanded = false }) {
                 listOf(5, 9, 10, 15, 30).forEach { minutes ->
-                    DropdownMenuItem({ Text(stringResource(R.string.snooze_option, minutes)) }, {
+                    DropdownMenuItem({ Text(pluralStringResource(R.plurals.snooze_option, minutes, minutes)) }, {
                         viewModel.update { it.copy(snoozeMinutes = minutes) }
                         snoozeExpanded =
                             false

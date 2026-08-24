@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -52,7 +53,10 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
                     Text(stringResource(R.string.evidence_segment_index, index + 1))
                     Text(stringResource(segmentStatusResource(segment.status)))
                     segment.startedAt?.let { Text(stringResource(R.string.segment_started_at, formatter.format(it))) }
-                    segment.durationMs?.let { Text(stringResource(R.string.segment_duration, it / 1000)) }
+                    segment.durationMs?.let {
+                        val seconds = it / 1000
+                        Text(pluralStringResource(R.plurals.segment_duration, seconds.toInt(), seconds))
+                    }
                 }
             }
             item {

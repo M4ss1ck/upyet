@@ -30,6 +30,9 @@ import dev.myalarm.evidence.domain.EvidenceErrorCode
 import dev.myalarm.evidence.domain.EvidenceSegment
 import dev.myalarm.evidence.domain.EvidenceStatus
 import dev.myalarm.evidence.domain.OccurrenceRepository
+import dev.myalarm.evidence.domain.withFinalized
+import dev.myalarm.evidence.domain.withStarted
+import dev.myalarm.evidence.domain.withUnavailable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -176,7 +179,7 @@ constructor(
             is VideoRecordEvent.Start -> {
                 val startedAt = timeProvider.now()
                 segment?.let { requestedSegment ->
-                    val updated = requestedSegment.copy(startedAt = startedAt, status = EvidenceStatus.RECORDING)
+                    val updated = requestedSegment.withStarted(startedAt)
                     persist(updated)
                 }
                 _state.value = EvidenceRecordingState.Recording(startedAt, 0L)
@@ -202,12 +205,11 @@ constructor(
         if (!hasFile) file.delete()
         segment?.let { requestedSegment ->
             val now = timeProvider.now()
-            val updated = requestedSegment.copy(
-                endedAt = now,
-                finalizedAt = now,
+            val updated = requestedSegment.withFinalized(
+                at = now,
+                status = status,
                 durationMs = durationMs,
                 sizeBytes = event.recordingStats.numBytesRecorded,
-                status = status,
                 errorCode = errorCode,
             )
             persist(updated)
@@ -258,12 +260,8 @@ constructor(
 
     private fun recordingStartFailed(segment: EvidenceSegment?, file: File) {
         file.delete()
-        val updated = segment?.copy(
-            endedAt = timeProvider.now(),
-            finalizedAt = timeProvider.now(),
-            status = EvidenceStatus.FAILED,
-            errorCode = EvidenceErrorCode.RECORDING_START_FAILED,
-        )
+        val now = timeProvider.now()
+        val updated = segment?.withUnavailable(now, EvidenceStatus.FAILED, EvidenceErrorCode.RECORDING_START_FAILED)
         if (updated != null) persist(updated)
         // The segment row already carries the reason, so only the UI state needs updating here.
         _state.value = EvidenceRecordingState.Unavailable(EvidenceStatus.FAILED, EvidenceErrorCode.RECORDING_START_FAILED)
