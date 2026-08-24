@@ -50,6 +50,12 @@ Debug builds accept an adb-triggered alarm for testing:
 adb shell am broadcast -a dev.myalarm.debug.SCHEDULE --ei seconds 60 -p dev.myalarm.debug
 ```
 
+## Versioning
+
+`myalarm.version` in `gradle.properties` drives everything: `versionName`, the derived `versionCode`,
+the APK filename and the version shown in Settings. Releases are tagged `vX.Y.Z` and recorded in
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## Status
 
 Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen and camera behaviour has

@@ -15,6 +15,15 @@ plugins {
  */
 val releaseSigning: ReleaseSigningMaterial? = resolveReleaseSigning(providers)
 
+/** SemVer string from gradle.properties; the only place the version is written down. */
+val appVersionName: String = providers.gradleProperty("myalarm.version").get()
+
+/**
+ * Monotonic versionCode derived from the SemVer string: 0.1.0 -> 100, 1.2.3 -> 10203. Deriving it means a
+ * version bump can never ship with a stale code, which the Play Store and sideloaded upgrades both reject.
+ */
+val appVersionCode: Int = versionCodeOf(appVersionName)
+
 android {
     namespace = "dev.myalarm"
     compileSdk = 37
@@ -27,8 +36,8 @@ android {
         applicationId = "dev.myalarm"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -95,6 +104,15 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+// Version the artifact names so a downloaded APK is self-identifying in a bug report.
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("myalarm-$appVersionName-${variant.name}.apk")
+        }
+    }
 }
 
 dependencies {
@@ -171,6 +189,19 @@ spotless {
         target("*.gradle.kts")
         ktlint(libs.versions.ktlint.get()).editorConfigOverride(ktlintConfig)
     }
+}
+
+/** 0.1.0 -> 100, 1.2.3 -> 10203. Each component is capped at 99 so the ordering can never invert. */
+fun versionCodeOf(version: String): Int {
+    val parts = version.split(".")
+    require(parts.size == 3) { "myalarm.version must be MAJOR.MINOR.PATCH, was \"$version\"" }
+    val (major, minor, patch) =
+        parts.map { part ->
+            val number = part.toIntOrNull()
+            require(number != null && number in 0..99) { "version component out of range in \"$version\"" }
+            number
+        }
+    return major * 10_000 + minor * 100 + patch
 }
 
 class ReleaseSigningMaterial(val keystore: File, val alias: String, val password: String)

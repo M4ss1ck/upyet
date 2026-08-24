@@ -7,7 +7,8 @@ SIGNING_DIR="$HOME/.config/my-alarm/android-signing"
 KEYSTORE="$SIGNING_DIR/android-release.jks"
 CREDENTIALS="$SIGNING_DIR/credentials.env"
 ALIAS=my-alarm
-APK="$ROOT_DIR/app/build/outputs/apk/release/app-release.apk"
+VERSION=$(sed -n 's/^myalarm\.version=//p' "$ROOT_DIR/gradle.properties")
+APK="$ROOT_DIR/app/build/outputs/apk/release/myalarm-$VERSION-release.apk"
 
 # MyAlarm is pure Kotlin with no native libraries, so there is a single universal APK and none of the
 # per-ABI splitting the Tauri-based sibling projects need. Signing itself is done by AGP through the
@@ -64,6 +65,7 @@ export MY_ALARM_ANDROID_KEYSTORE MY_ALARM_ANDROID_KEY_ALIAS MY_ALARM_ANDROID_KEY
 
 "$ROOT_DIR/gradlew" -p "$ROOT_DIR" clean assembleRelease
 
+[[ -n "$VERSION" ]] || fail "myalarm.version is missing from gradle.properties"
 [[ -f "$APK" ]] || fail "release APK not found at $APK"
 
 # apksigner is the authority on whether the APK is really signed; a build whose signingConfig silently

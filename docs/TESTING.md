@@ -88,7 +88,7 @@ Then, each recorded as pass/fail with device and API level:
 # Install and launch
 ./gradlew installDebug
 # Or the signed release build (package dev.myalarm, no debug tooling):
-./scripts/build-android-release.sh && adb install -r app/build/outputs/apk/release/app-release.apk
+./scripts/build-android-release.sh && adb install -r app/build/outputs/apk/release/myalarm-*-release.apk
 adb shell am start -n dev.myalarm.debug/dev.myalarm.MainActivity
 
 # Debug-only: schedule an alarm N seconds from now (debug builds only)

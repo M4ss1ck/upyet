@@ -285,6 +285,13 @@ keystore, a password, or a signing config that embeds either.
 `ObsoleteSdkInt` for the `mipmap-anydpi-v26` adaptive icon. Do not add a lint baseline and do not silence
 these; if a new warning appears, fix its cause.
 
+### Versioning
+
+`myalarm.version` in `gradle.properties` is the single source of truth (SemVer). `versionCode` is derived
+from it (`0.1.0` → `100`), APK filenames carry it, and the Settings screen shows it so a bug report can
+name a build. Bumping a version means: edit that one property, move the `CHANGELOG.md` entries out of
+`[Unreleased]` into the new version, commit, then tag `vX.Y.Z`. Never hand-edit `versionCode`.
+
 ## 19. Agent workflow
 
 1. Read this file. 2. Read `docs/ARCHITECTURE.md` and `docs/TESTING.md` as relevant.
