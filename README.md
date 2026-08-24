@@ -1,12 +1,16 @@
-# MyAlarm
+# UpYet
 
 A native Android alarm clock that records **video evidence that you actually dismissed the alarm**.
 
-When an alarm rings, MyAlarm shows its own alarm screen over the lock screen and — only while that screen
+When an alarm rings, UpYet shows its own alarm screen over the lock screen and — only while that screen
 is visible — records a short silent video from the front camera. Later you can open the app and answer the
 question *"did I actually wake up and dismiss that alarm?"*
 
 Everything stays on the device: no account, no backend, no analytics, no network permission at all.
+
+The app is called **UpYet**. The Gradle project, the application id (`dev.myalarm`) and the
+`myalarm.version` property keep their original names: renaming them would change the installed
+application identity and the Room database file for no user-visible gain.
 
 ## Design in one paragraph
 
@@ -66,7 +70,7 @@ Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen 
 
 Copyright (C) 2026 MyAlarm contributors.
 
-MyAlarm is free software licensed under the **GNU General Public License, version 3 or later**
+UpYet is free software licensed under the **GNU General Public License, version 3 or later**
 (see [LICENSE](LICENSE)). If you distribute a modified version, you must make the corresponding source
 available under the same terms.
 
