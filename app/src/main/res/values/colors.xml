@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="icon_background">#6750A4</color>
+    <!-- The launcher tile is the brand's white squircle; the mark supplies all the colour. -->
+    <color name="icon_background">#FFFFFF</color>
+    <!-- Window backgrounds, so a cold start opens on the app's own colour rather than a white flash. -->
+    <color name="brand_mist">#F2F4F8</color>
+    <color name="brand_night">#0B0D28</color>
 </resources>

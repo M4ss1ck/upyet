@@ -13,7 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.myalarm.core.ui.theme.MyAlarmTheme
+import dev.myalarm.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +25,7 @@ class RingingScreenTest {
 
     @Test fun controlsRemainAvailableWhenEvidenceFails() {
         compose.setContent {
-            MyAlarmTheme {
+            UpYetTheme {
                 RingingScreen(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9), {}, {}) {
                     Text("Evidence unavailable", Modifier.padding(8.dp).semantics { contentDescription = "Evidence recording in progress" })
                 }

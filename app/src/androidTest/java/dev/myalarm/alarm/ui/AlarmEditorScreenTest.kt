@@ -9,7 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.myalarm.core.ui.theme.MyAlarmTheme
+import dev.myalarm.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,7 +24,7 @@ class AlarmEditorScreenTest {
 
     private fun setSmallScreenEditor(state: AlarmEditorUiState) {
         compose.setContent {
-            MyAlarmTheme {
+            UpYetTheme {
                 Box(Modifier.size(width = 320.dp, height = 480.dp)) {
                     AlarmEditorContent(state = state, isNewAlarm = true, onUpdate = {}, onSave = {}, onCancel = {})
                 }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UpYet mark: an eye whose pupil is a clock. Blue lashes and lens, ink pupil, coral hands. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="48dp"
+    android:viewportWidth="88"
+    android:viewportHeight="96">
+    <path
+        android:pathData="M44,30 V17"
+        android:strokeColor="#2563FF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M28.5,34 L22.5,23"
+        android:strokeColor="#2563FF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M59.5,34 L65.5,23"
+        android:strokeColor="#2563FF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M8,60 C20,34 68,34 80,60 C68,86 20,86 8,60 Z"
+        android:strokeColor="#2563FF"
+        android:strokeWidth="7"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M29,60 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 Z"
+        android:fillColor="#1B1E4B" />
+    <path
+        android:pathData="M44,60 V48.5"
+        android:strokeColor="#FF6B6B"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M44,60 L52.5,66.5"
+        android:strokeColor="#FF6B6B"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M41.3,60 a2.7,2.7 0 1,0 5.4,0 a2.7,2.7 0 1,0 -5.4,0 Z"
+        android:fillColor="#FFC9C9" />
+</vector>

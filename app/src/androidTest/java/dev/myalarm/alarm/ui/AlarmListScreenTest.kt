@@ -7,7 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.myalarm.alarm.domain.Alarm
 import dev.myalarm.alarm.domain.AlarmId
 import dev.myalarm.alarm.domain.Recurrence
-import dev.myalarm.core.ui.theme.MyAlarmTheme
+import dev.myalarm.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,7 +21,7 @@ class AlarmListScreenTest {
     @Test fun rendersAlarmTimeAndLabel() {
         val alarm =
             Alarm(AlarmId(1), LocalTime.of(7, 30), true, "Wake up", Recurrence.OneTime, null, true, 9, false, Instant.EPOCH, Instant.EPOCH)
-        compose.setContent { MyAlarmTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
         compose.onNodeWithText("7:30 AM").assertIsDisplayed()
         compose.onNodeWithText("Wake up").assertIsDisplayed()
     }

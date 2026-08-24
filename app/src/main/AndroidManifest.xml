@@ -22,7 +22,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyAlarm">
+        android:theme="@style/Theme.UpYet">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -40,7 +40,7 @@
             android:taskAffinity=""
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:theme="@style/Theme.MyAlarm.Ringing" />
+            android:theme="@style/Theme.UpYet.Ringing" />
         <service
             android:name=".alarm.playback.AlarmPlaybackService"
             android:exported="false"

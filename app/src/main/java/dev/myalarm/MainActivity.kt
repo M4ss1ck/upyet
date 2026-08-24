@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
-import dev.myalarm.core.ui.theme.MyAlarmTheme
+import dev.myalarm.core.ui.theme.UpYetTheme
 import dev.myalarm.navigation.MyAlarmNavHost
 
 @AndroidEntryPoint
@@ -16,6 +16,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel
-        setContent { MyAlarmTheme { MyAlarmNavHost() } }
+        setContent { UpYetTheme { MyAlarmNavHost() } }
     }
 }

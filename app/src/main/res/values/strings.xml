@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MyAlarm</string>
+    <string name="app_name">UpYet</string>
     <string name="alarm_channel_name">Alarm ringing</string>
     <string name="alarm_ringing_title">Alarm ringing</string>
-    <string name="alarm_ringing_text">Wake up</string>
+    <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
     <plurals name="snooze_alarm"><item quantity="one">Snooze %1$d minute</item><item quantity="other">Snooze %1$d minutes</item></plurals>
     <string name="dismiss_alarm">Dismiss alarm</string>
     <string name="evidence_recording">Recording evidence</string>
@@ -20,7 +20,7 @@
     <string name="create_alarm">Create alarm</string>
     <string name="warning">Warning</string>
     <string name="reliability">Reliability</string>
-    <string name="no_alarms">No alarms yet</string>
+    <string name="no_alarms">Nothing set. Sleep well.</string>
     <string name="unnamed_alarm">Unnamed alarm</string>
     <string name="delete">Delete</string>
     <string name="reliability_exact">Exact alarms</string>
@@ -38,7 +38,7 @@
     <string name="reliability_no_next_alarm">No alarm is currently scheduled</string>
     <string name="reliability_battery">Battery optimization</string>
     <string name="reliability_battery_active">Exemption is active</string>
-    <string name="reliability_battery_informational">Optimization status is informational; no exemption is requested</string>
+    <string name="reliability_battery_informational">Informational only — UpYet never asks for an exemption</string>
     <string name="recurrence_one_time">One-time</string>
     <string name="recurrence_daily">Every day</string>
     <string name="recurrence_weekdays">%1$s</string>
@@ -49,7 +49,7 @@
     <string name="evidence">Evidence</string>
     <string name="snooze_minutes">Snooze minutes</string>
     <string name="ringtone">Ringtone</string>
-    <string name="save">Save</string>
+    <string name="save">Save alarm</string>
     <string name="cancel">Cancel</string>
     <string name="delete_alarm_title">Delete alarm?</string>
     <string name="delete_alarm_message">Past occurrences and evidence will be kept.</string>
@@ -68,7 +68,7 @@
     <string name="evidence_retention">Evidence retention</string>
     <string name="default_vibration">Default vibration</string>
     <string name="evidence_by_default">Evidence by default</string>
-    <string name="permission_onboarding">Enable alarm notifications and camera evidence</string>
+    <string name="permission_onboarding">Grant permissions</string>
     <string name="occurrence_details">Occurrence details</string>
     <string name="outcome_ringing">Ringing</string>
     <string name="outcome_dismissed">Dismissed</string>
@@ -108,9 +108,85 @@
     <string name="segment_skipped">Skipped</string>
     <string name="delete_occurrence_title">Delete occurrence?</string>
     <string name="delete_occurrence_message">Evidence files and metadata will be deleted.</string>
-    <string name="permission_onboarding_title">Finish setting up MyAlarm</string>
-    <string name="permission_onboarding_explanation">Notifications let the alarm show over the lock screen, and the camera records the evidence that you dismissed it. Nothing is recorded outside a ringing alarm and nothing leaves this device.</string>
+    <string name="permission_onboarding_title">Two permissions to go</string>
+    <string name="permission_onboarding_explanation">Notifications let the alarm take over your lock screen. The camera records the proof. Nothing is recorded outside a ringing alarm, and nothing leaves this phone.</string>
     <string name="default_snooze">Default snooze</string>
-    <string name="app_version">Version %1$s (%2$d)</string>
+    <string name="app_version">UpYet %1$s (%2$d) · GPL-3.0-or-later</string>
     <string name="edit_alarm">Edit alarm</string>
+    <!-- Brand -->
+    <string name="brand_mark_description">UpYet</string>
+
+    <!-- Alarm list -->
+    <string name="next_alarm">Next alarm</string>
+    <string name="next_alarm_today">Today</string>
+    <string name="next_alarm_tomorrow">Tomorrow</string>
+    <string name="next_alarm_when">%1$s · %2$s</string>
+    <string name="rings_in_hours_minutes">rings in %1$d h %2$d m</string>
+    <plurals name="rings_in_minutes">
+        <item quantity="one">rings in %1$d minute</item>
+        <item quantity="other">rings in %1$d minutes</item>
+    </plurals>
+    <string name="rings_now">ringing about now</string>
+    <string name="no_alarms_body">Set your first alarm and UpYet will keep the receipt — a short clip of you actually turning it off.</string>
+    <string name="create_first_alarm">Set your first alarm</string>
+    <string name="your_alarms">Your alarms</string>
+    <string name="alarms_enabled_count">%1$d of %2$d on</string>
+    <string name="evidence_on">Evidence on</string>
+    <string name="alarm_never_repeats">Does not repeat</string>
+
+    <!-- Alarm editor -->
+    <string name="repeat_once">Once</string>
+    <string name="repeat_daily">Daily</string>
+    <string name="repeat_custom">Custom</string>
+    <string name="evidence_explanation">Records silently from the front camera while the alarm screen is up. Stays on this device.</string>
+    <string name="delete_alarm">Delete alarm</string>
+
+    <!-- Ringing -->
+    <string name="dismiss_alarm_action">I’m up — dismiss</string>
+    <string name="evidence_privacy_note">Silent recording, only while this screen is up. Never leaves your phone.</string>
+
+    <!-- History -->
+    <string name="history_subtitle">Proof of every alarm you dismissed</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_filter_dismissed">Dismissed</string>
+    <string name="history_filter_snoozed">Snoozed</string>
+    <string name="history_filter_missed">Missed</string>
+    <string name="history_today">Today</string>
+    <string name="history_yesterday">Yesterday</string>
+    <string name="history_earlier">Earlier</string>
+    <string name="history_empty">No alarms have rung yet.</string>
+    <string name="history_filter_empty">Nothing matches this filter.</string>
+    <plurals name="evidence_clip_count">
+        <item quantity="one">%1$d clip</item>
+        <item quantity="other">%1$d clips</item>
+    </plurals>
+
+    <!-- Occurrence detail -->
+    <string name="occurrence_timeline">What happened</string>
+    <string name="timeline_scheduled">Scheduled for</string>
+    <string name="timeline_rang">Alarm rang</string>
+    <string name="timeline_screen_visible">Alarm screen appeared</string>
+    <string name="timeline_dismissed">You dismissed it</string>
+    <string name="delete_occurrence_caption">Deletes the clip and its metadata. Cannot be undone.</string>
+    <string name="delete_occurrence">Delete this occurrence</string>
+    <string name="evidence_clip_position">Clip %1$d of %2$d</string>
+
+    <!-- Settings -->
+    <string name="settings_defaults">Alarm defaults</string>
+    <string name="settings_evidence">Evidence</string>
+    <string name="settings_about">About</string>
+    <string name="evidence_by_default_summary">New alarms record evidence unless you turn it off</string>
+    <string name="evidence_retention_summary">Older clips are deleted automatically</string>
+
+    <!-- Reliability -->
+    <string name="reliability_checks">Checks</string>
+    <string name="reliability_all_good">All %1$d checks pass</string>
+    <plurals name="reliability_needs_attention">
+        <item quantity="one">%1$d of %2$d checks needs you</item>
+        <item quantity="other">%1$d of %2$d checks need you</item>
+    </plurals>
+    <string name="reliability_summary_body">Your alarm will still ring. Anything flagged here affects the evidence, not the alarm itself.</string>
+    <string name="reliability_all_good_body">Alarms are scheduled exactly and evidence can record.</string>
+    <string name="open_app_settings">Open settings</string>
+    <string name="back">Back</string>
 </resources>

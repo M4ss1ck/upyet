@@ -15,7 +15,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.myalarm.core.logging.AlarmLog
-import dev.myalarm.core.ui.theme.MyAlarmTheme
+import dev.myalarm.core.ui.theme.UpYetTheme
 import dev.myalarm.evidence.ui.EvidencePreview
 import dev.myalarm.evidence.ui.RecordingIndicator
 
@@ -42,7 +42,7 @@ class RingingActivity : ComponentActivity() {
             },
         )
         setContent {
-            MyAlarmTheme {
+            UpYetTheme {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 val evidenceState by viewModel.evidenceState.collectAsStateWithLifecycle()
                 val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()

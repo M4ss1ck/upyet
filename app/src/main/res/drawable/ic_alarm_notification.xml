@@ -1,10 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon: a white silhouette of the mark; the system applies its own tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
+    android:viewportWidth="96"
+    android:viewportHeight="96"
     android:tint="#FFFFFF">
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M12,22c4.42,0 8,-3.58 8,-8s-3.58,-8 -8,-8 -8,3.58 -8,8 3.58,8 8,8zM12.5,10v4.25l3.5,2.08 -0.75,1.23L11,15V10h1.5zM7.88,3.39L6.6,1.86 2,5.71l1.29,1.53 4.59,-3.85zM22,5.72l-4.6,-3.86 -1.29,1.53 4.6,3.86L22,5.72z"/>
+    <group android:translateX="4">
+        <path
+            android:pathData="M44,30 V17"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="7"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M28.5,34 L22.5,23"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="7"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M59.5,34 L65.5,23"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="7"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M8,60 C20,34 68,34 80,60 C68,86 20,86 8,60 Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="8"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M29,60 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 Z"
+            android:fillColor="#FFFFFF" />
+    </group>
 </vector>

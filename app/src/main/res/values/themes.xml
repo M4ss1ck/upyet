@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MyAlarm" parent="@android:style/Theme.Material.Light.NoActionBar" />
-    <style name="Theme.MyAlarm.Ringing" parent="Theme.MyAlarm">
+    <style name="Theme.UpYet" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/brand_mist</item>
+    </style>
+    <!-- Ringing is always dark, whatever the system theme, so its window starts dark too. -->
+    <style name="Theme.UpYet.Ringing" parent="Theme.UpYet">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">@color/brand_night</item>
     </style>
 </resources>
