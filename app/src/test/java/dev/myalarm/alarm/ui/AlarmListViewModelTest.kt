@@ -17,8 +17,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -37,11 +37,11 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = false)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler(SchedulingResult.ExactAlarmsUnavailable)
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler)
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
 
         viewModel.setEnabled(alarm, true)
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(viewModel.state.value.alarms.single().enabled).isFalse()
         assertThat(viewModel.state.value.errorRes).isEqualTo(R.string.alarm_scheduling_exact_unavailable)
@@ -52,14 +52,14 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = false)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler(SchedulingResult.ExactAlarmsUnavailable)
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler)
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
         viewModel.setEnabled(alarm, true)
-        advanceUntilIdle()
+        runCurrent()
 
         scheduler.result = SchedulingResult.Scheduled
         viewModel.setEnabled(alarm, true)
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(viewModel.state.value.errorRes).isNull()
         assertThat(viewModel.state.value.alarms.single().enabled).isTrue()
@@ -70,17 +70,31 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = true)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler)
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
 
         viewModel.delete(alarm.id)
-        advanceUntilIdle()
+        runCurrent()
 
         assertThat(scheduler.cancelled).containsExactly(
             alarm.id to AlarmOccurrenceKind.MAIN,
             alarm.id to AlarmOccurrenceKind.SNOOZE,
         )
         assertThat(repository.deleted).containsExactly(alarm.id)
+        observer.cancel()
+    }
+
+    @Test fun stateExposesNextAlarmForTheSoonestEnabledAlarm() = runTest {
+        val alarm = alarm(enabled = true)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val scheduler = FakeAlarmScheduler()
+        val timeProvider = FixedTimeProvider()
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, timeProvider)
+        val observer = launch { viewModel.state.collect {} }
+        runCurrent()
+
+        assertThat(viewModel.state.value.nextAlarm?.time).isEqualTo(alarm.time)
+        assertThat(viewModel.state.value.nextAlarm?.label).isEqualTo(alarm.label)
         observer.cancel()
     }
 

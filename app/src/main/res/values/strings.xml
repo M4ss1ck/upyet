@@ -39,14 +39,8 @@
     <string name="reliability_battery">Battery optimization</string>
     <string name="reliability_battery_active">Exemption is active</string>
     <string name="reliability_battery_informational">Informational only — UpYet never asks for an exemption</string>
-    <string name="recurrence_one_time">One-time</string>
-    <string name="recurrence_daily">Every day</string>
-    <string name="recurrence_weekdays">%1$s</string>
     <string name="alarm_label">Label</string>
-    <string name="daily">Daily</string>
-    <string name="one_time">One-time</string>
     <string name="vibration">Vibration</string>
-    <string name="evidence">Evidence</string>
     <string name="snooze_minutes">Snooze minutes</string>
     <string name="ringtone">Ringtone</string>
     <string name="save">Save alarm</string>
@@ -59,7 +53,6 @@
     <string name="alarm_scheduling_failed">The alarm could not be scheduled.</string>
     <string name="alarm_enabled_description">Enable alarm</string>
     <string name="more_options">More options</string>
-    <string name="alarm_time">Alarm time</string>
     <string name="recurrence">Recurrence</string>
     <plurals name="snooze_option"><item quantity="one">%1$d minute</item><item quantity="other">%1$d minutes</item></plurals>
     <string name="status_ok">OK</string>
@@ -133,6 +126,7 @@
     <string name="alarms_enabled_count">%1$d of %2$d on</string>
     <string name="evidence_on">Evidence on</string>
     <string name="alarm_never_repeats">Does not repeat</string>
+    <string name="new_alarm">Alarm</string>
 
     <!-- Alarm editor -->
     <string name="repeat_once">Once</string>
@@ -140,6 +134,7 @@
     <string name="repeat_custom">Custom</string>
     <string name="evidence_explanation">Records silently from the front camera while the alarm screen is up. Stays on this device.</string>
     <string name="delete_alarm">Delete alarm</string>
+    <string name="video_evidence">Video evidence</string>
 
     <!-- Ringing -->
     <string name="dismiss_alarm_action">I’m up — dismiss</string>

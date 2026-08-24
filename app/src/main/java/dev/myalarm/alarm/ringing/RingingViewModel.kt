@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
 
@@ -33,6 +34,7 @@ enum class RingingPhase { LOADING, RINGING, ENDED }
 data class RingingUiState(
     val phase: RingingPhase = RingingPhase.LOADING,
     val currentTime: LocalTime = LocalTime.MIDNIGHT,
+    val currentDate: LocalDate = LocalDate.of(1970, 1, 1),
     val scheduledTime: LocalTime = LocalTime.MIDNIGHT,
     val label: String? = null,
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
@@ -78,6 +80,7 @@ constructor(
                     else -> RingingPhase.LOADING
                 },
                 currentTime = now.atZone(zone).toLocalTime(),
+                currentDate = now.atZone(zone).toLocalDate(),
                 scheduledTime =
                 session?.scheduledFor?.atZone(zone)?.toLocalTime()
                     ?: LocalTime.MIDNIGHT,

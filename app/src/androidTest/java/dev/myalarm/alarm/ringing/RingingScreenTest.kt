@@ -32,7 +32,7 @@ class RingingScreenTest {
             }
         }
         compose.onNodeWithText("Snooze 9 minutes").assertIsEnabled().assertHasClickAction()
-        compose.onNodeWithText("Dismiss alarm").assertIsEnabled().assertHasClickAction()
+        compose.onNodeWithContentDescription("Dismiss alarm").assertIsEnabled().assertHasClickAction()
         compose.onNodeWithContentDescription("Evidence recording in progress").assertIsDisplayed()
     }
 }

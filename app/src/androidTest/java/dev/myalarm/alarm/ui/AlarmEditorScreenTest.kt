@@ -34,12 +34,12 @@ class AlarmEditorScreenTest {
 
     @Test fun saveAndCancelStayVisibleOnASmallScreen() {
         setSmallScreenEditor(AlarmEditorUiState(isLoaded = true))
-        compose.onNodeWithText("Save").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("Save alarm").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithText("Cancel").assertIsDisplayed().assertHasClickAction()
     }
 
     @Test fun saveIsDisabledUntilTheAlarmHasLoaded() {
         setSmallScreenEditor(AlarmEditorUiState(isLoaded = false))
-        compose.onNodeWithText("Save").assertIsDisplayed()
+        compose.onNodeWithText("Save alarm").assertIsDisplayed()
     }
 }
