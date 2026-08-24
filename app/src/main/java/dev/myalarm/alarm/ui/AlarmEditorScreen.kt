@@ -34,10 +34,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.myalarm.R
 import dev.myalarm.alarm.domain.Recurrence
+import dev.myalarm.core.ui.currentLocale
 import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.TextStyle
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +84,7 @@ fun AlarmEditorScreen(
                         val days = selectedDays.toMutableSet().apply { if (!remove(day)) add(day) }
                         if (days.isNotEmpty()) viewModel.update { it.copy(recurrence = Recurrence.Weekly(days)) }
                     },
-                    label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) },
+                    label = { Text(day.getDisplayName(TextStyle.SHORT, currentLocale())) },
                 )
             }
         }

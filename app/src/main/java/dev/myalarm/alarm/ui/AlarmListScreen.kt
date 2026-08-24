@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.myalarm.R
 import dev.myalarm.alarm.domain.Alarm
 import dev.myalarm.alarm.domain.Recurrence
+import dev.myalarm.core.ui.currentLocale
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
@@ -75,7 +76,7 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
     var showDelete by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().clickable(onClick = onEdit).padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Column(Modifier.weight(1f)) {
-            Text(alarm.time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())))
+            Text(alarm.time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(currentLocale())))
             Text(alarm.label.ifBlank { stringResource(R.string.unnamed_alarm) })
             val recurrenceText = when (val recurrence = alarm.recurrence) {
                 is Recurrence.Weekly -> stringResource(

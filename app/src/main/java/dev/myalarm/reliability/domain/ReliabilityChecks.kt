@@ -2,9 +2,13 @@ package dev.myalarm.reliability.domain
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.PowerManager
+import android.provider.Settings
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.myalarm.R
 import dev.myalarm.alarm.scheduling.AlarmScheduler
@@ -33,18 +37,16 @@ class ReliabilityChecks @Inject constructor(
             R.string.reliability_notifications,
             if (notifications.areNotificationsEnabled()) ReliabilityStatus.OK else ReliabilityStatus.BLOCKED,
             R.string.reliability_notifications_explanation,
-            settingsIntent = android.content.Intent(
-                android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS,
-            ).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName),
+            settingsIntent = Intent(
+                Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+            ).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
         ),
         ReliabilityCheck(
             "fullscreen",
             R.string.reliability_fullscreen,
             if (notifications.canUseFullScreenIntent()) ReliabilityStatus.OK else ReliabilityStatus.WARNING,
             R.string.reliability_fullscreen_explanation,
-            settingsIntent = android.content.Intent(
-                android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-            ).setData(android.net.Uri.parse("package:${context.packageName}")),
+            settingsIntent = fullScreenIntentSettings(),
         ),
         ReliabilityCheck(
             "camera",
@@ -57,9 +59,9 @@ class ReliabilityChecks @Inject constructor(
                 ReliabilityStatus.WARNING
             },
             R.string.reliability_camera_explanation,
-            settingsIntent = android.content.Intent(
-                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            ).setData(android.net.Uri.parse("package:${context.packageName}")),
+            settingsIntent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            ).setData("package:${context.packageName}".toUri()),
         ),
         batteryCheck(),
         ReliabilityCheck(
@@ -76,6 +78,16 @@ class ReliabilityChecks @Inject constructor(
             scheduler.nextScheduledTrigger(),
         ),
     )
+
+    /**
+     * The dedicated full-screen-intent settings screen only exists from API 34; below it the permission is
+     * granted by the platform, so the app's notification settings are the closest useful destination.
+     */
+    private fun fullScreenIntentSettings(): Intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).setData("package:${context.packageName}".toUri())
+    } else {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+    }
 
     private fun batteryCheck(): ReliabilityCheck {
         val manager = context.getSystemService(PowerManager::class.java)

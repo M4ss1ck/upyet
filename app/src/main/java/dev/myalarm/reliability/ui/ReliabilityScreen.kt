@@ -21,12 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.myalarm.R
+import dev.myalarm.core.ui.currentLocale
 import dev.myalarm.reliability.domain.ReliabilityCheck
 import dev.myalarm.reliability.domain.ReliabilityStatus
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.Locale
 
 @Composable
 fun ReliabilityScreen(onBack: () -> Unit, viewModel: ReliabilityViewModel = hiltViewModel()) {
@@ -56,7 +56,7 @@ private fun ReliabilityRow(check: ReliabilityCheck, openSettings: () -> Unit) {
         val explanation = check.value?.let {
             DateTimeFormatter.ofLocalizedDateTime(
                 FormatStyle.MEDIUM,
-            ).withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault()).format(it)
+            ).withLocale(currentLocale()).withZone(ZoneId.systemDefault()).format(it)
         }
         Text(
             when {

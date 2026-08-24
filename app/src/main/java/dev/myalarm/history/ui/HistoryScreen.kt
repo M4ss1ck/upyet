@@ -15,19 +15,19 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.myalarm.R
+import dev.myalarm.core.ui.currentLocale
 import dev.myalarm.evidence.domain.AlarmOccurrence
 import dev.myalarm.evidence.domain.OccurrenceOutcome
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.Locale
 
 @Composable
 fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
     val occurrences by viewModel.occurrences.collectAsStateWithLifecycle()
     val formatter = DateTimeFormatter.ofLocalizedDateTime(
         FormatStyle.MEDIUM,
-    ).withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault())
+    ).withLocale(currentLocale()).withZone(ZoneId.systemDefault())
     LazyColumn(Modifier.fillMaxSize().padding(16.dp)) {
         items(occurrences, key = { it.occurrence.id.value }) { item -> OccurrenceRow(item, formatter) { onOpen(item.occurrence.id.value) } }
     }
