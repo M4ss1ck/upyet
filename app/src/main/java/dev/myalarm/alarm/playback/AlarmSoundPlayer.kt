@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.provider.Settings
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.myalarm.core.logging.AlarmLog
 import java.io.IOException
@@ -32,7 +33,7 @@ class AlarmSoundPlayer @Inject constructor(@ApplicationContext private val conte
                             AudioAttributes.USAGE_ALARM,
                         ).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
                     )
-                    setDataSource(context, android.net.Uri.parse(candidate))
+                    setDataSource(context, candidate.toUri())
                     isLooping = true
                     prepare()
                     start()

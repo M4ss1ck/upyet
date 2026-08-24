@@ -22,7 +22,6 @@
     <string name="reliability">Reliability</string>
     <string name="no_alarms">No alarms yet</string>
     <string name="unnamed_alarm">Unnamed alarm</string>
-    <string name="edit">Edit</string>
     <string name="delete">Delete</string>
     <string name="reliability_exact">Exact alarms</string>
     <string name="reliability_exact_explanation">Alarm clock scheduling access</string>
@@ -52,26 +51,20 @@
     <string name="ringtone">Ringtone</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
-    <string name="edit_alarm">Edit alarm</string>
     <string name="delete_alarm_title">Delete alarm?</string>
     <string name="delete_alarm_message">Past occurrences and evidence will be kept.</string>
     <string name="confirm_delete">Delete</string>
-    <string name="dismiss">Dismiss</string>
     <string name="open_reliability">Open reliability</string>
-    <string name="alarm_not_scheduled">Alarm was not scheduled.</string>
     <string name="alarm_scheduling_exact_unavailable">Exact alarm access is unavailable.</string>
     <string name="alarm_scheduling_failed">The alarm could not be scheduled.</string>
     <string name="alarm_enabled_description">Enable alarm</string>
     <string name="more_options">More options</string>
     <string name="alarm_time">Alarm time</string>
-    <string name="ringtone_default">Default ringtone</string>
-    <string name="no_value">None</string>
     <string name="recurrence">Recurrence</string>
     <plurals name="snooze_option"><item quantity="one">%1$d minute</item><item quantity="other">%1$d minutes</item></plurals>
     <string name="status_ok">OK</string>
     <string name="status_warning">Warning</string>
     <string name="status_blocked">Blocked</string>
-    <string name="evidence_segments">Evidence segments</string>
     <string name="evidence_retention">Evidence retention</string>
     <string name="default_vibration">Default vibration</string>
     <string name="evidence_by_default">Evidence by default</string>

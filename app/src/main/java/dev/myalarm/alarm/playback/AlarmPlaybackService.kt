@@ -5,6 +5,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.ServiceCompat
@@ -83,7 +84,7 @@ class AlarmPlaybackService : Service() {
             this,
             AlarmNotifications.NOTIFICATION_ID_RINGING,
             notifications.buildRingingNotification(current?.label, unlocked),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+            foregroundServiceType(),
         )
         when (intent?.action) {
             ACTION_START -> startRinging(intent, unlocked)
@@ -93,6 +94,10 @@ class AlarmPlaybackService : Service() {
         }
         return START_NOT_STICKY
     }
+
+    /** Foreground-service types only exist from API 29; below that the platform expects no type at all. */
+    private fun foregroundServiceType(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
 
     private fun startRinging(intent: Intent, unlocked: Boolean) {
         val alarmId = AlarmId(intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ID))

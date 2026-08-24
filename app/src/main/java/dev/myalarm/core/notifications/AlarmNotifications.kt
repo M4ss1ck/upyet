@@ -18,7 +18,6 @@ import javax.inject.Singleton
 @Singleton
 class AlarmNotifications @Inject constructor(@ApplicationContext private val context: Context) {
     fun ensureChannels() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             CHANNEL_RINGING,
             context.getString(R.string.alarm_channel_name),

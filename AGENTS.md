@@ -123,7 +123,9 @@ Component responsibilities:
 * Local-time semantics: "07:30 Mon–Fri" means 07:30 in the user's current zone on those
   weekdays, across DST gaps/overlaps and timezone changes.
 * Re-evaluate all alarms on: `BOOT_COMPLETED`, `LOCKED_BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`,
-  `TIME_SET`, `TIMEZONE_CHANGED`, and exact-alarm permission state changes.
+  `TIME_SET`, `TIMEZONE_CHANGED`, user unlock, exact-alarm permission state changes, and **every app
+  launch** (`MainViewModel`) — the only supported recovery after a force stop, which the platform does not
+  announce. Rescheduling is idempotent, so repeating it is safe.
 * PendingIntent identity is deterministic and collision-safe (derived from the alarm id
   and occurrence kind), so rescheduling replaces rather than duplicates.
 * Exact-alarm access: the app declares `USE_EXACT_ALARM` (it is a genuine alarm clock).
@@ -250,6 +252,12 @@ only.
   kill, reboot with and without unlock, and camera failure modes.
 * New behavior ships with tests. Never delete or `@Ignore` a failing test to go green.
 
+## 17b. Housekeeping on launch
+
+`MainViewModel` runs exactly two things once per launch: `AlarmRescheduler.rescheduleAll()` (force-stop
+recovery) and `RetentionCleaner.clean()` (evidence retention). Neither may become a background worker, and
+neither may block the first frame.
+
 ## 18. Required validation commands
 
 ```bash
@@ -262,6 +270,15 @@ only.
 
 Instrumented tests when a device/emulator is available:
 `./gradlew connectedDebugAndroidTest`.
+
+### Known remaining lint warnings (deliberate)
+
+`./gradlew lint` reports zero errors. Thirteen warnings remain and each is intentional:
+`NewerVersionAvailable` / `GradleDependency` (the version catalog is pinned on purpose),
+`OldTargetApi` (targetSdk 36 is the product requirement), `UnusedAttribute` for
+`showWhenLocked`/`turnScreenOn` (the equivalent APIs are called at runtime for API 26), and
+`ObsoleteSdkInt` for the `mipmap-anydpi-v26` adaptive icon. Do not add a lint baseline and do not silence
+these; if a new warning appears, fix its cause.
 
 ## 19. Agent workflow
 

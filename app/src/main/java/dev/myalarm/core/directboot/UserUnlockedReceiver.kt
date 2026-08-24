@@ -24,6 +24,7 @@ class UserUnlockedReceiver : BroadcastReceiver() {
 
     @Inject lateinit var userUnlockState: UserUnlockState
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_USER_UNLOCKED) return
         val pending = goAsync()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope.launch {

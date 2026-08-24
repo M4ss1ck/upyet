@@ -175,9 +175,9 @@ composables; navigation confined to the NavHost. The ringing screen additionally
   time, so evidence is modelled as segments rather than a single guaranteed file.
 * **Direct Boot.** Credential-protected storage is unreadable before first unlock, so the alarm path
   cannot depend on Room.
-* **Force stop.** A force-stopped app loses its alarms and cannot restart itself. The app detects the
-  gap on next launch (missed occurrences / no scheduled alarms) and reschedules, and never uses restart
-  hacks.
+* **Force stop.** A force-stopped app loses its alarms and cannot restart itself; Android offers no
+  callback for it. `MainViewModel` therefore re-arms every enabled alarm on each launch — idempotent
+  scheduling makes that safe — and the app never uses restart hacks.
 
 ## 9. Why the major choices were made
 

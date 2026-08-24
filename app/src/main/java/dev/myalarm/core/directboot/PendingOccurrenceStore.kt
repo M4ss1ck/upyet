@@ -1,6 +1,7 @@
 package dev.myalarm.core.directboot
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.myalarm.alarm.domain.AlarmId
 import java.time.Instant
@@ -30,11 +31,11 @@ class PendingOccurrenceStore @Inject constructor(@ApplicationContext context: Co
     fun append(record: PendingOccurrence) {
         val values = all().filterNot { it.alarmId == record.alarmId && it.scheduledFor == record.scheduledFor } + record
         val kept = values.sortedBy { it.triggeredAt }.takeLast(MAX_RECORDS)
-        preferences.edit().putStringSet(KEY, kept.map(::encode).toSet()).apply()
+        preferences.edit { putStringSet(KEY, kept.map(::encode).toSet()) }
     }
     fun all(): List<PendingOccurrence> = preferences.getStringSet(KEY, emptySet()).orEmpty().mapNotNull(::decode)
     fun clear() {
-        preferences.edit().remove(KEY).apply()
+        preferences.edit { remove(KEY) }
     }
     private fun encode(r: PendingOccurrence) = listOf(
         r.alarmId.value,

@@ -2,6 +2,7 @@ package dev.myalarm.core.directboot
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.myalarm.alarm.domain.AlarmId
 import dev.myalarm.alarm.scheduling.AlarmOccurrenceKind
@@ -35,23 +36,24 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
         .getSharedPreferences("alarm_mirror", Context.MODE_PRIVATE)
 
     override fun put(record: MirroredAlarm) {
-        preferences.edit().putString(
-            key(record.alarmId, record.kind),
-            listOf(
-                record.triggerAt.toEpochMilli(),
-                record.snoozeMinutes,
-                record.vibrationEnabled,
-                record.soundUri ?: "",
-                record.minuteOfDay,
-                record.recurrenceType,
-                record.weekdayMask,
-            ).joinToString("|"),
-        )
-            .apply()
+        preferences.edit {
+            putString(
+                key(record.alarmId, record.kind),
+                listOf(
+                    record.triggerAt.toEpochMilli(),
+                    record.snoozeMinutes,
+                    record.vibrationEnabled,
+                    record.soundUri ?: "",
+                    record.minuteOfDay,
+                    record.recurrenceType,
+                    record.weekdayMask,
+                ).joinToString("|"),
+            )
+        }
     }
 
     override fun remove(alarmId: AlarmId, kind: AlarmOccurrenceKind) {
-        preferences.edit().remove(key(alarmId, kind)).apply()
+        preferences.edit { remove(key(alarmId, kind)) }
     }
 
     override fun all(): List<MirroredAlarm> = preferences.all.mapNotNull { (key, value) ->
@@ -78,7 +80,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
 
     override fun nextTrigger(): Instant? = all().minOfOrNull { it.triggerAt }
     override fun clear() {
-        preferences.edit().clear().apply()
+        preferences.edit { clear() }
     }
     private fun key(alarmId: AlarmId, kind: AlarmOccurrenceKind) = "alarm:${alarmId.value}:${kind.name}"
 }
