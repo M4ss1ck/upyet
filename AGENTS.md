@@ -233,6 +233,12 @@ magic constants, stringly-typed state, giant managers/ViewModels/composables, pu
 mutable state, hidden side effects, fire-and-forget coroutines, reflection, and premature
 abstraction. Comments explain *why* and platform constraints, not syntax.
 
+### License
+
+MyAlarm is AGPL-3.0-or-later. Every dependency must be license-compatible with that (Apache-2.0, MIT,
+BSD and similar permissive terms are; anything copyleft-incompatible or proprietary is not). Do not copy
+substantial code from other projects without checking its license and recording the attribution.
+
 ## 16. Dependency policy
 
 Before adding a dependency: check whether the platform or AndroidX already provides it,

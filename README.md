@@ -62,6 +62,17 @@ Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen 
 **not** been verified on a physical device in this repository's history — see the matrix in
 [`docs/TESTING.md`](docs/TESTING.md) for what still needs to be run on real hardware.
 
+## License
+
+Copyright (C) 2026 MyAlarm contributors.
+
+MyAlarm is free software licensed under the **GNU Affero General Public License, version 3 or later**
+(see [LICENSE](LICENSE)). If you distribute a modified version — or ever run one as a network service —
+you must make the corresponding source available under the same terms.
+
+Dependencies are Apache-2.0 / MIT-family (AndroidX, Google, JetBrains), which combine into an AGPLv3 work
+one-way: their code may be used here, but this project's terms govern the result.
+
 ## Stack
 
 Kotlin, Jetpack Compose + Material 3, Hilt, Room, DataStore, CameraX, Media3, `java.time`,
