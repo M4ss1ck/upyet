@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they are now pinned outside the scrolling area
 
 ### Added
-- AGPL-3.0-or-later license
+- GPL-3.0-or-later license
 - Default snooze duration setting and an app-version row in Settings
 - Compose regression test asserting Save stays reachable in a small viewport
 

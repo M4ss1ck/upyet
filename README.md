@@ -66,11 +66,11 @@ Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen 
 
 Copyright (C) 2026 MyAlarm contributors.
 
-MyAlarm is free software licensed under the **GNU Affero General Public License, version 3 or later**
-(see [LICENSE](LICENSE)). If you distribute a modified version — or ever run one as a network service —
-you must make the corresponding source available under the same terms.
+MyAlarm is free software licensed under the **GNU General Public License, version 3 or later**
+(see [LICENSE](LICENSE)). If you distribute a modified version, you must make the corresponding source
+available under the same terms.
 
-Dependencies are Apache-2.0 / MIT-family (AndroidX, Google, JetBrains), which combine into an AGPLv3 work
+Dependencies are Apache-2.0 / MIT-family (AndroidX, Google, JetBrains), which combine into a GPLv3 work
 one-way: their code may be used here, but this project's terms govern the result.
 
 ## Stack
