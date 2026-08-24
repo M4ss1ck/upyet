@@ -6,6 +6,15 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
+/**
+ * Release signing material lives outside the repository, the same way the sibling projects do it:
+ * `~/.config/my-alarm/android-signing/{android-release.jks,credentials.env}`, created on first run by
+ * `scripts/build-android-release.sh`. Environment variables take precedence so CI can inject secrets
+ * without writing the file. When nothing is configured the release build stays unsigned rather than
+ * failing, so `assembleRelease` still works for lint/CI smoke builds.
+ */
+val releaseSigning: ReleaseSigningMaterial? = resolveReleaseSigning(providers)
+
 android {
     namespace = "dev.myalarm"
     compileSdk = 37
@@ -24,8 +33,20 @@ android {
             "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        releaseSigning?.let { material ->
+            create("release") {
+                storeFile = material.keystore
+                storePassword = material.password
+                keyAlias = material.alias
+                keyPassword = material.password
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -150,4 +171,42 @@ spotless {
         target("*.gradle.kts")
         ktlint(libs.versions.ktlint.get()).editorConfigOverride(ktlintConfig)
     }
+}
+
+class ReleaseSigningMaterial(val keystore: File, val alias: String, val password: String)
+
+/**
+ * Reads the signing material from the environment first and from the shared credentials file second.
+ * Both are read through [ProviderFactory] so the configuration cache tracks them as build inputs.
+ */
+fun resolveReleaseSigning(providers: ProviderFactory): ReleaseSigningMaterial? {
+    val credentialsFile = File(System.getProperty("user.home"), ".config/my-alarm/android-signing/credentials.env")
+    val fileValues =
+        providers
+            .fileContents(layout.projectDirectory.file(credentialsFile.absolutePath))
+            .asText
+            .orNull
+            ?.lineSequence()
+            ?.mapNotNull { line ->
+                val separator = line.indexOf('=')
+                if (separator <= 0 || line.startsWith("#")) {
+                    null
+                } else {
+                    // printf %q may quote values; the shell forms we emit are plain or single-quoted.
+                    line.substring(0, separator).trim() to line.substring(separator + 1).trim().trim('\'')
+                }
+            }?.toMap()
+            .orEmpty()
+
+    fun value(name: String): String? = providers.environmentVariable(name).orNull ?: fileValues[name]
+
+    val keystorePath = value("MY_ALARM_ANDROID_KEYSTORE") ?: return null
+    val alias = value("MY_ALARM_ANDROID_KEY_ALIAS") ?: return null
+    val password = value("MY_ALARM_ANDROID_KEYSTORE_PASSWORD") ?: return null
+    val keystore = File(keystorePath)
+    if (!keystore.isFile) {
+        logger.warn("Release signing skipped: keystore $keystorePath does not exist. Run scripts/build-android-release.sh.")
+        return null
+    }
+    return ReleaseSigningMaterial(keystore, alias, password)
 }

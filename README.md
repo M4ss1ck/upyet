@@ -32,6 +32,18 @@ Requires JDK 17+ and the Android SDK (compileSdk 37, build-tools 36.0.0).
 ./gradlew connectedDebugAndroidTest   # needs a device or emulator
 ```
 
+Signed release APK (R8-minified, no debug tooling):
+
+```bash
+./scripts/build-android-release.sh
+```
+
+It creates `~/.config/my-alarm/android-signing/{android-release.jks,credentials.env}` on first run
+(PKCS12, RSA 4096, random password), builds `assembleRelease`, and verifies the signature. Later runs reuse
+the same key, so upgrades install over each other. In CI, export `MY_ALARM_ANDROID_KEYSTORE`,
+`MY_ALARM_ANDROID_KEY_ALIAS` and `MY_ALARM_ANDROID_KEYSTORE_PASSWORD` instead; without them
+`assembleRelease` still builds, but unsigned.
+
 Debug builds accept an adb-triggered alarm for testing:
 
 ```bash

@@ -271,6 +271,11 @@ neither may block the first frame.
 Instrumented tests when a device/emulator is available:
 `./gradlew connectedDebugAndroidTest`.
 
+Release builds go through `./scripts/build-android-release.sh`. Signing material lives in
+`~/.config/my-alarm/android-signing/` (never in the repository) or in the `MY_ALARM_ANDROID_KEYSTORE`,
+`MY_ALARM_ANDROID_KEY_ALIAS` and `MY_ALARM_ANDROID_KEYSTORE_PASSWORD` environment variables. Never commit a
+keystore, a password, or a signing config that embeds either.
+
 ### Known remaining lint warnings (deliberate)
 
 `./gradlew lint` reports zero errors. Thirteen warnings remain and each is intentional:
