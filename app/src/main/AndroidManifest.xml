@@ -34,9 +34,9 @@
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
             android:turnScreenOn="true"
-             android:theme="@style/Theme.MyAlarm.Ringing" />
+            android:theme="@style/Theme.MyAlarm.Ringing" />
         <service
             android:name=".alarm.playback.AlarmPlaybackService"
             android:exported="false"

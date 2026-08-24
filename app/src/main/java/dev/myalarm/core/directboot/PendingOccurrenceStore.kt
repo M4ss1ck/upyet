@@ -22,10 +22,15 @@ class PendingOccurrenceStore @Inject constructor(@ApplicationContext context: Co
         "pending_occurrences",
         Context.MODE_PRIVATE,
     )
+
+    /**
+     * Upserts by (alarmId, scheduledFor): the same occurrence is recorded once when it starts ringing and
+     * again when it is dismissed or snoozed, and reconciliation after unlock must produce exactly one row.
+     */
     fun append(record: PendingOccurrence) {
-        val values = all().toMutableList()
-        values += record
-        preferences.edit().putStringSet(KEY, values.takeLast(MAX_RECORDS).map(::encode).toSet()).apply()
+        val values = all().filterNot { it.alarmId == record.alarmId && it.scheduledFor == record.scheduledFor } + record
+        val kept = values.sortedBy { it.triggeredAt }.takeLast(MAX_RECORDS)
+        preferences.edit().putStringSet(KEY, kept.map(::encode).toSet()).apply()
     }
     fun all(): List<PendingOccurrence> = preferences.getStringSet(KEY, emptySet()).orEmpty().mapNotNull(::decode)
     fun clear() {

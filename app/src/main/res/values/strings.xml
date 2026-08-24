@@ -115,4 +115,6 @@
     <string name="segment_skipped">Skipped</string>
     <string name="delete_occurrence_title">Delete occurrence?</string>
     <string name="delete_occurrence_message">Evidence files and metadata will be deleted.</string>
+    <string name="permission_onboarding_title">Finish setting up MyAlarm</string>
+    <string name="permission_onboarding_explanation">Notifications let the alarm show over the lock screen, and the camera records the evidence that you dismissed it. Nothing is recorded outside a ringing alarm and nothing leaves this device.</string>
 </resources>

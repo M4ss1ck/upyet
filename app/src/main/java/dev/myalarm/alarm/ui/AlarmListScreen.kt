@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.myalarm.R
 import dev.myalarm.alarm.domain.Alarm
 import dev.myalarm.alarm.domain.Recurrence
+import dev.myalarm.core.ui.PermissionOnboardingCard
 import dev.myalarm.core.ui.currentLocale
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -65,6 +66,7 @@ fun AlarmListContent(
     }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             state.errorRes?.let { error -> item { SchedulingBanner(error, state.showReliabilityAction, onReliability) } }
+            item { PermissionOnboardingCard() }
             items(state.alarms, key = {
                 it.id.value
             }) { alarm -> AlarmRow(alarm, { onEnabled(alarm, it) }, { onEdit(alarm.id.value) }, { onDelete(alarm.id) }) }
