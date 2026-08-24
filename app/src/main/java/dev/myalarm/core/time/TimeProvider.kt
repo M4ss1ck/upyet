@@ -11,9 +11,9 @@ interface TimeProvider {
 }
 
 class SystemTimeProvider
-    @Inject
-    constructor() : TimeProvider {
-        override fun now(): Instant = Instant.now()
+@Inject
+constructor() : TimeProvider {
+    override fun now(): Instant = Instant.now()
 
-        override fun zone(): ZoneId = ZoneId.systemDefault()
-    }
+    override fun zone(): ZoneId = ZoneId.systemDefault()
+}

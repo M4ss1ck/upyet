@@ -78,7 +78,7 @@ The camera runs only during our own visible ringing experience.
 | Camera | CameraX 1.6.1 (`camera-video`, `camera-compose`) |
 | Playback of evidence | Media3 1.10.1 |
 | Time | `java.time` only |
-| Format/lint | Spotless + ktlint 1.8.0, Android Lint |
+| Format/lint | Spotless + ktlint 1.8.0 (Kotlin official style = ktlint `intellij_idea`, 140 cols), Android Lint |
 
 Notes on non-obvious version constraints:
 

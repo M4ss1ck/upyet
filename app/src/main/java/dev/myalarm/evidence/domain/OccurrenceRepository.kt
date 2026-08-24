@@ -19,16 +19,9 @@ interface OccurrenceRepository {
         parentOccurrenceId: OccurrenceId?,
     ): OccurrenceId
 
-    suspend fun markActivityVisible(
-        id: OccurrenceId,
-        at: Instant,
-    )
+    suspend fun markActivityVisible(id: OccurrenceId, at: Instant)
 
-    suspend fun completeOccurrence(
-        id: OccurrenceId,
-        dismissedAt: Instant?,
-        outcome: OccurrenceOutcome,
-    )
+    suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome)
 
     suspend fun insertSegment(segment: EvidenceSegment): Long
 

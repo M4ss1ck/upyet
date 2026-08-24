@@ -11,6 +11,8 @@ class SnoozeCalculatorTest {
 
         val result = SnoozeCalculator.snoozeAt(now, 10)
 
-        assertThat(result).isEqualTo(Instant.parse("2027-01-10T07:40:00Z"))
+        assertThat(
+            result,
+        ).isEqualTo(Instant.parse("2027-01-10T07:40:00Z"))
     }
 }

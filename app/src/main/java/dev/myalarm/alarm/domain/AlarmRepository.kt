@@ -9,10 +9,7 @@ interface AlarmRepository {
 
     suspend fun upsert(alarm: Alarm): AlarmId
 
-    suspend fun setEnabled(
-        id: AlarmId,
-        enabled: Boolean,
-    )
+    suspend fun setEnabled(id: AlarmId, enabled: Boolean)
 
     suspend fun delete(id: AlarmId)
 }

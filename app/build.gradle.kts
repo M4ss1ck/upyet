@@ -10,20 +10,30 @@ android {
     namespace = "dev.myalarm"
     compileSdk = 37
 
+    sourceSets["androidTest"].assets.srcDir(
+        "$projectDir/schemas",
+    )
+
     defaultConfig {
         applicationId = "dev.myalarm"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner =
+            "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt",
+                ),
+                "proguard-rules.pro",
+            )
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -57,8 +67,13 @@ android {
     }
 
     packaging {
-        resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
+        resources.excludes +=
+            setOf("/META-INF/{AL2.0,LGPL2.1}")
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -66,7 +81,9 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(
+        libs.androidx.lifecycle.viewmodel.compose,
+    )
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.kotlinx.coroutines.android)
 
@@ -117,12 +134,15 @@ dependencies {
 }
 
 spotless {
+    // Kotlin's official code style (ktlint calls it "intellij_idea"); ktlint's own opinionated
+    // "ktlint_official" style is deliberately not used.
+    val ktlintConfig = mapOf("ktlint_code_style" to "intellij_idea", "max_line_length" to "140")
     kotlin {
         target("src/**/*.kt")
-        ktlint(libs.versions.ktlint.get())
+        ktlint(libs.versions.ktlint.get()).editorConfigOverride(ktlintConfig)
     }
     kotlinGradle {
         target("*.gradle.kts")
-        ktlint(libs.versions.ktlint.get())
+        ktlint(libs.versions.ktlint.get()).editorConfigOverride(ktlintConfig)
     }
 }

@@ -7,11 +7,11 @@ sealed interface Recurrence {
 
     data object Daily : Recurrence
 
-    data class Weekly(
-        val days: Set<DayOfWeek>,
-    ) : Recurrence {
+    data class Weekly(val days: Set<DayOfWeek>) : Recurrence {
         init {
-            require(days.isNotEmpty()) { "Weekly recurrence must contain at least one day" }
+            require(days.isNotEmpty()) {
+                "Weekly recurrence must contain at least one day"
+            }
         }
     }
 }
