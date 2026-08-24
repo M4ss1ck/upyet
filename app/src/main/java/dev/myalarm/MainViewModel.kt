@@ -3,6 +3,7 @@ package dev.myalarm
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.myalarm.alarm.scheduling.AlarmRescheduler
 import dev.myalarm.core.logging.AlarmLog
 import dev.myalarm.evidence.data.RetentionCleaner
 import kotlinx.coroutines.launch

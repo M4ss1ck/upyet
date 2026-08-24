@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.myalarm.R
 import dev.myalarm.alarm.ringing.RingingActivity
@@ -34,11 +35,11 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
         val activityIntent = PendingIntent.getActivity(
             context,
             NOTIFICATION_ID_RINGING,
-            Intent(context, RingingActivity::class.java),
+            Intent(context, RingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(context, CHANNEL_RINGING)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setSmallIcon(R.drawable.ic_alarm_notification)
             .setContentTitle(context.getString(R.string.alarm_ringing_title))
             .setContentText(
                 if (isUserUnlocked) {
@@ -59,11 +60,11 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
             .build()
     }
 
-    fun canUseFullScreenIntent(): Boolean = Build.VERSION.SDK_INT < 34 ||
+    /** Below API 34 the platform grants full-screen intents to alarm-category notifications outright. */
+    fun canUseFullScreenIntent(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
         context.getSystemService(NotificationManager::class.java)?.canUseFullScreenIntent() == true
 
-    fun areNotificationsEnabled(): Boolean = Build.VERSION.SDK_INT < 33 ||
-        context.getSystemService(NotificationManager::class.java)?.areNotificationsEnabled() == true
+    fun areNotificationsEnabled(): Boolean = NotificationManagerCompat.from(context).areNotificationsEnabled()
 
     companion object {
         const val CHANNEL_RINGING = "alarm_ringing"
