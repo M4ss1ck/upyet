@@ -6,11 +6,15 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface OccurrenceRepository {
+    data class OccurrenceWithEvidence(val occurrence: AlarmOccurrence, val segments: List<EvidenceSegment>)
+
     fun observeOccurrences(): Flow<List<AlarmOccurrence>>
 
     fun observeOccurrence(id: OccurrenceId): Flow<AlarmOccurrence?>
 
     fun observeSegments(occurrenceId: OccurrenceId): Flow<List<EvidenceSegment>>
+
+    fun observeOccurrenceWithSegments(id: OccurrenceId): Flow<OccurrenceWithEvidence?>
 
     suspend fun createOccurrence(
         alarmId: AlarmId,

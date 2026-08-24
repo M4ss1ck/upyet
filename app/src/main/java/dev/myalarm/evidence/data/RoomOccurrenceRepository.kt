@@ -33,6 +33,13 @@ constructor(
         return segments.map { entities -> entities.map(EvidenceSegmentEntity::toDomain) }
     }
 
+    override fun observeOccurrenceWithSegments(id: OccurrenceId): Flow<OccurrenceRepository.OccurrenceWithEvidence?> =
+        occurrenceDao.observeWithSegments(id.value).map { value ->
+            value?.let {
+                OccurrenceRepository.OccurrenceWithEvidence(it.occurrence.toDomain(), it.segments.map(EvidenceSegmentEntity::toDomain))
+            }
+        }
+
     override suspend fun createOccurrence(
         alarmId: AlarmId,
         scheduledFor: Instant,

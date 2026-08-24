@@ -1,5 +1,6 @@
 package dev.myalarm.history.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,21 +29,26 @@ fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltView
         FormatStyle.MEDIUM,
     ).withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault())
     LazyColumn(Modifier.fillMaxSize().padding(16.dp)) {
-        items(occurrences, key = { it.id.value }) { occurrence -> OccurrenceRow(occurrence, formatter) { onOpen(occurrence.id.value) } }
+        items(occurrences, key = { it.occurrence.id.value }) { item -> OccurrenceRow(item, formatter) { onOpen(item.occurrence.id.value) } }
     }
 }
 
 @Composable
-private fun OccurrenceRow(occurrence: AlarmOccurrence, formatter: DateTimeFormatter, onClick: () -> Unit) {
-    androidx.compose.material3.TextButton(onClick = onClick) {
-        Column {
-            Text(formatter.format(occurrence.scheduledFor))
-            Text(stringResource(outcomeResource(occurrence.outcome)))
-        }
+private fun OccurrenceRow(item: HistoryViewModel.HistoryItem, formatter: DateTimeFormatter, onClick: () -> Unit) {
+    val occurrence = item.occurrence
+    Column(Modifier.clickable(onClick = onClick).padding(vertical = 12.dp)) {
+        Text(formatter.format(occurrence.scheduledFor))
+        occurrence.triggeredAt?.takeIf {
+            it != occurrence.scheduledFor
+        }?.let { Text(stringResource(R.string.triggered_at, formatter.format(it))) }
+        Text(stringResource(outcomeResource(occurrence.outcome)))
+        Text(stringResource(evidenceSummaryResource(item.segments)))
+        val duration = item.segments.sumOf { it.durationMs ?: 0L }
+        if (duration > 0) Text(stringResource(R.string.evidence_total_duration, duration / 1000))
     }
 }
 
-private fun outcomeResource(outcome: OccurrenceOutcome): Int = when (outcome) {
+internal fun outcomeResource(outcome: OccurrenceOutcome): Int = when (outcome) {
     OccurrenceOutcome.RINGING -> R.string.outcome_ringing
     OccurrenceOutcome.DISMISSED -> R.string.outcome_dismissed
     OccurrenceOutcome.SNOOZED -> R.string.outcome_snoozed

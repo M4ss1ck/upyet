@@ -80,7 +80,14 @@ fun MyAlarmNavHost() {
                 )
             }
             composable("history") { HistoryScreen(onOpen = { navController.navigate("occurrence/$it") }) }
-            composable("occurrence/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { OccurrenceDetailScreen() }
+            composable(
+                "occurrence/{id}",
+                arguments = listOf(
+                    navArgument("id") {
+                        type = NavType.LongType
+                    },
+                ),
+            ) { OccurrenceDetailScreen(onBack = { navController.popBackStack() }) }
             composable("settings") { SettingsScreen(onReliability = { navController.navigate("reliability") }) }
             composable("reliability") { ReliabilityScreen(onBack = { navController.popBackStack() }) }
         }

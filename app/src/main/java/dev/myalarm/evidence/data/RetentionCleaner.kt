@@ -14,9 +14,15 @@ class RetentionCleaner @Inject constructor(
     private val segments: EvidenceSegmentDao,
     private val files: EvidenceFileStore,
 ) {
+    /** Deletes expired evidence metadata and files, but never touches an active recording. */
     suspend fun clean(now: Instant = Instant.now()) {
-        val days = settings.settings.first().retention.days ?: return
-        val old = segments.selectFinishedBefore(now.minusSeconds(days * 86_400L).toEpochMilli())
+        val retention = settings.settings.first().retention
+        val days = retention.days ?: return
+        val old = selectSegmentsForRetention(
+            segments.selectFinishedBefore(now.minusSeconds(days * 86_400L).toEpochMilli()),
+            retention,
+            now.minusSeconds(days * 86_400L).toEpochMilli(),
+        )
         files.deleteAll(old.mapNotNull { it.fileName })
         segments.deleteByIds(old.map { it.id })
     }
