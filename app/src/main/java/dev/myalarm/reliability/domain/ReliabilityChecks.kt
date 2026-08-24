@@ -24,60 +24,63 @@ class ReliabilityChecks @Inject constructor(
     private val notifications: AlarmNotifications,
     private val scheduler: AlarmScheduler,
 ) {
-    fun evaluate(): List<ReliabilityCheck> = listOf(
-        ReliabilityCheck(
-            "exact",
-            R.string.reliability_exact,
-            if (exact.canScheduleExact()) ReliabilityStatus.OK else ReliabilityStatus.BLOCKED,
-            R.string.reliability_exact_explanation,
-            settingsIntent = exact.settingsIntent(),
-        ),
-        ReliabilityCheck(
-            "notifications",
-            R.string.reliability_notifications,
-            if (notifications.areNotificationsEnabled()) ReliabilityStatus.OK else ReliabilityStatus.BLOCKED,
-            R.string.reliability_notifications_explanation,
-            settingsIntent = Intent(
-                Settings.ACTION_APP_NOTIFICATION_SETTINGS,
-            ).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-        ),
-        ReliabilityCheck(
-            "fullscreen",
-            R.string.reliability_fullscreen,
-            if (notifications.canUseFullScreenIntent()) ReliabilityStatus.OK else ReliabilityStatus.WARNING,
-            R.string.reliability_fullscreen_explanation,
-            settingsIntent = fullScreenIntentSettings(),
-        ),
-        ReliabilityCheck(
-            "camera",
-            R.string.reliability_camera,
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED
-            ) {
-                ReliabilityStatus.OK
-            } else {
-                ReliabilityStatus.WARNING
-            },
-            R.string.reliability_camera_explanation,
-            settingsIntent = Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            ).setData("package:${context.packageName}".toUri()),
-        ),
-        batteryCheck(),
-        ReliabilityCheck(
-            "direct_boot",
-            R.string.reliability_direct_boot,
-            ReliabilityStatus.OK,
-            R.string.reliability_direct_boot_explanation,
-        ),
-        ReliabilityCheck(
-            "next_alarm",
-            R.string.reliability_next_alarm,
-            if (scheduler.nextScheduledTrigger() == null) ReliabilityStatus.WARNING else ReliabilityStatus.OK,
-            R.string.reliability_next_alarm_explanation,
-            scheduler.nextScheduledTrigger(),
-        ),
-    )
+    fun evaluate(): List<ReliabilityCheck> {
+        val nextTrigger = scheduler.nextScheduledTrigger()
+        return listOf(
+            ReliabilityCheck(
+                "exact",
+                R.string.reliability_exact,
+                if (exact.canScheduleExact()) ReliabilityStatus.OK else ReliabilityStatus.BLOCKED,
+                R.string.reliability_exact_explanation,
+                settingsIntent = exact.settingsIntent(),
+            ),
+            ReliabilityCheck(
+                "notifications",
+                R.string.reliability_notifications,
+                if (notifications.areNotificationsEnabled()) ReliabilityStatus.OK else ReliabilityStatus.BLOCKED,
+                R.string.reliability_notifications_explanation,
+                settingsIntent = Intent(
+                    Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+                ).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+            ),
+            ReliabilityCheck(
+                "fullscreen",
+                R.string.reliability_fullscreen,
+                if (notifications.canUseFullScreenIntent()) ReliabilityStatus.OK else ReliabilityStatus.WARNING,
+                R.string.reliability_fullscreen_explanation,
+                settingsIntent = fullScreenIntentSettings(),
+            ),
+            ReliabilityCheck(
+                "camera",
+                R.string.reliability_camera,
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    ReliabilityStatus.OK
+                } else {
+                    ReliabilityStatus.WARNING
+                },
+                R.string.reliability_camera_explanation,
+                settingsIntent = Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                ).setData("package:${context.packageName}".toUri()),
+            ),
+            batteryCheck(),
+            ReliabilityCheck(
+                "direct_boot",
+                R.string.reliability_direct_boot,
+                ReliabilityStatus.OK,
+                R.string.reliability_direct_boot_explanation,
+            ),
+            ReliabilityCheck(
+                "next_alarm",
+                R.string.reliability_next_alarm,
+                if (nextTrigger == null) ReliabilityStatus.WARNING else ReliabilityStatus.OK,
+                R.string.reliability_next_alarm_explanation,
+                nextTrigger,
+            ),
+        )
+    }
 
     /**
      * The dedicated full-screen-intent settings screen only exists from API 34; below it the permission is

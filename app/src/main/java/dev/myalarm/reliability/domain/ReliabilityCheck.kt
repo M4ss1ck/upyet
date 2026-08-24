@@ -1,5 +1,6 @@
 package dev.myalarm.reliability.domain
 
+import android.content.Intent
 import androidx.annotation.StringRes
 import java.time.Instant
 
@@ -11,5 +12,5 @@ data class ReliabilityCheck(
     val status: ReliabilityStatus,
     @StringRes val explanationRes: Int,
     val value: Instant? = null,
-    val settingsIntent: android.content.Intent? = null,
+    val settingsIntent: Intent? = null,
 )
