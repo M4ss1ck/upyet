@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-25
+
+UpYet speaks Spanish, and picks its language the way the rest of the phone does. Verified on an
+emulator: the whole app in Spanish, the picker round-tripping, and a real alarm ringing with a
+Spanish notification posted by the playback service.
+
 ### Added
 - Spanish. The app now ships `en` and `es`, follows the device locale, and falls back to English for any
   other language. Settings gains a Language row that overrides the app's language independently of the
