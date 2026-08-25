@@ -203,13 +203,10 @@ private fun AlarmEditorForm(
             shape = MaterialTheme.shapes.medium,
         )
 
-        UpYetCard(contentPadding = PaddingValues(20.dp)) {
-            ClockText(
-                time = state.time,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        // No horizontal padding on purpose: Material's picker needs its full intrinsic width for the
+        // hour box, the minute box and the AM/PM selector together, and starving it wrapped the
+        // selector to one letter per line.
+        UpYetCard(contentPadding = PaddingValues(vertical = 20.dp)) {
             // Follow the device's clock setting, so a 12-hour locale gets the AM/PM selector rather
             // than being forced onto a 24-hour dial.
             val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
@@ -239,6 +236,14 @@ private fun AlarmEditorForm(
                     )
                 }
             }
+            // The picker's own boxes are the editable time; this is the read-back of what was chosen,
+            // so it is muted rather than carrying the primary colour and competing with them.
+            ClockText(
+                time = state.time,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         SectionLabel(stringResource(R.string.recurrence))

@@ -24,7 +24,7 @@ val ClockSmall =
 /**
  * The style Material's own components reach for through `displayLarge` - notably the TimePicker's
  * hour and minute boxes. It is deliberately NOT [ClockLarge]: at 84 sp the digits overflow those
- * 80 dp squares and sit off-centre. The ringing screen asks for [ClockLarge] explicitly instead.
+ * squares, and the wider the digits the more width they take from the AM/PM selector beside them. The ringing screen asks for [ClockLarge] explicitly instead.
  *
  * lineHeight matches fontSize and the line box is centred, so a digit sits in the middle of
  * whatever container Material puts it in rather than riding low on its baseline.
@@ -32,9 +32,9 @@ val ClockSmall =
 val ClockDisplay = TextStyle(
     fontFamily = Brand,
     fontWeight = FontWeight.ExtraBold,
-    fontSize = 50.sp,
-    lineHeight = 50.sp,
-    letterSpacing = (-1.5).sp,
+    fontSize = 44.sp,
+    lineHeight = 44.sp,
+    letterSpacing = (-1).sp,
     lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None),
 )
 
