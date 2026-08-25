@@ -51,15 +51,24 @@ fun ClockText(
 
 private const val MERIDIEM_RATIO = 0.30f
 
-private fun isFaceCharacter(character: Char) = character.isDigit() || character == ':' || character == '.'
+private fun isFaceCharacter(text: String, index: Int): Boolean = when (val character = text[index]) {
+    ':' -> true
+
+    // A full stop separates the hour from the minutes in some locales and spells out the marker in
+    // others ("a. m."). Only the one sitting between digits belongs to the clock face; the marker's
+    // own stops have to shrink with its letters rather than stay digit-sized dots.
+    '.' -> text.getOrNull(index - 1)?.isDigit() == true && text.getOrNull(index + 1)?.isDigit() == true
+
+    else -> character.isDigit()
+}
 
 /** Splits a formatted time into runs of clock digits and everything else (the marker and its space). */
 internal fun splitClockFace(text: String, face: SpanStyle, marker: SpanStyle): AnnotatedString = buildAnnotatedString {
     var start = 0
     while (start < text.length) {
-        val isFace = isFaceCharacter(text[start])
+        val isFace = isFaceCharacter(text, start)
         var end = start
-        while (end < text.length && isFaceCharacter(text[end]) == isFace) end++
+        while (end < text.length && isFaceCharacter(text, end) == isFace) end++
         // The run is appended verbatim, separator space included: trimming it would change the text
         // a screen reader announces and the string a UI test matches.
         withStyle(if (isFace) face else marker) { append(text, start, end) }
