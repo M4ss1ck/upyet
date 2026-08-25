@@ -159,6 +159,11 @@
     <string name="delete_occurrence_caption">Deletes the clip and its metadata. Cannot be undone.</string>
     <string name="delete_occurrence">Delete this occurrence</string>
     <string name="evidence_clip_position">Clip %1$d of %2$d</string>
+    <string name="evidence_play">Play</string>
+    <string name="evidence_pause">Pause</string>
+    <string name="evidence_previous_clip">Previous clip</string>
+    <string name="evidence_next_clip">Next clip</string>
+    <string name="evidence_playback_time">%1$d:%2$02d</string>
 
     <!-- Settings -->
     <string name="settings_defaults">Alarm defaults</string>

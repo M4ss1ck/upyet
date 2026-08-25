@@ -1,5 +1,7 @@
 package dev.upyet.history.ui
 
+import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,11 +21,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,13 +53,18 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
+import androidx.media3.ui.compose.PlayerSurface
+import androidx.media3.ui.compose.state.rememberNextButtonState
+import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
+import androidx.media3.ui.compose.state.rememberPresentationState
+import androidx.media3.ui.compose.state.rememberPreviousButtonState
+import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.upyet.R
 import dev.upyet.core.ui.components.DestructiveButton
 import dev.upyet.core.ui.components.SectionLabel
@@ -65,6 +80,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+
+/** Portrait 9:16 is what the locked-portrait alarm screen records, and the frame's fallback until the first video size arrives. */
+private const val PORTRAIT_ASPECT_RATIO = 9f / 16f
+
+/** Caps how much of the scrolling detail page a tall portrait clip may claim. */
+private val EvidenceFrameMaxHeight = 380.dp
 
 @Composable
 fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewModel = hiltViewModel()) {
@@ -91,7 +112,12 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
                 },
             )
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
-                item { EvidencePlayer(value.segments, viewModel) }
+                item {
+                    val files = remember(value.segments) {
+                        value.segments.mapNotNull { segment -> segment.fileName?.let(viewModel::fileUri) }
+                    }
+                    EvidencePlayer(files)
+                }
                 item { WhatHappenedTimeline(value.occurrence, zone) }
                 itemsIndexed(value.segments) { index, segment ->
                     SegmentCard(index, segment, Modifier.padding(horizontal = 20.dp, vertical = 5.dp))
@@ -117,13 +143,18 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
 }
 
 /**
- * The player and its clip-position caption. The ExoPlayer itself keeps the exact lifecycle the
- * previous implementation used - built once per file list and released in its own effect - with the
- * clip-index listener added and torn down separately so that contract is untouched.
+ * The evidence clips play in a frame that takes the video's own aspect ratio, so a portrait
+ * recording is shown upright at full width of the frame instead of pillarboxed inside a landscape
+ * box. The transport sits below the frame rather than over it - the clips are portrait and short,
+ * and an overlay controller covered most of what there was to see.
+ *
+ * The ExoPlayer keeps the exact lifecycle the previous implementation used - built once per file
+ * list and released in its own effect - with the clip-index listener added and torn down separately
+ * so that contract is untouched.
  */
+@OptIn(UnstableApi::class)
 @Composable
-private fun EvidencePlayer(segments: List<EvidenceSegment>, viewModel: OccurrenceDetailViewModel) {
-    val files = segments.mapNotNull { it.fileName?.let(viewModel::fileUri) }
+private fun EvidencePlayer(files: List<Uri>, modifier: Modifier = Modifier) {
     if (files.isEmpty()) return
     val context = LocalContext.current
     val player = remember(files) {
@@ -145,20 +176,101 @@ private fun EvidencePlayer(segments: List<EvidenceSegment>, viewModel: Occurrenc
         onDispose { player.removeListener(listener) }
     }
 
-    Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-        Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.inverseSurface, modifier = Modifier.fillMaxWidth()) {
-            AndroidView(
-                factory = { PlayerView(it).apply { this.player = player } },
-                modifier = Modifier.fillMaxWidth().aspectRatio(16f / 10f),
-            )
+    val presentation = rememberPresentationState(player)
+    val videoSize = presentation.videoSizeDp
+    val aspectRatio = videoSize
+        ?.let { it.width / it.height }
+        ?.takeIf { it.isFinite() && it > 0f }
+        ?: PORTRAIT_ASPECT_RATIO
+
+    Column(
+        modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .heightIn(max = EvidenceFrameMaxHeight)
+                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = true)
+                .clip(MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.inverseSurface),
+        ) {
+            PlayerSurface(player, Modifier.fillMaxSize())
+            // Until the first frame is decoded the surface is whatever was last on it; the shutter
+            // keeps that from flashing through when a clip is switched.
+            if (presentation.coverSurface) {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.inverseSurface))
+            }
         }
+        EvidenceTransport(player, Modifier.padding(top = 12.dp))
         Text(
             stringResource(R.string.evidence_clip_position, currentIndex + 1, files.size),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun EvidenceTransport(player: Player, modifier: Modifier = Modifier) {
+    val playPause = rememberPlayPauseButtonState(player)
+    val previous = rememberPreviousButtonState(player)
+    val next = rememberNextButtonState(player)
+    val progress = rememberProgressStateWithTickInterval(player)
+
+    val durationMs = progress.durationMs.takeIf { it > 0L }
+    // While the thumb is held the slider shows the drag, not the playhead; the seek lands on release
+    // so a drag across a short clip does not fire a seek per frame.
+    var scrubbed by remember { mutableStateOf<Float?>(null) }
+    val playedFraction = durationMs?.let { (progress.currentPositionMs.toFloat() / it).coerceIn(0f, 1f) } ?: 0f
+
+    Column(modifier.fillMaxWidth()) {
+        Slider(
+            value = scrubbed ?: playedFraction,
+            onValueChange = { scrubbed = it },
+            onValueChangeFinished = {
+                val target = scrubbed
+                if (target != null && durationMs != null) player.seekTo((target * durationMs).toLong())
+                scrubbed = null
+            },
+            enabled = durationMs != null,
+        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlaybackTime(progress.currentPositionMs)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = previous::onClick, enabled = previous.isEnabled) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.evidence_previous_clip))
+                }
+                FilledIconButton(onClick = playPause::onClick, enabled = playPause.isEnabled) {
+                    Icon(
+                        if (playPause.showPlay) Icons.Default.PlayArrow else Icons.Default.Pause,
+                        contentDescription = stringResource(
+                            if (playPause.showPlay) R.string.evidence_play else R.string.evidence_pause,
+                        ),
+                    )
+                }
+                IconButton(onClick = next::onClick, enabled = next.isEnabled) {
+                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.evidence_next_clip))
+                }
+            }
+            PlaybackTime(durationMs ?: 0L)
+        }
+    }
+}
+
+@Composable
+private fun PlaybackTime(millis: Long) {
+    val seconds = (millis.coerceAtLeast(0L) / 1000L).toInt()
+    Text(
+        stringResource(R.string.evidence_playback_time, seconds / 60, seconds % 60),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 private data class TimelineStep(val labelRes: Int, val at: Instant, val colorRole: TimelineColorRole)

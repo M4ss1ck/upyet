@@ -76,7 +76,7 @@ The camera runs only during our own visible ringing experience.
 | DI | Hilt 2.60.1 |
 | Persistence | Room 2.8.4 (metadata), DataStore Preferences 1.2.1 (settings) |
 | Camera | CameraX 1.6.1 (`camera-video`, `camera-compose`) |
-| Playback of evidence | Media3 1.10.1 |
+| Playback of evidence | Media3 1.10.1 (`media3-exoplayer`, `media3-ui`, `media3-ui-compose`) |
 | Time | `java.time` only |
 | Format/lint | Spotless + ktlint 1.8.0 (Kotlin official style = ktlint `intellij_idea`, 140 cols), Android Lint |
 
@@ -88,6 +88,10 @@ Notes on non-obvious version constraints:
   generated sources through `kotlin.sourceSets`, which built-in Kotlin rejects.
 * No alpha/beta/RC dependency is used anywhere. If one ever becomes unavoidable, document
   the capability that has no stable implementation here.
+* `media3-ui-compose` is a stable release, but every symbol in it carries Media3's
+  `@UnstableApi` opt-in marker. The evidence player opts in explicitly with
+  `@OptIn(UnstableApi::class)` on the two composables that use it. That opt-in is Media3's
+  own mechanism, not a lint suppression - do not widen it to a file or module level.
 
 ## 5. Alarm architecture
 
@@ -284,7 +288,7 @@ keystore, a password, or a signing config that embeds either.
 
 ### Known remaining lint warnings (deliberate)
 
-`./gradlew lint` reports zero errors. Thirteen warnings remain and each is intentional:
+`./gradlew lint` reports zero errors. Fourteen warnings remain and each is intentional:
 `NewerVersionAvailable` / `GradleDependency` (the version catalog is pinned on purpose),
 `OldTargetApi` (targetSdk 36 is the product requirement), `UnusedAttribute` for
 `showWhenLocked`/`turnScreenOn` (the equivalent APIs are called at runtime for API 26), and

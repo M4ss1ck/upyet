@@ -150,6 +150,7 @@ dependencies {
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.ui.compose)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
