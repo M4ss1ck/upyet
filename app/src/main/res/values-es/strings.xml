@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Spanish CLDR defines a "many" plural category for multiples of a million. Every counter here is bounded
+  far below that (snooze minutes, clip seconds, clip and check counts), so "many" is unreachable text and
+  deliberately repeats "other" rather than inventing a phrasing no one will ever read.
+-->
+<resources>
+    <string name="alarm_channel_name">Alarma sonando</string>
+    <string name="alarm_ringing_title">Alarma sonando</string>
+    <string name="alarm_ringing_text">Toca para despertarte y descartarla</string>
+    <string name="alarm_notification_snooze">Posponer</string>
+    <string name="alarm_notification_dismiss">Descartar</string>
+    <plurals name="snooze_alarm"><item quantity="one">Posponer %1$d minuto</item><item quantity="many">Posponer %1$d minutos</item><item quantity="other">Posponer %1$d minutos</item></plurals>
+    <string name="dismiss_alarm">Descartar alarma</string>
+    <string name="evidence_recording">Grabando prueba</string>
+    <string name="evidence_recording_elapsed">%1$s · %2$d:%3$02d</string>
+    <string name="evidence_recording_indicator">Grabación de prueba en curso</string>
+    <string name="evidence_preparing">Preparando la grabación</string>
+    <string name="evidence_finished">Grabación finalizada</string>
+    <string name="evidence_unavailable">Prueba no disponible</string>
+    <string name="evidence_permission_denied">Permiso de cámara denegado</string>
+    <string name="evidence_camera_unavailable">Cámara frontal no disponible</string>
+    <string name="evidence_camera_in_use">La cámara está en uso</string>
+    <string name="evidence_direct_boot_unavailable">Prueba no disponible hasta desbloquear el dispositivo</string>
+    <string name="evidence_disabled">Prueba desactivada</string>
+    <string name="create_alarm">Crear alarma</string>
+    <string name="warning">Aviso</string>
+    <string name="reliability">Fiabilidad</string>
+    <string name="no_alarms">Nada programado. Que descanses.</string>
+    <string name="unnamed_alarm">Alarma sin nombre</string>
+    <string name="delete">Eliminar</string>
+    <string name="reliability_exact">Alarmas exactas</string>
+    <string name="reliability_exact_explanation">Acceso a la programación de alarmas</string>
+    <string name="reliability_notifications">Notificaciones</string>
+    <string name="reliability_notifications_explanation">Las notificaciones deben estar activadas</string>
+    <string name="reliability_fullscreen">Avisos a pantalla completa</string>
+    <string name="reliability_fullscreen_explanation">Permitir avisos de alarma a pantalla completa</string>
+    <string name="reliability_camera">Cámara</string>
+    <string name="reliability_camera_explanation">El permiso de cámara habilita la prueba</string>
+    <string name="reliability_direct_boot">Arranque directo</string>
+    <string name="reliability_direct_boot_explanation">La programación funciona con el dispositivo bloqueado</string>
+    <string name="reliability_next_alarm">Próxima alarma programada</string>
+    <string name="reliability_next_alarm_explanation">La próxima alarma es %1$s</string>
+    <string name="reliability_no_next_alarm">No hay ninguna alarma programada</string>
+    <string name="reliability_battery">Optimización de batería</string>
+    <string name="reliability_battery_active">La exención está activa</string>
+    <string name="reliability_battery_informational">Solo informativo: UpYet nunca solicita una exención</string>
+    <string name="alarm_label">Etiqueta</string>
+    <string name="vibration">Vibración</string>
+    <string name="snooze_minutes">Minutos de posposición</string>
+    <string name="ringtone">Tono</string>
+    <string name="save">Guardar alarma</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete_alarm_title">¿Eliminar la alarma?</string>
+    <string name="delete_alarm_message">Se conservarán las ocurrencias y las pruebas anteriores.</string>
+    <string name="confirm_delete">Eliminar</string>
+    <string name="open_reliability">Abrir fiabilidad</string>
+    <string name="alarm_scheduling_exact_unavailable">El acceso a alarmas exactas no está disponible.</string>
+    <string name="alarm_scheduling_failed">No se ha podido programar la alarma.</string>
+    <string name="alarm_enabled_description">Activar alarma</string>
+    <string name="more_options">Más opciones</string>
+    <string name="recurrence">Repetición</string>
+    <plurals name="snooze_option"><item quantity="one">%1$d minuto</item><item quantity="many">%1$d minutos</item><item quantity="other">%1$d minutos</item></plurals>
+    <string name="status_ok">Correcto</string>
+    <string name="status_warning">Aviso</string>
+    <string name="status_blocked">Bloqueado</string>
+    <string name="evidence_retention">Conservación de pruebas</string>
+    <string name="default_vibration">Vibración predeterminada</string>
+    <string name="evidence_by_default">Prueba de forma predeterminada</string>
+    <string name="permission_onboarding">Conceder permisos</string>
+    <string name="outcome_ringing">Sonando</string>
+    <string name="outcome_dismissed">Descartada</string>
+    <string name="outcome_snoozed">Pospuesta</string>
+    <string name="outcome_interrupted">Interrumpida</string>
+    <string name="outcome_timed_out">Expirada</string>
+    <string name="outcome_error">Error</string>
+    <string name="alarms">Alarmas</string>
+    <string name="history">Historial</string>
+    <string name="settings">Ajustes</string>
+    <string name="retention_one_day">1 día</string>
+    <string name="retention_seven_days">7 días</string>
+    <string name="retention_thirty_days">30 días</string>
+    <string name="retention_forever">Conservar siempre</string>
+    <string name="evidence_summary_recorded">Grabada</string>
+    <string name="evidence_summary_partial">Grabación parcial</string>
+    <string name="evidence_summary_permission_denied">Permiso de cámara denegado</string>
+    <string name="evidence_summary_camera_unavailable">Cámara no disponible</string>
+    <string name="evidence_summary_initialization_failed">Fallo al iniciar la cámara</string>
+    <string name="evidence_summary_storage_error">Error de almacenamiento</string>
+    <string name="evidence_summary_direct_boot">No disponible antes del primer desbloqueo</string>
+    <string name="evidence_summary_not_recorded">Sin grabar</string>
+    <string name="evidence_summary_unknown">Error de grabación desconocido</string>
+    <plurals name="evidence_total_duration"><item quantity="one">Duración grabada: %1$d segundo</item><item quantity="many">Duración grabada: %1$d segundos</item><item quantity="other">Duración grabada: %1$d segundos</item></plurals>
+    <string name="evidence_segment_index">Fragmento %1$d</string>
+    <string name="segment_started_at">Inicio: %1$s</string>
+    <plurals name="segment_duration"><item quantity="one">Duración: %1$d segundo</item><item quantity="many">Duración: %1$d segundos</item><item quantity="other">Duración: %1$d segundos</item></plurals>
+    <string name="segment_requested">Solicitado</string>
+    <string name="segment_recording">Grabando</string>
+    <string name="segment_recorded">Grabado</string>
+    <string name="segment_partial">Parcial</string>
+    <string name="segment_failed">Fallido</string>
+    <string name="segment_skipped">Omitido</string>
+    <string name="delete_occurrence_title">¿Eliminar la ocurrencia?</string>
+    <string name="delete_occurrence_message">Se eliminarán los archivos de prueba y sus metadatos.</string>
+    <string name="permission_onboarding_title">Faltan dos permisos</string>
+    <string name="permission_onboarding_explanation">Las notificaciones permiten que la alarma tome tu pantalla de bloqueo. La cámara graba la prueba. No se graba nada fuera de una alarma sonando y nada sale de este teléfono.</string>
+    <string name="default_snooze">Posposición predeterminada</string>
+    <string name="app_version">UpYet %1$s (%2$d) · GPL-3.0-or-later</string>
+    <string name="edit_alarm">Editar alarma</string>
+    <!-- Brand -->
+    <string name="brand_mark_description">UpYet</string>
+
+    <!-- Alarm list -->
+    <string name="next_alarm">Próxima alarma</string>
+    <string name="next_alarm_today">Hoy</string>
+    <string name="next_alarm_tomorrow">Mañana</string>
+    <string name="next_alarm_when">%1$s · %2$s</string>
+    <string name="rings_in_hours_minutes">suena en %1$d h %2$d min</string>
+    <plurals name="rings_in_minutes">
+        <item quantity="one">suena en %1$d minuto</item>
+        <item quantity="many">suena en %1$d minutos</item>
+        <item quantity="other">suena en %1$d minutos</item>
+    </plurals>
+    <string name="rings_now">suena ahora mismo</string>
+    <string name="no_alarms_body">Programa tu primera alarma y UpYet guardará el recibo: un clip corto de ti apagándola de verdad.</string>
+    <string name="create_first_alarm">Programa tu primera alarma</string>
+    <string name="your_alarms">Tus alarmas</string>
+    <string name="alarms_enabled_count">%1$d de %2$d activadas</string>
+    <string name="evidence_on">Prueba activada</string>
+    <string name="alarm_never_repeats">No se repite</string>
+    <string name="new_alarm">Alarma</string>
+
+    <!-- Alarm editor -->
+    <string name="repeat_once">Una vez</string>
+    <string name="repeat_daily">Cada día</string>
+    <string name="repeat_custom">Personalizado</string>
+    <string name="evidence_explanation">Graba en silencio con la cámara frontal mientras la pantalla de alarma está visible. No sale de este dispositivo.</string>
+    <string name="video_evidence">Prueba en vídeo</string>
+
+    <!-- Ringing -->
+    <!-- Skeleton pattern, not text: Spanish joins the day and the month with "de". -->
+    <string name="ringing_date_pattern">EEEE d \'de\' MMMM</string>
+    <string name="dismiss_alarm_action">Ya estoy en pie — descartar</string>
+    <string name="evidence_privacy_note">Grabación silenciosa, solo mientras esta pantalla esté visible. Nunca sale de tu teléfono.</string>
+
+    <!-- History -->
+    <string name="history_subtitle">La prueba de cada alarma que has descartado</string>
+    <string name="history_filter_all">Todas</string>
+    <string name="history_filter_dismissed">Descartadas</string>
+    <string name="history_filter_snoozed">Pospuestas</string>
+    <string name="history_filter_missed">Perdidas</string>
+    <string name="history_today">Hoy</string>
+    <string name="history_yesterday">Ayer</string>
+    <string name="history_earlier">Anteriores</string>
+    <string name="history_empty">Todavía no ha sonado ninguna alarma.</string>
+    <string name="history_filter_empty">Nada coincide con este filtro.</string>
+    <plurals name="evidence_clip_count">
+        <item quantity="one">%1$d clip</item>
+        <item quantity="many">%1$d clips</item>
+        <item quantity="other">%1$d clips</item>
+    </plurals>
+
+    <!-- Occurrence detail -->
+    <string name="occurrence_timeline">Qué pasó</string>
+    <string name="timeline_scheduled">Programada para</string>
+    <string name="timeline_rang">Sonó la alarma</string>
+    <string name="timeline_screen_visible">Apareció la pantalla de alarma</string>
+    <string name="timeline_dismissed">La descartaste</string>
+    <string name="delete_occurrence_caption">Elimina el clip y sus metadatos. No se puede deshacer.</string>
+    <string name="delete_occurrence">Eliminar esta ocurrencia</string>
+    <string name="evidence_clip_position">Clip %1$d de %2$d</string>
+    <string name="evidence_play">Reproducir</string>
+    <string name="evidence_pause">Pausar</string>
+    <string name="evidence_previous_clip">Clip anterior</string>
+    <string name="evidence_next_clip">Clip siguiente</string>
+    <string name="evidence_playback_time">%1$d:%2$02d</string>
+
+    <!-- Settings -->
+    <string name="settings_defaults">Valores predeterminados</string>
+    <string name="settings_evidence">Prueba</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="about_local_only">Sin cuenta, sin red, sin analíticas. Todo se queda en este teléfono.</string>
+    <string name="evidence_by_default_summary">Las alarmas nuevas graban prueba salvo que lo desactives</string>
+    <string name="evidence_retention_summary">Los clips antiguos se eliminan automáticamente</string>
+    <string name="settings_general">General</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_summary">Cambia el idioma de esta aplicación</string>
+    <string name="language_system">Idioma del sistema</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+
+    <!-- Reliability -->
+    <string name="reliability_checks">Comprobaciones</string>
+    <plurals name="reliability_all_good">
+        <item quantity="one">La %1$d comprobación es correcta</item>
+        <item quantity="many">Las %1$d comprobaciones son correctas</item>
+        <item quantity="other">Las %1$d comprobaciones son correctas</item>
+    </plurals>
+    <plurals name="reliability_needs_attention">
+        <item quantity="one">%1$d de %2$d comprobaciones necesita tu atención</item>
+        <item quantity="many">%1$d de %2$d comprobaciones necesitan tu atención</item>
+        <item quantity="other">%1$d de %2$d comprobaciones necesitan tu atención</item>
+    </plurals>
+    <string name="reliability_summary_body">Tu alarma sonará igualmente. Lo que se marque aquí afecta a la prueba, no a la alarma.</string>
+    <string name="reliability_all_good_body">Las alarmas se programan de forma exacta y la prueba puede grabarse.</string>
+    <string name="open_app_settings">Abrir ajustes</string>
+    <string name="back">Atrás</string>
+</resources>

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Spanish. The app now ships `en` and `es`, follows the device locale, and falls back to English for any
+  other language. Settings gains a Language row that overrides the app's language independently of the
+  system's, on Android 13 and newer; below that the app follows the device locale as before. The override
+  is the platform's own per-app language, so it also appears in Android's app-language screen and reaches
+  the ringing notification, which the AppCompat backport would not have done for a Compose-only app
+  without re-basing the alarm-critical `RingingActivity` on `AppCompatActivity`
+
 ### Changed
 - A new alarm opens on the next five-minute mark rather than a hardcoded 7:00. The old default was
   wrong for anyone whose alarm was not a morning one, and it made every new alarm a two-step edit.

@@ -70,6 +70,14 @@ android {
         }
     }
 
+    androidResources {
+        // Generates the LocaleConfig from the values-* folders present, which is what puts UpYet in the
+        // system's per-app language screen. res/resources.properties declares values/ as the English default.
+        generateLocaleConfig = true
+        // AndroidX ships ~70 locales; without this the APK carries partial translations we never wrote.
+        localeFilters += listOf("en", "es")
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

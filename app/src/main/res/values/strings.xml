@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">UpYet</string>
+    <!-- Brand name: the same in every language, so it is never sent for translation. -->
+    <string name="app_name" translatable="false">UpYet</string>
     <string name="alarm_channel_name">Alarm ringing</string>
     <string name="alarm_ringing_title">Alarm ringing</string>
     <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
@@ -133,6 +134,8 @@
     <string name="video_evidence">Video evidence</string>
 
     <!-- Ringing -->
+    <!-- Skeleton pattern, not text: the field order and any connecting words are per-language. -->
+    <string name="ringing_date_pattern">EEEE d MMMM</string>
     <string name="dismiss_alarm_action">I’m up — dismiss</string>
     <string name="evidence_privacy_note">Silent recording, only while this screen is up. Never leaves your phone.</string>
 
@@ -174,6 +177,12 @@
     <string name="about_local_only">No account, no network, no analytics. Everything stays on this phone.</string>
     <string name="evidence_by_default_summary">New alarms record evidence unless you turn it off</string>
     <string name="evidence_retention_summary">Older clips are deleted automatically</string>
+    <string name="settings_general">General</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_summary">Overrides the language of this app</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
 
     <!-- Reliability -->
     <string name="reliability_checks">Checks</string>

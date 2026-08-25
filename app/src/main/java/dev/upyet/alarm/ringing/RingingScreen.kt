@@ -50,7 +50,7 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
     val locale = LocalConfiguration.current.locales[0]
     // RingingUiState only carries a clock time, not a date - the ticking view model deliberately drops it
     // since nothing else on this screen needs it. Today's date is a display-only detail read here instead.
-    val dateFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", locale)
+    val dateFormatter = DateTimeFormatter.ofPattern(stringResource(R.string.ringing_date_pattern), locale)
     val snoozeLabel = pluralStringResource(R.plurals.snooze_alarm, state.snoozeMinutes, state.snoozeMinutes)
     val dismissDescription = stringResource(R.string.dismiss_alarm)
     val dismissLabel = stringResource(R.string.dismiss_alarm_action)

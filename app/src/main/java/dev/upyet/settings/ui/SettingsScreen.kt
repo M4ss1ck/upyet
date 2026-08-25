@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Videocam
@@ -30,12 +31,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,11 +52,16 @@ import dev.upyet.core.ui.components.SectionLabel
 import dev.upyet.core.ui.components.SettingsRow
 import dev.upyet.core.ui.components.UpYetCard
 import dev.upyet.reliability.domain.ReliabilitySummary
+import dev.upyet.settings.data.AppLanguage
 import dev.upyet.settings.data.RetentionPolicy
 
 @Composable
 fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Changing the language recreates the activity but retains this ViewModel, and the system's own per-app
+    // language screen can change it too, so the stored value is re-read on every configuration change.
+    val configuration = LocalConfiguration.current
+    LaunchedEffect(configuration) { viewModel.refreshLanguage() }
     SettingsContent(
         state = state,
         onReliability = onReliability,
@@ -61,6 +69,7 @@ fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hil
         onVibration = viewModel::setVibration,
         onEvidence = viewModel::setEvidence,
         onRetention = viewModel::setRetention,
+        onLanguage = viewModel::setLanguage,
     )
 }
 
@@ -72,6 +81,7 @@ fun SettingsContent(
     onVibration: (Boolean) -> Unit = {},
     onEvidence: (Boolean) -> Unit = {},
     onRetention: (RetentionPolicy) -> Unit = {},
+    onLanguage: (AppLanguage) -> Unit = {},
 ) {
     // Scrollable: this screen grows with every new setting and must never hide one below the fold.
     Column(
@@ -152,6 +162,34 @@ fun SettingsContent(
             }
         }
 
+        if (state.languageSupported) {
+            SectionLabel(stringResource(R.string.settings_general), Modifier.padding(top = 16.dp, bottom = 2.dp))
+            UpYetCard {
+                var languageExpanded by remember { mutableStateOf(false) }
+                Box {
+                    SettingsRow(
+                        title = stringResource(R.string.settings_language),
+                        subtitle = stringResource(R.string.settings_language_summary),
+                        icon = Icons.Filled.Language,
+                        value = stringResource(languageResource(state.language)),
+                        showChevron = true,
+                        onClick = { languageExpanded = true },
+                    )
+                    DropdownMenu(languageExpanded, { languageExpanded = false }) {
+                        AppLanguage.entries.forEach { language ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(languageResource(language))) },
+                                onClick = {
+                                    onLanguage(language)
+                                    languageExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         SectionLabel(stringResource(R.string.settings_about), Modifier.padding(top = 16.dp, bottom = 2.dp))
         UpYetCard {
             SettingsRow(
@@ -217,6 +255,12 @@ private fun ReliabilityStatusCard(summary: ReliabilitySummary, onReliability: ()
 
 private const val DEFAULT_SNOOZE_MINUTES = 9
 private val SNOOZE_OPTIONS = listOf(1, 5, 9, 10, 15, 20, 30)
+
+private fun languageResource(language: AppLanguage): Int = when (language) {
+    AppLanguage.SYSTEM -> R.string.language_system
+    AppLanguage.ENGLISH -> R.string.language_english
+    AppLanguage.SPANISH -> R.string.language_spanish
+}
 
 private fun retentionResource(policy: RetentionPolicy): Int = when (policy) {
     RetentionPolicy.ONE_DAY -> R.string.retention_one_day
