@@ -1,6 +1,7 @@
 package dev.upyet.history.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,9 +60,10 @@ fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltView
     HistoryContent(state, onFilterChange = viewModel::setFilter, onOpen = onOpen)
 }
 
+/** Stateless history screen, so the layout can be exercised without Hilt or a ViewModel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HistoryContent(state: HistoryUiState, onFilterChange: (HistoryFilter) -> Unit, onOpen: (Long) -> Unit) {
+internal fun HistoryContent(state: HistoryUiState, onFilterChange: (HistoryFilter) -> Unit, onOpen: (Long) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
@@ -73,8 +76,11 @@ private fun HistoryContent(state: HistoryUiState, onFilterChange: (HistoryFilter
             }
         }
         item {
+            // The four labels are wider than a phone, and a plain Row answers that by squeezing the last
+            // chip until "Missed" breaks across lines. A scrolling row keeps every label on one line at
+            // any width and in any language; the padding sits inside the scroll so it travels with the chips.
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChipRow(state.filter, onFilterChange)
