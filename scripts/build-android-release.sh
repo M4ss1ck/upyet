@@ -3,14 +3,14 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ANDROID_HOME=${ANDROID_HOME:-"$HOME/Android/Sdk"}
-SIGNING_DIR="$HOME/.config/my-alarm/android-signing"
+SIGNING_DIR="$HOME/.config/upyet/android-signing"
 KEYSTORE="$SIGNING_DIR/android-release.jks"
 CREDENTIALS="$SIGNING_DIR/credentials.env"
 ALIAS=my-alarm
-VERSION=$(sed -n 's/^myalarm\.version=//p' "$ROOT_DIR/gradle.properties")
-APK="$ROOT_DIR/app/build/outputs/apk/release/myalarm-$VERSION-release.apk"
+VERSION=$(sed -n 's/^upyet\.version=//p' "$ROOT_DIR/gradle.properties")
+APK="$ROOT_DIR/app/build/outputs/apk/release/upyet-$VERSION-release.apk"
 
-# MyAlarm is pure Kotlin with no native libraries, so there is a single universal APK and none of the
+# UpYet is pure Kotlin with no native libraries, so there is a single universal APK and none of the
 # per-ABI splitting the Tauri-based sibling projects need. Signing itself is done by AGP through the
 # release signingConfig in app/build.gradle.kts, which reads the credentials exported below.
 
@@ -47,25 +47,25 @@ else
     -keyalg RSA \
     -keysize 4096 \
     -validity 10000 \
-    -dname "CN=MyAlarm"
-  printf 'MY_ALARM_ANDROID_KEYSTORE=%q\n' "$KEYSTORE" > "$CREDENTIALS"
-  printf 'MY_ALARM_ANDROID_KEY_ALIAS=%q\n' "$ALIAS" >> "$CREDENTIALS"
-  printf 'MY_ALARM_ANDROID_KEYSTORE_PASSWORD=%q\n' "$PASSWORD" >> "$CREDENTIALS"
+    -dname "CN=UpYet"
+  printf 'UPYET_ANDROID_KEYSTORE=%q\n' "$KEYSTORE" > "$CREDENTIALS"
+  printf 'UPYET_ANDROID_KEY_ALIAS=%q\n' "$ALIAS" >> "$CREDENTIALS"
+  printf 'UPYET_ANDROID_KEYSTORE_PASSWORD=%q\n' "$PASSWORD" >> "$CREDENTIALS"
 fi
 
 chmod 600 "$KEYSTORE" "$CREDENTIALS"
 # shellcheck disable=SC1090
 source "$CREDENTIALS"
 
-[[ "$MY_ALARM_ANDROID_KEYSTORE" == "$KEYSTORE" ]] || fail "credentials reference an unexpected keystore"
-[[ "$MY_ALARM_ANDROID_KEY_ALIAS" == "$ALIAS" ]] || fail "credentials reference an unexpected key alias"
-[[ -n "$MY_ALARM_ANDROID_KEYSTORE_PASSWORD" ]] || fail "keystore password is empty"
+[[ "$UPYET_ANDROID_KEYSTORE" == "$KEYSTORE" ]] || fail "credentials reference an unexpected keystore"
+[[ "$UPYET_ANDROID_KEY_ALIAS" == "$ALIAS" ]] || fail "credentials reference an unexpected key alias"
+[[ -n "$UPYET_ANDROID_KEYSTORE_PASSWORD" ]] || fail "keystore password is empty"
 
-export MY_ALARM_ANDROID_KEYSTORE MY_ALARM_ANDROID_KEY_ALIAS MY_ALARM_ANDROID_KEYSTORE_PASSWORD
+export UPYET_ANDROID_KEYSTORE UPYET_ANDROID_KEY_ALIAS UPYET_ANDROID_KEYSTORE_PASSWORD
 
 "$ROOT_DIR/gradlew" -p "$ROOT_DIR" clean assembleRelease
 
-[[ -n "$VERSION" ]] || fail "myalarm.version is missing from gradle.properties"
+[[ -n "$VERSION" ]] || fail "upyet.version is missing from gradle.properties"
 [[ -f "$APK" ]] || fail "release APK not found at $APK"
 
 # apksigner is the authority on whether the APK is really signed; a build whose signingConfig silently
@@ -74,7 +74,7 @@ export MY_ALARM_ANDROID_KEYSTORE MY_ALARM_ANDROID_KEY_ALIAS MY_ALARM_ANDROID_KEY
   || fail "release APK is not signed with the v2 scheme"
 
 PACKAGE=$("$AAPT" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
-[[ "$PACKAGE" == "dev.myalarm" ]] || fail "release APK has unexpected package: ${PACKAGE:-none}"
+[[ "$PACKAGE" == "dev.upyet" ]] || fail "release APK has unexpected package: ${PACKAGE:-none}"
 
 printf 'Signed Android release APK:\n'
 printf '  %s\n' "$APK"

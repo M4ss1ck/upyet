@@ -5,7 +5,7 @@
             android:name=".debug.DebugAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="dev.myalarm.debug.SCHEDULE" />
+                <action android:name="dev.upyet.debug.SCHEDULE" />
             </intent-filter>
         </receiver>
     </application>

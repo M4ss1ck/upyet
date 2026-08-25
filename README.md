@@ -8,8 +8,8 @@ question *"did I actually wake up and dismiss that alarm?"*
 
 Everything stays on the device: no account, no backend, no analytics, no network permission at all.
 
-The app is called **UpYet**. The Gradle project, the application id (`dev.myalarm`) and the
-`myalarm.version` property keep their original names: renaming them would change the installed
+The app is called **UpYet**. The Gradle project, the application id (`dev.upyet`) and the
+`upyet.version` property keep their original names: renaming them would change the installed
 application identity and the Room database file for no user-visible gain.
 
 ## Design in one paragraph
@@ -42,21 +42,21 @@ Signed release APK (R8-minified, no debug tooling):
 ./scripts/build-android-release.sh
 ```
 
-It creates `~/.config/my-alarm/android-signing/{android-release.jks,credentials.env}` on first run
+It creates `~/.config/upyet/android-signing/{android-release.jks,credentials.env}` on first run
 (PKCS12, RSA 4096, random password), builds `assembleRelease`, and verifies the signature. Later runs reuse
-the same key, so upgrades install over each other. In CI, export `MY_ALARM_ANDROID_KEYSTORE`,
-`MY_ALARM_ANDROID_KEY_ALIAS` and `MY_ALARM_ANDROID_KEYSTORE_PASSWORD` instead; without them
+the same key, so upgrades install over each other. In CI, export `UPYET_ANDROID_KEYSTORE`,
+`UPYET_ANDROID_KEY_ALIAS` and `UPYET_ANDROID_KEYSTORE_PASSWORD` instead; without them
 `assembleRelease` still builds, but unsigned.
 
 Debug builds accept an adb-triggered alarm for testing:
 
 ```bash
-adb shell am broadcast -a dev.myalarm.debug.SCHEDULE --ei seconds 60 -p dev.myalarm.debug
+adb shell am broadcast -a dev.upyet.debug.SCHEDULE --ei seconds 60 -p dev.upyet.debug
 ```
 
 ## Versioning
 
-`myalarm.version` in `gradle.properties` drives everything: `versionName`, the derived `versionCode`,
+`upyet.version` in `gradle.properties` drives everything: `versionName`, the derived `versionCode`,
 the APK filename and the version shown in Settings. Releases are tagged `vX.Y.Z` and recorded in
 [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -68,7 +68,7 @@ Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen 
 
 ## License
 
-Copyright (C) 2026 MyAlarm contributors.
+Copyright (C) 2026 UpYet contributors.
 
 UpYet is free software licensed under the **GNU General Public License, version 3 or later**
 (see [LICENSE](LICENSE)). If you distribute a modified version, you must make the corresponding source

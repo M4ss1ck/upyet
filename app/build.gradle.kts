@@ -8,7 +8,7 @@ plugins {
 
 /**
  * Release signing material lives outside the repository, the same way the sibling projects do it:
- * `~/.config/my-alarm/android-signing/{android-release.jks,credentials.env}`, created on first run by
+ * `~/.config/upyet/android-signing/{android-release.jks,credentials.env}`, created on first run by
  * `scripts/build-android-release.sh`. Environment variables take precedence so CI can inject secrets
  * without writing the file. When nothing is configured the release build stays unsigned rather than
  * failing, so `assembleRelease` still works for lint/CI smoke builds.
@@ -16,7 +16,7 @@ plugins {
 val releaseSigning: ReleaseSigningMaterial? = resolveReleaseSigning(providers)
 
 /** SemVer string from gradle.properties; the only place the version is written down. */
-val appVersionName: String = providers.gradleProperty("myalarm.version").get()
+val appVersionName: String = providers.gradleProperty("upyet.version").get()
 
 /**
  * Monotonic versionCode derived from the SemVer string: 0.1.0 -> 100, 1.2.3 -> 10203. Deriving it means a
@@ -25,7 +25,7 @@ val appVersionName: String = providers.gradleProperty("myalarm.version").get()
 val appVersionCode: Int = versionCodeOf(appVersionName)
 
 android {
-    namespace = "dev.myalarm"
+    namespace = "dev.upyet"
     compileSdk = 37
 
     sourceSets["androidTest"].assets.srcDir(
@@ -33,7 +33,7 @@ android {
     )
 
     defaultConfig {
-        applicationId = "dev.myalarm"
+        applicationId = "dev.upyet"
         minSdk = 26
         targetSdk = 36
         versionCode = appVersionCode
@@ -110,7 +110,7 @@ ksp {
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("myalarm-$appVersionName-${variant.name}.apk")
+            output.outputFileName.set("upyet-$appVersionName-${variant.name}.apk")
         }
     }
 }
@@ -194,7 +194,7 @@ spotless {
 /** 0.1.0 -> 100, 1.2.3 -> 10203. Each component is capped at 99 so the ordering can never invert. */
 fun versionCodeOf(version: String): Int {
     val parts = version.split(".")
-    require(parts.size == 3) { "myalarm.version must be MAJOR.MINOR.PATCH, was \"$version\"" }
+    require(parts.size == 3) { "upyet.version must be MAJOR.MINOR.PATCH, was \"$version\"" }
     val (major, minor, patch) =
         parts.map { part ->
             val number = part.toIntOrNull()
@@ -211,7 +211,7 @@ class ReleaseSigningMaterial(val keystore: File, val alias: String, val password
  * Both are read through [ProviderFactory] so the configuration cache tracks them as build inputs.
  */
 fun resolveReleaseSigning(providers: ProviderFactory): ReleaseSigningMaterial? {
-    val credentialsFile = File(System.getProperty("user.home"), ".config/my-alarm/android-signing/credentials.env")
+    val credentialsFile = File(System.getProperty("user.home"), ".config/upyet/android-signing/credentials.env")
     val fileValues =
         providers
             .fileContents(layout.projectDirectory.file(credentialsFile.absolutePath))
@@ -231,9 +231,9 @@ fun resolveReleaseSigning(providers: ProviderFactory): ReleaseSigningMaterial? {
 
     fun value(name: String): String? = providers.environmentVariable(name).orNull ?: fileValues[name]
 
-    val keystorePath = value("MY_ALARM_ANDROID_KEYSTORE") ?: return null
-    val alias = value("MY_ALARM_ANDROID_KEY_ALIAS") ?: return null
-    val password = value("MY_ALARM_ANDROID_KEYSTORE_PASSWORD") ?: return null
+    val keystorePath = value("UPYET_ANDROID_KEYSTORE") ?: return null
+    val alias = value("UPYET_ANDROID_KEY_ALIAS") ?: return null
+    val password = value("UPYET_ANDROID_KEYSTORE_PASSWORD") ?: return null
     val keystore = File(keystorePath)
     if (!keystore.isFile) {
         logger.warn("Release signing skipped: keystore $keystorePath does not exist. Run scripts/build-android-release.sh.")

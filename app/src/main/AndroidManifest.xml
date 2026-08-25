@@ -14,7 +14,7 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <application
-        android:name=".MyAlarmApplication"
+        android:name=".UpYetApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -51,7 +51,7 @@
             android:directBootAware="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="dev.myalarm.action.ALARM" />
+                <action android:name="dev.upyet.action.ALARM" />
             </intent-filter>
         </receiver>
         <receiver

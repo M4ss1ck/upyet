@@ -1,4 +1,4 @@
-# AGENTS.md — MyAlarm
+# AGENTS.md — UpYet
 
 Authoritative engineering contract for every coding agent working in this repository.
 Read this file before changing anything. If a request conflicts with the invariants
@@ -32,12 +32,12 @@ before verifying the user is unlocked.
 
 ## 1. Product definition
 
-MyAlarm is a replacement alarm-clock application for Android. Its distinguishing
+UpYet is a replacement alarm-clock application for Android. Its distinguishing
 feature is **video evidence of the user dismissing the alarm**: while our own ringing
 screen is visible, the front camera records silent video, and the resulting occurrence
 answers one question later — *"Did I actually wake up and dismiss that alarm?"*
 
-MyAlarm is **not** a companion for the system Clock app, a system-wide unlock recorder,
+UpYet is **not** a companion for the system Clock app, a system-wide unlock recorder,
 an intruder-selfie app, a background surveillance tool, or a generic reminder app.
 The camera runs only during our own visible ringing experience.
 
@@ -235,7 +235,7 @@ abstraction. Comments explain *why* and platform constraints, not syntax.
 
 ### License
 
-MyAlarm is GPL-3.0-or-later. Every dependency must be license-compatible with that (Apache-2.0, MIT,
+UpYet is GPL-3.0-or-later. Every dependency must be license-compatible with that (Apache-2.0, MIT,
 BSD and similar permissive terms are; anything copyleft-incompatible or proprietary is not). Do not copy
 substantial code from other projects without checking its license and recording the attribution.
 
@@ -278,8 +278,8 @@ Instrumented tests when a device/emulator is available:
 `./gradlew connectedDebugAndroidTest`.
 
 Release builds go through `./scripts/build-android-release.sh`. Signing material lives in
-`~/.config/my-alarm/android-signing/` (never in the repository) or in the `MY_ALARM_ANDROID_KEYSTORE`,
-`MY_ALARM_ANDROID_KEY_ALIAS` and `MY_ALARM_ANDROID_KEYSTORE_PASSWORD` environment variables. Never commit a
+`~/.config/upyet/android-signing/` (never in the repository) or in the `UPYET_ANDROID_KEYSTORE`,
+`UPYET_ANDROID_KEY_ALIAS` and `UPYET_ANDROID_KEYSTORE_PASSWORD` environment variables. Never commit a
 keystore, a password, or a signing config that embeds either.
 
 ### Known remaining lint warnings (deliberate)
@@ -293,7 +293,7 @@ these; if a new warning appears, fix its cause.
 
 ### Versioning
 
-`myalarm.version` in `gradle.properties` is the single source of truth (SemVer). `versionCode` is derived
+`upyet.version` in `gradle.properties` is the single source of truth (SemVer). `versionCode` is derived
 from it (`0.1.0` → `100`), APK filenames carry it, and the Settings screen shows it so a bug report can
 name a build. Bumping a version means: edit that one property, move the `CHANGELOG.md` entries out of
 `[Unreleased]` into the new version, commit, then tag `vX.Y.Z`. Never hand-edit `versionCode`.

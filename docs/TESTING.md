@@ -1,4 +1,4 @@
-# MyAlarm — testing
+# UpYet — testing
 
 Three layers: JVM unit tests, instrumented tests, and a manual device matrix. Alarm-clock correctness
 cannot be established by unit tests alone, so the device matrix is part of the definition of done.
@@ -87,18 +87,18 @@ Then, each recorded as pass/fail with device and API level:
 ```bash
 # Install and launch
 ./gradlew installDebug
-# Or the signed release build (package dev.myalarm, no debug tooling):
-./scripts/build-android-release.sh && adb install -r app/build/outputs/apk/release/myalarm-*-release.apk
-adb shell am start -n dev.myalarm.debug/dev.myalarm.MainActivity
+# Or the signed release build (package dev.upyet, no debug tooling):
+./scripts/build-android-release.sh && adb install -r app/build/outputs/apk/release/upyet-*-release.apk
+adb shell am start -n dev.upyet.debug/dev.upyet.MainActivity
 
 # Debug-only: schedule an alarm N seconds from now (debug builds only)
-adb shell am broadcast -a dev.myalarm.debug.SCHEDULE --ei seconds 60 -p dev.myalarm.debug
+adb shell am broadcast -a dev.upyet.debug.SCHEDULE --ei seconds 60 -p dev.upyet.debug
 
 # Kill the app process normally (alarms must survive this)
-adb shell am kill dev.myalarm.debug
+adb shell am kill dev.upyet.debug
 
 # Force stop (alarms are cancelled by the platform; app must recover on next launch)
-adb shell am force-stop dev.myalarm.debug
+adb shell am force-stop dev.upyet.debug
 
 # Doze
 adb shell dumpsys deviceidle enable
@@ -106,15 +106,15 @@ adb shell dumpsys deviceidle force-idle
 adb shell dumpsys deviceidle unforce && adb shell dumpsys deviceidle disable
 
 # Inspect scheduled alarms
-adb shell dumpsys alarm | grep -A 12 dev.myalarm
+adb shell dumpsys alarm | grep -A 12 dev.upyet
 
 # Screen off / lock
 adb shell input keyevent 26
 
 # Notification and permission state
-adb shell dumpsys notification --noredact | grep -A 20 dev.myalarm
-adb shell pm revoke dev.myalarm.debug android.permission.CAMERA
-adb shell pm grant  dev.myalarm.debug android.permission.CAMERA
+adb shell dumpsys notification --noredact | grep -A 20 dev.upyet
+adb shell pm revoke dev.upyet.debug android.permission.CAMERA
+adb shell pm grant  dev.upyet.debug android.permission.CAMERA
 
 # Time / timezone / DST
 adb shell su 0 date MMDDhhmmYYYY.ss     # rooted emulator only
@@ -136,7 +136,7 @@ adb reboot
 # 4. Unlock. The occurrence must appear in history after reconciliation.
 
 # Inspect device-protected storage (rooted emulator)
-adb shell run-as dev.myalarm.debug ls /data/user_de/0/dev.myalarm.debug/shared_prefs
+adb shell run-as dev.upyet.debug ls /data/user_de/0/dev.upyet.debug/shared_prefs
 ```
 
 ## 7. Reporting rules

@@ -1,4 +1,4 @@
-# MyAlarm — architecture
+# UpYet — architecture
 
 This document explains *how* the app is put together and *why*. The binding rules live in
 [`/AGENTS.md`](../AGENTS.md); this file does not repeat them.
@@ -8,7 +8,7 @@ This document explains *how* the app is put together and *why*. The binding rule
 Single Gradle module `:app`, organised by feature with explicit platform boundaries:
 
 ```text
-dev.myalarm
+dev.upyet
 ├── alarm
 │   ├── domain      pure Kotlin: Alarm, Recurrence, NextOccurrenceCalculator, repository interfaces
 │   ├── data        Room entities/DAOs/mappers, RoomAlarmRepository

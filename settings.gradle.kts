@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MyAlarm"
+rootProject.name = "UpYet"
 include(":app")
