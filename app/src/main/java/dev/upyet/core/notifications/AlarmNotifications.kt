@@ -53,7 +53,6 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setSilent(true)
             .setFullScreenIntent(activityIntent, true)
             .setContentIntent(activityIntent)
             .build()
