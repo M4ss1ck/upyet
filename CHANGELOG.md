@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-24
+
+Fixes for what the 0.1.1 redesign got wrong on a real screen. Every item here came from looking at the
+running app; none of it was visible from the code.
+
+### Fixed
+- Every clock face in the app rendered at running-text size. `ClockText` merged the ambient text style
+  *over* the style it was handed, so the body size won — on list rows, the next-alarm card, the editor,
+  history and the ringing screen alike. The AM/PM marker was also pinned at 13 sp regardless of the face
+  beside it, and is now sized in proportion to it
+- Alarm cards clipped the last weekday pills: the switch and overflow had a trailing column of their own,
+  taking the width the seven pills needed. Both now sit beside the time, the pills get the full card
+  width and size themselves to fit, so all seven survive a narrow screen or a large display scale
+- The alarm editor showed the time twice — Material's own editable hour and minute boxes plus a second
+  face above them. The second is now a muted read-back below the dial
+- The AM/PM selector never appeared: the picker was hardcoded to 24-hour. It follows the device clock
+  setting now
+- The time picker overflowed instead of shrinking when space was tight, putting the hour box flush
+  against the card edge and clipping the dial. It is composed at a fixed design width and scaled to the
+  width it is actually given, so it fits by construction rather than by tuned constants
+- Digits sat off-centre in the picker's squares and dial numerals off-centre in their selection circles:
+  `displayLarge` in the type ramp was the 84 sp ringing clock face, which Material also uses to size
+  those boxes. It is now a 44 sp face with a centred line box; the ringing screen asks for `ClockLarge`
+  by name and is unaffected
+- Settings' reliability summary wrapped mid-sentence, squeezed by the button sharing its row; the button
+  moved to its own line
+- Settings showed the version and licence twice, in the About row and again in the footer
+- The occurrence timeline pushed its step label onto two lines when the timestamp was long; label and
+  time are stacked now
+
+### Added
+- Alarm overflow menu with Edit and Delete. Editing was previously reachable only by tapping the card
+
+### Known gaps
+- Unchanged from 0.1.1: no custom typeface, and no end-to-end verification on real hardware. The fixes
+  above were reasoned against layout code and confirmed only from screenshots of three screens
+
 ## [0.1.1] - 2026-08-24
 
 The app is now called **UpYet** and has a design system instead of Material 3 defaults.
