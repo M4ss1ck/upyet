@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-25
+
+The first build run on a physical device, which found two things reading the code did not: the ringing
+screen never came up, and dismissing an alarm that was recording evidence killed the app. Both were
+reproduced on an emulator and the fixes verified there.
+
+### Added
+- Snooze and Dismiss actions on the ringing notification. While the device is awake and unlocked the
+  platform deliberately shows a heads-up notification instead of launching the full-screen intent, so
+  the alarm has to be answerable where it actually appears. Both actions send the playback service the
+  same commands the ringing screen sends. An alarm dismissed this way records no evidence, since the
+  ringing screen never becomes visible
+
+### Fixed
+- The alarm never came to the front. It arrived as a silent entry in the notification shade, with no
+  heads-up and no ringing screen, and had to be tapped to reach Snooze and Dismiss. `setSilent(true)`
+  on the notification also sets `GROUP_ALERT_SUMMARY` and a silent group key, and the platform then
+  suppresses both the heads-up and the full-screen intent. The channel already carries no sound and no
+  vibration, so the alarm stays silent without it, and with the device asleep or locked the full-screen
+  intent brings the ringing screen up as intended
+- The app died as an alarm recording evidence was dismissed. The CameraX callback held the evidence
+  segment as it was when the recording was requested: `Start` built the recording copy, persisted it
+  and dropped it, so finalizing at dismissal ran against the stale copy and its state check threw on
+  the main thread. Each event now hands the next one the segment it left behind, and a recording that
+  never reported `Start` is finalized as unavailable instead of throwing, since CameraX can finalize a
+  recording that never started and no camera failure may take the alarm down with it
+
 ## [0.1.3] - 2026-08-25
 
 Another round of fixes found by using the running app, plus the one bug in this list that was not
