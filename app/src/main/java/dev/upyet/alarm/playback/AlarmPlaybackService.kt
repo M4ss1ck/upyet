@@ -226,6 +226,9 @@ class AlarmPlaybackService : Service() {
             try {
                 val dismissedAt = if (outcome == OccurrenceOutcome.DISMISSED) timeProvider.now() else null
                 complete(session, outcome, dismissedAt)
+                // The alarm has rung, so a one-time one is spent. Before first unlock the alarm store is
+                // out of reach; the pending occurrence carries it, and UserUnlockedReceiver retires it there.
+                if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
                 rescheduler.get().rescheduleAll()
                 AlarmLog.event(
                     if (outcome == OccurrenceOutcome.TIMED_OUT) "alarm_timed_out" else "alarm_dismissed",

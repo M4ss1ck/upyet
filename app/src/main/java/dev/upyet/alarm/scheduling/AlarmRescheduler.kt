@@ -49,6 +49,18 @@ class AlarmRescheduler @Inject constructor(
 
     suspend fun scheduleNext(alarm: Alarm): SchedulingResult = schedule(alarm, timeProvider.now())
 
+    /**
+     * Switches off a one-time alarm that has finished ringing.
+     *
+     * A one-time alarm is only a time of day - there is no date to say it is spent - so left enabled
+     * the next reschedule rolls it to the same time tomorrow and it comes back as the next alarm.
+     * Repeating alarms are untouched: rolling forward is the whole point of them.
+     */
+    suspend fun retireIfOneTime(alarmId: AlarmId) {
+        val alarm = alarmRepository.getAlarm(alarmId) ?: return
+        if (alarm.recurrence == Recurrence.OneTime) alarmRepository.setEnabled(alarmId, false)
+    }
+
     private fun schedule(alarm: Alarm, now: Instant): SchedulingResult {
         val trigger =
             NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now)

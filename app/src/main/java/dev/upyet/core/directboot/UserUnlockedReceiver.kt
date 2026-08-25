@@ -32,13 +32,11 @@ class UserUnlockedReceiver : BroadcastReceiver() {
                 if (!userUnlockState.isUserUnlocked()) return@launch
                 pendingStore.all().forEach { record ->
                     val id = occurrenceRepository.createOccurrence(record.alarmId, record.scheduledFor, record.triggeredAt, null)
-                    occurrenceRepository.completeOccurrence(
-                        id,
-                        record.dismissedAt,
-                        runCatching {
-                            OccurrenceOutcome.valueOf(record.outcome)
-                        }.getOrDefault(OccurrenceOutcome.ERROR),
-                    )
+                    val outcome = runCatching { OccurrenceOutcome.valueOf(record.outcome) }.getOrDefault(OccurrenceOutcome.ERROR)
+                    occurrenceRepository.completeOccurrence(id, record.dismissedAt, outcome)
+                    // These alarms rang before first unlock, so the service could not reach the alarm store
+                    // to retire them. A snoozed one is still due to ring and keeps its place.
+                    if (outcome != OccurrenceOutcome.SNOOZED) rescheduler.retireIfOneTime(record.alarmId)
                 }
                 pendingStore.clear()
                 rescheduler.rescheduleAll()

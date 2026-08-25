@@ -47,6 +47,107 @@ class NextOccurrenceCalculatorTest {
     }
 
     @Test
+    fun dailyReturnsTodayWhenTheTimeIsStillAhead() {
+        val result = NextOccurrenceCalculator.next(LocalTime.of(7, 30), Recurrence.Daily, zone, instantAt("2027-01-10", "06:00"))
+
+        assertThat(result).isEqualTo(instantAt("2027-01-10", "07:30"))
+    }
+
+    /** Without [inclusive] the alarm standing exactly at now has already fired, so the next one is tomorrow. */
+    @Test
+    fun anExactMatchIsSkippedWhenNotInclusive() {
+        val from = instantAt("2027-01-10", "07:30")
+
+        val result = NextOccurrenceCalculator.next(LocalTime.of(7, 30), Recurrence.Daily, zone, from)
+
+        assertThat(result).isEqualTo(instantAt("2027-01-11", "07:30"))
+    }
+
+    @Test
+    fun midnightRollsToTheNextDayNotBackToTheStartOfToday() {
+        val result = NextOccurrenceCalculator.next(LocalTime.MIDNIGHT, Recurrence.Daily, zone, instantAt("2027-01-10", "08:00"))
+
+        assertThat(result).isEqualTo(instantAt("2027-01-11", "00:00"))
+    }
+
+    @Test
+    fun weeklyPicksTheSoonestOfSeveralDays() {
+        // Sunday 10 Jan 2027: Tuesday is nearer than Friday.
+        val result = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.FRIDAY, DayOfWeek.TUESDAY)),
+            zone,
+            instantAt("2027-01-10", "08:00"),
+        )
+
+        assertThat(result).isEqualTo(instantAt("2027-01-12", "07:30"))
+    }
+
+    @Test
+    fun weeklyReturnsTodayWhenTodayIsAnAllowedDayAndTheTimeIsAhead() {
+        // 10 Jan 2027 is a Sunday.
+        val result = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.SUNDAY)),
+            zone,
+            instantAt("2027-01-10", "06:00"),
+        )
+
+        assertThat(result).isEqualTo(instantAt("2027-01-10", "07:30"))
+    }
+
+    @Test
+    fun weeklyOnEverySevenDaysMatchesDaily() {
+        val from = instantAt("2027-01-10", "08:00")
+        val everyDay = Recurrence.Weekly(DayOfWeek.entries.toSet())
+
+        assertThat(NextOccurrenceCalculator.next(LocalTime.of(7, 30), everyDay, zone, from))
+            .isEqualTo(NextOccurrenceCalculator.next(LocalTime.of(7, 30), Recurrence.Daily, zone, from))
+    }
+
+    /**
+     * The eight-day search window has to cover the worst case: a single weekday whose time has already
+     * passed today is a full seven days out. Any narrower window would silently return no occurrence.
+     */
+    @Test
+    fun everySingleWeekdayHasAnOccurrenceFromEveryStartingDay() {
+        DayOfWeek.entries.forEach { startDay ->
+            val from = ZonedDateTime.of(LocalDate.of(2027, 1, 10), LocalTime.of(8, 0), zone)
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(startDay))
+                .toInstant()
+            DayOfWeek.entries.forEach { alarmDay ->
+                val result = NextOccurrenceCalculator.next(LocalTime.of(7, 30), Recurrence.Weekly(setOf(alarmDay)), zone, from)
+
+                assertThat(result).isNotNull()
+                assertThat(result!!.atZone(zone).dayOfWeek).isEqualTo(alarmDay)
+                assertThat(result).isGreaterThan(from)
+            }
+        }
+    }
+
+    @Test
+    fun everyRecurrenceAlwaysReturnsAnInstantAfterFrom() {
+        val from = instantAt("2027-01-10", "07:30")
+        val recurrences = listOf(
+            Recurrence.OneTime,
+            Recurrence.Daily,
+            Recurrence.Weekly(setOf(DayOfWeek.SUNDAY)),
+            Recurrence.Weekly(DayOfWeek.entries.toSet()),
+        )
+
+        recurrences.forEach { recurrence ->
+            assertThat(NextOccurrenceCalculator.next(LocalTime.of(7, 30), recurrence, zone, from)).isGreaterThan(from)
+        }
+    }
+
+    @Test
+    fun springForwardGapShiftsADailyAlarmForwardToo() {
+        val result = NextOccurrenceCalculator.next(LocalTime.of(2, 30), Recurrence.Daily, zone, instantAt("2027-03-13", "12:00"))
+
+        assertThat(result).isEqualTo(instantAt("2027-03-14", "03:30"))
+    }
+
+    @Test
     fun dailyReturnsTomorrowWhenTodayHasPassed() {
         val from = instantAt("2027-01-10", "08:00")
 

@@ -4,15 +4,19 @@ import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
+import dev.upyet.alarm.domain.NextAlarm
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.UserUnlockState
 import dev.upyet.core.time.TimeProvider
+import dev.upyet.testing.FakeAlarmRepository
+import dev.upyet.testing.FakeAlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -60,6 +64,49 @@ class AlarmReschedulerTest {
         val report = AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror).rescheduleAll()
         assertThat(repository.queried).isFalse()
         assertThat(report.scheduled).isEqualTo(1)
+    }
+
+    /**
+     * A one-time alarm that has rung must switch itself off. Left enabled, rescheduleAll rolls it to
+     * the same time tomorrow and it reappears as the next alarm, which is what "never repeats" is not.
+     */
+    @Test
+    fun aRungOneTimeAlarmIsRetiredAndDoesNotRollToTomorrow() = runTest {
+        val repository = FakeAlarmRepository(listOf(alarm(1, true)))
+        val scheduler = FakeAlarmScheduler()
+        val rescheduler = AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+
+        rescheduler.retireIfOneTime(AlarmId(1))
+        rescheduler.rescheduleAll()
+
+        assertThat(repository.stored.single().enabled).isFalse()
+        assertThat(scheduler.scheduled).isEmpty()
+        assertThat(scheduler.cancelled).containsExactly(AlarmId(1) to AlarmOccurrenceKind.MAIN)
+        assertThat(NextAlarm.select(repository.stored, ZoneId.of("UTC"), now)).isNull()
+    }
+
+    @Test
+    fun retiringLeavesRepeatingAlarmsEnabled() = runTest {
+        val daily = alarm(1, true).copy(recurrence = Recurrence.Daily)
+        val weekly = alarm(2, true).copy(recurrence = Recurrence.Weekly(setOf(DayOfWeek.MONDAY)))
+        val repository = FakeAlarmRepository(listOf(daily, weekly))
+        val rescheduler = AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+
+        rescheduler.retireIfOneTime(AlarmId(1))
+        rescheduler.retireIfOneTime(AlarmId(2))
+
+        assertThat(repository.enabledChanges).isEmpty()
+        assertThat(repository.stored.map { it.enabled }).containsExactly(true, true)
+    }
+
+    @Test
+    fun retiringAnAlarmThatIsAlreadyGoneDoesNothing() = runTest {
+        val repository = FakeAlarmRepository(emptyList())
+        val rescheduler = AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+
+        rescheduler.retireIfOneTime(AlarmId(99))
+
+        assertThat(repository.enabledChanges).isEmpty()
     }
 
     private fun rescheduler(repository: FakeRepository, scheduler: FakeScheduler) =
