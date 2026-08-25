@@ -49,7 +49,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -213,16 +212,16 @@ private fun AlarmEditorForm(
             // Follow the device's clock setting, so a 12-hour locale gets the AM/PM selector rather
             // than being forced onto a 24-hour dial.
             val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
-            // The picker is created once the alarm has loaded, keyed on that time: a picker remembered before
-            // the stored alarm arrived would keep showing the default 07:00 while the alarm is something else.
-            key(state.time) {
-                val timeState = rememberTimePickerState(state.time.hour, state.time.minute, is24Hour)
-                LaunchedEffect(timeState.hour, timeState.minute) {
-                    val picked = LocalTime.of(timeState.hour, timeState.minute)
-                    if (picked != state.time) onUpdate { it.copy(time = picked) }
-                }
-                TimePickerCard(timeState)
+            // The picker starts from the alarm's time and then owns it - the form is only composed once the
+            // alarm has loaded, so there is no stale default to correct. It is deliberately not rebuilt when
+            // state.time changes: a rebuilt picker comes back in its initial hour mode, which is how picking
+            // a minute used to throw the dial back to the hour and leave the minute impossible to adjust.
+            val timeState = rememberTimePickerState(state.time.hour, state.time.minute, is24Hour)
+            LaunchedEffect(timeState.hour, timeState.minute) {
+                val picked = LocalTime.of(timeState.hour, timeState.minute)
+                if (picked != state.time) onUpdate { it.copy(time = picked) }
             }
+            TimePickerCard(timeState)
             // The picker's own boxes are the editable time; this is the read-back of what was chosen,
             // so it is muted rather than carrying the primary colour and competing with them.
             ClockText(
