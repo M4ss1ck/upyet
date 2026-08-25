@@ -62,7 +62,6 @@
     <string name="default_vibration">Default vibration</string>
     <string name="evidence_by_default">Evidence by default</string>
     <string name="permission_onboarding">Grant permissions</string>
-    <string name="occurrence_details">Occurrence details</string>
     <string name="outcome_ringing">Ringing</string>
     <string name="outcome_dismissed">Dismissed</string>
     <string name="outcome_snoozed">Snoozed</string>
@@ -85,10 +84,6 @@
     <string name="evidence_summary_direct_boot">Unavailable before first unlock</string>
     <string name="evidence_summary_not_recorded">Not recorded</string>
     <string name="evidence_summary_unknown">Unknown recording error</string>
-    <string name="triggered_at">Triggered: %1$s</string>
-    <string name="scheduled_at">Scheduled: %1$s</string>
-    <string name="activity_visible_at">Activity visible: %1$s</string>
-    <string name="dismissed_at">Dismissed: %1$s</string>
     <plurals name="evidence_total_duration"><item quantity="one">Recorded duration: %1$d second</item><item quantity="other">Recorded duration: %1$d seconds</item></plurals>
     <string name="evidence_segment_index">Segment %1$d</string>
     <string name="segment_started_at">Started: %1$s</string>
@@ -133,7 +128,6 @@
     <string name="repeat_daily">Daily</string>
     <string name="repeat_custom">Custom</string>
     <string name="evidence_explanation">Records silently from the front camera while the alarm screen is up. Stays on this device.</string>
-    <string name="delete_alarm">Delete alarm</string>
     <string name="video_evidence">Video evidence</string>
 
     <!-- Ringing -->
@@ -175,7 +169,10 @@
 
     <!-- Reliability -->
     <string name="reliability_checks">Checks</string>
-    <string name="reliability_all_good">All %1$d checks pass</string>
+    <plurals name="reliability_all_good">
+        <item quantity="one">All %1$d check passes</item>
+        <item quantity="other">All %1$d checks pass</item>
+    </plurals>
     <plurals name="reliability_needs_attention">
         <item quantity="one">%1$d of %2$d checks needs you</item>
         <item quantity="other">%1$d of %2$d checks need you</item>
