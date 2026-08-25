@@ -200,12 +200,23 @@ private fun TimelineStepRow(step: TimelineStep, timeFormatter: DateTimeFormatter
                 Box(Modifier.padding(top = 4.dp).size(width = 2.dp, height = 26.dp).background(MaterialTheme.colorScheme.outlineVariant))
             }
         }
-        Row(Modifier.fillMaxWidth().padding(bottom = if (isLast) 4.dp else 18.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(step.labelRes), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+        // Label and time are stacked, not set against each other across the row: side by side, a long
+        // localised timestamp squeezed the label into two lines.
+        Column(
+            Modifier.fillMaxWidth().padding(bottom = if (isLast) 4.dp else 18.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                stringResource(step.labelRes),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
             Text(
                 timeFormatter.format(step.at),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
         }
     }
