@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -41,7 +43,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.BuildConfig
 import dev.upyet.R
-import dev.upyet.core.ui.components.BrandMark
 import dev.upyet.core.ui.components.PrimaryButton
 import dev.upyet.core.ui.components.RowDivider
 import dev.upyet.core.ui.components.SectionLabel
@@ -156,22 +157,11 @@ fun SettingsContent(
             SettingsRow(
                 title = stringResource(R.string.app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                 icon = Icons.Filled.Info,
+                subtitle = stringResource(R.string.about_local_only),
             )
         }
 
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 20.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BrandMark(size = 18.dp)
-            Text(
-                text = stringResource(R.string.app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 

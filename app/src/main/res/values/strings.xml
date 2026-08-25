@@ -164,6 +164,7 @@
     <string name="settings_defaults">Alarm defaults</string>
     <string name="settings_evidence">Evidence</string>
     <string name="settings_about">About</string>
+    <string name="about_local_only">No account, no network, no analytics. Everything stays on this phone.</string>
     <string name="evidence_by_default_summary">New alarms record evidence unless you turn it off</string>
     <string name="evidence_retention_summary">Older clips are deleted automatically</string>
 
