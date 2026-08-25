@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,10 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -256,48 +261,73 @@ private fun SchedulingBanner(@StringRes message: Int, showReliability: Boolean, 
 @Composable
 private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     var showDelete by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     val onSurface = if (alarm.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     UpYetCard(
         modifier = Modifier.clickable(onClick = onEdit).alpha(if (alarm.enabled) 1f else 0.72f),
         contentPadding = PaddingValues(16.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                ClockText(
-                    time = alarm.time,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = onSurface,
-                    meridiemColor = onSurfaceVariant,
-                )
-                Text(
-                    alarm.label.ifBlank {
-                        stringResource(R.string.unnamed_alarm)
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = onSurface,
-                )
-                if (alarm.recurrence == Recurrence.OneTime) {
-                    Text(stringResource(R.string.alarm_never_repeats), style = MaterialTheme.typography.bodySmall, color = onSurfaceVariant)
-                } else {
-                    RecurrencePills(alarm.recurrence, alarm.enabled)
+        // The switch and the overflow sit beside the time rather than in a trailing column: given a
+        // column of their own they stole the width the seven weekday pills need, and the pills clipped.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            ClockText(
+                time = alarm.time,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.displaySmall,
+                color = onSurface,
+                meridiemColor = onSurfaceVariant,
+            )
+            val enabledDescription = stringResource(R.string.alarm_enabled_description)
+            // Scaled, not resized: graphicsLayer shrinks what is drawn so the control matches the
+            // height of the time beside it, while the laid-out touch target stays full size.
+            Switch(
+                checked = alarm.enabled,
+                onCheckedChange = onEnabled,
+                modifier = Modifier.scale(SWITCH_SCALE).semantics { contentDescription = enabledDescription },
+            )
+            Box {
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier.sizeIn(minWidth = MinTouchTarget, minHeight = MinTouchTarget),
+                ) {
+                    Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = onSurfaceVariant)
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.edit_alarm)) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick = {
+                            showMenu = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete)) },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            showMenu = false
+                            showDelete = true
+                        },
+                    )
                 }
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                val enabledDescription = stringResource(R.string.alarm_enabled_description)
-                Switch(
-                    checked = alarm.enabled,
-                    onCheckedChange = onEnabled,
-                    modifier = Modifier.sizeIn(minWidth = MinTouchTarget, minHeight = MinTouchTarget).semantics {
-                        contentDescription = enabledDescription
-                    },
-                )
-                IconButton(onClick = {
-                    showDelete = true
-                }, modifier = Modifier.sizeIn(minWidth = MinTouchTarget, minHeight = MinTouchTarget)) {
-                    Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
-                }
-            }
+        }
+        Text(
+            alarm.label.ifBlank { stringResource(R.string.unnamed_alarm) },
+            style = MaterialTheme.typography.titleSmall,
+            color = onSurface,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        if (alarm.recurrence == Recurrence.OneTime) {
+            Text(
+                stringResource(R.string.alarm_never_repeats),
+                style = MaterialTheme.typography.bodySmall,
+                color = onSurfaceVariant,
+                modifier = Modifier.padding(top = 9.dp),
+            )
+        } else {
+            RecurrencePills(alarm.recurrence, alarm.enabled, Modifier.padding(top = 9.dp))
         }
     }
     if (showDelete) {
@@ -319,28 +349,47 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
     }
 }
 
-/** Seven day pills, Monday first. Daily lights every pill; a weekly recurrence lights only its days. */
+/**
+ * Seven day pills, Monday first. Daily lights every pill; a weekly recurrence lights only its days.
+ *
+ * The pills size themselves to the width they are given, capped at [MAX_DAY_PILL], so all seven are
+ * always visible - on a narrow screen or a large display scale they shrink rather than clip.
+ */
 @Composable
 private fun RecurrencePills(recurrence: Recurrence, alarmEnabled: Boolean, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        DayOfWeek.entries.forEach { day ->
-            val lit = when (recurrence) {
-                Recurrence.Daily -> true
-                is Recurrence.Weekly -> day in recurrence.days
-                Recurrence.OneTime -> false
+    BoxWithConstraints(modifier) {
+        val gap = 5.dp
+        val available = (maxWidth - gap * (DayOfWeek.entries.size - 1)) / DayOfWeek.entries.size
+        val pill = minOf(available, MAX_DAY_PILL)
+        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+            DayOfWeek.entries.forEach { day ->
+                val lit = when (recurrence) {
+                    Recurrence.Daily -> true
+                    is Recurrence.Weekly -> day in recurrence.days
+                    Recurrence.OneTime -> false
+                }
+                DayPill(day, lit && alarmEnabled, pill)
             }
-            DayPill(day, lit && alarmEnabled)
         }
     }
 }
 
 @Composable
-private fun DayPill(day: DayOfWeek, lit: Boolean, modifier: Modifier = Modifier) {
+private fun DayPill(day: DayOfWeek, lit: Boolean, size: androidx.compose.ui.unit.Dp) {
     val container = if (lit) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val content = if (lit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(shape = CircleShape, color = container, modifier = modifier.size(26.dp)) {
+    Surface(shape = CircleShape, color = container, modifier = Modifier.size(size)) {
         Box(contentAlignment = Alignment.Center) {
-            Text(day.getDisplayName(TextStyle.NARROW, currentLocale()), style = MaterialTheme.typography.labelSmall, color = content)
+            Text(
+                day.getDisplayName(TextStyle.NARROW, currentLocale()),
+                style = MaterialTheme.typography.labelSmall,
+                color = content,
+                maxLines = 1,
+            )
         }
     }
 }
+
+/** The switch is drawn at this fraction so it stands the same height as the time it sits beside. */
+private const val SWITCH_SCALE = 0.8f
+private val MAX_DAY_PILL = 26.dp
