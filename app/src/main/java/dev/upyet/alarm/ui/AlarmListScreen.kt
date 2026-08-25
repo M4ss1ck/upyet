@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -44,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -270,7 +270,7 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
     ) {
         // The switch and the overflow sit beside the time rather than in a trailing column: given a
         // column of their own they stole the width the seven weekday pills need, and the pills clipped.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
             ClockText(
                 time = alarm.time,
                 modifier = Modifier.weight(1f),
@@ -279,17 +279,20 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
                 meridiemColor = onSurfaceVariant,
             )
             val enabledDescription = stringResource(R.string.alarm_enabled_description)
-            // Scaled, not resized: graphicsLayer shrinks what is drawn so the control matches the
-            // height of the time beside it, while the laid-out touch target stays full size.
+            // The switch keeps its full size: at the time's display size the two now stand level, and
+            // scaling it down only cost it a touch target it is entitled to.
             Switch(
                 checked = alarm.enabled,
                 onCheckedChange = onEnabled,
-                modifier = Modifier.scale(SWITCH_SCALE).semantics { contentDescription = enabledDescription },
+                modifier = Modifier.semantics { contentDescription = enabledDescription },
             )
             Box {
+                // The overflow's 48 dp touch target centres a 24 dp glyph, which reads as a wide gap
+                // next to the switch. The negative end offset pulls the glyph back towards it without
+                // taking anything off the target itself.
                 IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.sizeIn(minWidth = MinTouchTarget, minHeight = MinTouchTarget),
+                    modifier = Modifier.offset(x = OVERFLOW_NUDGE).sizeIn(minWidth = MinTouchTarget, minHeight = MinTouchTarget),
                 ) {
                     Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = onSurfaceVariant)
                 }
@@ -390,6 +393,6 @@ private fun DayPill(day: DayOfWeek, lit: Boolean, size: androidx.compose.ui.unit
     }
 }
 
-/** The switch is drawn at this fraction so it stands the same height as the time it sits beside. */
-private const val SWITCH_SCALE = 0.8f
+/** Pulls the overflow glyph back towards the switch; its touch target keeps its full width. */
+private val OVERFLOW_NUDGE = 6.dp
 private val MAX_DAY_PILL = 26.dp
