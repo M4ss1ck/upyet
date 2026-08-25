@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -181,6 +180,8 @@ fun SettingsContent(
 private fun ReliabilityStatusCard(summary: ReliabilitySummary, onReliability: () -> Unit, modifier: Modifier = Modifier) {
     val container = if (summary.allGood) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
     val content = if (summary.allGood) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.error
+    // The button sits on its own line rather than beside the text: sharing the row left the summary
+    // a narrow column that wrapped mid-sentence on any phone-width screen.
     UpYetCard(modifier, contentPadding = PaddingValues(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = RoundedCornerShape(14.dp), color = container, modifier = Modifier.size(46.dp)) {
@@ -208,16 +209,19 @@ private fun ReliabilityStatusCard(summary: ReliabilitySummary, onReliability: ()
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = stringResource(if (summary.allGood) R.string.reliability_all_good_body else R.string.reliability_summary_body),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
-            PrimaryButton(text = stringResource(R.string.open_reliability), onClick = onReliability)
         }
+        Text(
+            text = stringResource(if (summary.allGood) R.string.reliability_all_good_body else R.string.reliability_summary_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 10.dp),
+        )
+        PrimaryButton(
+            text = stringResource(R.string.open_reliability),
+            onClick = onReliability,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        )
     }
 }
 
