@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-25
+
+Another round of fixes found by using the running app, plus the one bug in this list that was not
+cosmetic: a one-time alarm that never switched itself off.
+
+### Fixed
+- A one-time alarm came back the next morning. There is no date on a one-time alarm to say it is
+  spent, so the reschedule that follows a dismissal rolled it to the same time tomorrow and it
+  reappeared as the next alarm. It is switched off once it has rung; repeating alarms roll forward as
+  before. Before first unlock the alarm store is out of reach, so the pending occurrence carries it
+  and the unlock receiver retires it there
+- Picking a minute in the alarm editor threw the dial back to the hour, leaving the minute impossible
+  to adjust. The picker was keyed on the alarm's time, so every minute it reported rebuilt it, and a
+  fresh picker starts in hour mode. It is now created once from the loaded alarm and owns the value
+  from there
+- The evidence player pillarboxed portrait clips inside a 16:10 box. It takes the video's own aspect
+  ratio now, with the transport below the frame instead of overlaid on it, since the clips are
+  portrait and short and the overlay covered most of what there was to see
+- History's filter chips squeezed the last chip until "Missed" broke across lines; the four labels are
+  wider than a phone. The row scrolls horizontally instead, which holds at any width and in any
+  language
+- Clock faces sized the full stops in a spelled-out meridiem ("a. m.") as digits, so the marker came
+  with two digit-sized dots. Only a full stop between digits counts as part of the face now
+- The unchecked switch had no visible thumb in dark mode: the dark scheme gave `outline` and
+  `surfaceContainerHighest` the same tone, and Material paints the thumb, the border and the track
+  from those two roles. The track drops to the surface tone below it
+
 ## [0.1.2] - 2026-08-24
 
 Fixes for what the 0.1.1 redesign got wrong on a real screen. Every item here came from looking at the
@@ -39,10 +66,6 @@ running app; none of it was visible from the code.
 
 ### Added
 - Alarm overflow menu with Edit and Delete. Editing was previously reachable only by tapping the card
-
-### Known gaps
-- Unchanged from 0.1.1: no custom typeface, and no end-to-end verification on real hardware. The fixes
-  above were reasoned against layout code and confirmed only from screenshots of three screens
 
 ## [0.1.1] - 2026-08-24
 
