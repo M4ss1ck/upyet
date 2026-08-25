@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.R
+import dev.upyet.alarm.playback.AlarmPlaybackService
 import dev.upyet.alarm.ringing.RingingActivity
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -55,8 +56,28 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
             .setAutoCancel(false)
             .setFullScreenIntent(activityIntent, true)
             .setContentIntent(activityIntent)
+            // While the device is in use the platform shows this as a heads-up instead of launching the
+            // full-screen intent, so the alarm has to be answerable from the notification itself.
+            .addAction(
+                0,
+                context.getString(R.string.alarm_notification_snooze),
+                command(AlarmPlaybackService.snoozeIntent(context), REQUEST_SNOOZE),
+            )
+            .addAction(
+                0,
+                context.getString(R.string.alarm_notification_dismiss),
+                command(AlarmPlaybackService.dismissIntent(context), REQUEST_DISMISS),
+            )
             .build()
     }
+
+    /** The service is already in the foreground, and a notification action may start it from anywhere. */
+    private fun command(intent: Intent, requestCode: Int): PendingIntent = PendingIntent.getForegroundService(
+        context,
+        requestCode,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     /** Below API 34 the platform grants full-screen intents to alarm-category notifications outright. */
     fun canUseFullScreenIntent(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
@@ -67,5 +88,7 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
     companion object {
         const val CHANNEL_RINGING = "alarm_ringing"
         const val NOTIFICATION_ID_RINGING = 1001
+        private const val REQUEST_SNOOZE = 1002
+        private const val REQUEST_DISMISS = 1003
     }
 }

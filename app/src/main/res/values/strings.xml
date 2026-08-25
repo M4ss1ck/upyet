@@ -4,6 +4,8 @@
     <string name="alarm_channel_name">Alarm ringing</string>
     <string name="alarm_ringing_title">Alarm ringing</string>
     <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
+    <string name="alarm_notification_snooze">Snooze</string>
+    <string name="alarm_notification_dismiss">Dismiss</string>
     <plurals name="snooze_alarm"><item quantity="one">Snooze %1$d minute</item><item quantity="other">Snooze %1$d minutes</item></plurals>
     <string name="dismiss_alarm">Dismiss alarm</string>
     <string name="evidence_recording">Recording evidence</string>
