@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -42,8 +43,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -55,10 +58,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.R
@@ -203,10 +209,7 @@ private fun AlarmEditorForm(
             shape = MaterialTheme.shapes.medium,
         )
 
-        // No horizontal padding on purpose: Material's picker needs its full intrinsic width for the
-        // hour box, the minute box and the AM/PM selector together, and starving it wrapped the
-        // selector to one letter per line.
-        UpYetCard(contentPadding = PaddingValues(vertical = 20.dp)) {
+        UpYetCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 20.dp)) {
             // Follow the device's clock setting, so a 12-hour locale gets the AM/PM selector rather
             // than being forced onto a 24-hour dial.
             val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
@@ -218,23 +221,7 @@ private fun AlarmEditorForm(
                     val picked = LocalTime.of(timeState.hour, timeState.minute)
                     if (picked != state.time) onUpdate { it.copy(time = picked) }
                 }
-                val dialNumerals = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = MaterialTheme.typography.bodyLarge.fontSize,
-                    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None),
-                )
-                MaterialTheme(typography = MaterialTheme.typography.copy(bodyLarge = dialNumerals)) {
-                    TimePicker(
-                        state = timeState,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        colors = TimePickerDefaults.colors(
-                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
-                            selectorColor = MaterialTheme.colorScheme.primary,
-                            containerColor = Color.Transparent,
-                            periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    )
-                }
+                TimePickerCard(timeState)
             }
             // The picker's own boxes are the editable time; this is the read-back of what was chosen,
             // so it is muted rather than carrying the primary colour and competing with them.
@@ -347,3 +334,54 @@ private fun AlarmEditorForm(
         }
     }
 }
+
+/**
+ * Material's time picker is built from fixed sizes it does not let you set, and it does not shrink
+ * when the space is tight - it overflows, which is how the hour box ended up flush against the card
+ * edge and the dial clipped at the bottom.
+ *
+ * So it is composed at a known design width and then scaled to whatever width it is actually given,
+ * by lowering the density it lays out against. Boxes, dial, selector and text shrink together and in
+ * proportion, which is why this holds on any screen rather than for one phone.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerCard(timeState: TimePickerState) {
+    // The two type roles the picker sizes itself from: the hour and minute boxes grow with
+    // displayLarge, and the AM/PM selector with titleMedium. Both get a centred line box, without
+    // which a digit rides low in its square and a dial numeral sits off-centre in its circle.
+    val typography = MaterialTheme.typography.copy(
+        displayLarge = MaterialTheme.typography.displayLarge.centredLineBox(),
+        titleMedium = MaterialTheme.typography.titleMedium.copy(fontSize = PERIOD_LABEL_SIZE).centredLineBox(),
+        bodyLarge = MaterialTheme.typography.bodyLarge.centredLineBox(),
+    )
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val scale = (maxWidth / TIME_PICKER_DESIGN_WIDTH).coerceAtMost(1f)
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density * scale, density.fontScale)) {
+            MaterialTheme(typography = typography) {
+                TimePicker(
+                    state = timeState,
+                    modifier = Modifier.align(Alignment.Center),
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                        selectorColor = MaterialTheme.colorScheme.primary,
+                        containerColor = Color.Transparent,
+                        periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/** Centres the text in its line box, so glyphs sit in the middle of the square or circle behind them. */
+private fun androidx.compose.ui.text.TextStyle.centredLineBox(): androidx.compose.ui.text.TextStyle = copy(
+    lineHeight = fontSize,
+    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None),
+)
+
+/** Width the picker is composed at before being scaled down to the width it is actually given. */
+private val TIME_PICKER_DESIGN_WIDTH = 296.dp
+private val PERIOD_LABEL_SIZE = 13.sp
