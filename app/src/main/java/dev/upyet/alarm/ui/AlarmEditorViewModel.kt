@@ -20,12 +20,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 private const val MINUTES_PER_HOUR = 60
+private const val SECONDS_PER_MINUTE = 60
 private const val DEFAULT_SNOOZE_MINUTES = 9
-private const val DEFAULT_HOUR = 7
+private const val DEFAULT_TIME_STEP_MINUTES = 5
+private const val DEFAULT_TIME_MIN_LEAD_MINUTES = 2
 
 private const val KEY_ALARM_ID = "id"
 private const val KEY_DRAFT = "draft"
@@ -39,7 +44,8 @@ private const val KEY_EVIDENCE = "draft_evidence"
 private const val KEY_SOUND_URI = "draft_sound_uri"
 
 data class AlarmEditorUiState(
-    val time: LocalTime = LocalTime.of(DEFAULT_HOUR, 0),
+    /** Placeholder until [AlarmEditorViewModel] fills it in; never shown, because the picker waits for [isLoaded]. */
+    val time: LocalTime = LocalTime.MIDNIGHT,
     val label: String = "",
     val recurrence: Recurrence = Recurrence.OneTime,
     val vibration: Boolean = true,
@@ -76,6 +82,7 @@ class AlarmEditorViewModel @Inject constructor(
                 val defaults = settingsRepository.settings.first()
                 update {
                     it.copy(
+                        time = defaultTime(timeProvider.now(), timeProvider.zone()),
                         vibration = defaults.defaultVibrationEnabled,
                         snoozeMinutes = defaults.defaultSnoozeMinutes,
                         evidence = defaults.evidenceEnabledByDefault,
@@ -84,6 +91,25 @@ class AlarmEditorViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * A new alarm opens on the next [DEFAULT_TIME_STEP_MINUTES]-minute mark, skipping ahead one more step when
+     * that mark is under [DEFAULT_TIME_MIN_LEAD_MINUTES] away so that saving straight away cannot produce an
+     * alarm that rings in seconds. Offsets are applied with [LocalTime.plusMinutes] so the result wraps past
+     * midnight instead of going backwards.
+     */
+    private fun defaultTime(now: Instant, zone: ZoneId): LocalTime {
+        val current = now.atZone(zone).toLocalTime()
+        val toNextMark = DEFAULT_TIME_STEP_MINUTES - current.minute % DEFAULT_TIME_STEP_MINUTES
+        val leadSeconds = toNextMark * SECONDS_PER_MINUTE - current.second
+        val offset =
+            if (leadSeconds < DEFAULT_TIME_MIN_LEAD_MINUTES * SECONDS_PER_MINUTE) {
+                toNextMark + DEFAULT_TIME_STEP_MINUTES
+            } else {
+                toNextMark
+            }
+        return current.truncatedTo(ChronoUnit.MINUTES).plusMinutes(offset.toLong())
     }
 
     fun update(transform: (AlarmEditorUiState) -> AlarmEditorUiState) {

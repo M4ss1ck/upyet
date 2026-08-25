@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- A new alarm opens on the next five-minute mark rather than a hardcoded 7:00. The old default was
+  wrong for anyone whose alarm was not a morning one, and it made every new alarm a two-step edit.
+  A mark less than two minutes out is skipped for the one after it, so an alarm saved as offered
+  cannot ring in seconds, and the offsets wrap past midnight instead of landing in the past
+
 ## [0.1.4] - 2026-08-25
 
 The first build run on a physical device, which found two things reading the code did not: the ringing

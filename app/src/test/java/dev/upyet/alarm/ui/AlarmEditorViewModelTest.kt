@@ -48,6 +48,46 @@ class AlarmEditorViewModelTest {
         assertThat(viewModel.state.value.evidence).isFalse()
     }
 
+    @Test fun newAlarmDefaultsToNextFiveMinuteMark() = runTest {
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), now = "2026-08-24T13:02:00Z")
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(13, 5))
+        assertThat(viewModel.state.value.isLoaded).isTrue()
+    }
+
+    @Test fun newAlarmSkipsAMarkThatIsLessThanTwoMinutesAway() = runTest {
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), now = "2026-08-24T13:04:45Z")
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(13, 10))
+    }
+
+    @Test fun newAlarmDefaultWrapsPastMidnight() = runTest {
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), now = "2026-08-24T23:58:30Z")
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(0, 5))
+    }
+
+    @Test fun existingAlarmKeepsItsStoredTime() = runTest {
+        val existing = alarm(1, "Existing", LocalTime.of(6, 15))
+        val viewModel = viewModel(FakeAlarmRepository(listOf(existing)), FakeAlarmScheduler(), 1L)
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(6, 15))
+    }
+
+    @Test fun restoredDraftTimeWinsOverTheDefault() = runTest {
+        val savedState = SavedStateHandle(
+            mapOf("id" to -1L, "draft" to true, "draft_minute_of_day" to 6 * 60 + 15),
+        )
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = savedState)
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(6, 15))
+    }
+
     @Test fun existingAlarmPopulatesStateAndEditsAreImmutable() = runTest {
         val existing = alarm(1, "Existing", LocalTime.of(6, 15))
         val viewModel = viewModel(FakeAlarmRepository(listOf(existing)), FakeAlarmScheduler(), 1L)
@@ -91,14 +131,19 @@ class AlarmEditorViewModelTest {
         assertThat(repository.stored.single().enabled).isFalse()
     }
 
-    private fun viewModel(repository: FakeAlarmRepository, scheduler: FakeAlarmScheduler, id: Long = -1L): AlarmEditorViewModel =
-        AlarmEditorViewModel(
-            SavedStateHandle(mapOf("id" to id)),
-            repository,
-            AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUserUnlockState(), FakeAlarmMirror()),
-            SettingsRepository(FakeSettingsDataStore()),
-            FixedTimeProvider(),
-        )
+    private fun viewModel(
+        repository: FakeAlarmRepository,
+        scheduler: FakeAlarmScheduler,
+        id: Long = -1L,
+        now: String = "2026-08-24T10:00:00Z",
+        savedState: SavedStateHandle = SavedStateHandle(mapOf("id" to id)),
+    ): AlarmEditorViewModel = AlarmEditorViewModel(
+        savedState,
+        repository,
+        AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUserUnlockState(), FakeAlarmMirror()),
+        SettingsRepository(FakeSettingsDataStore()),
+        FixedTimeProvider(Instant.parse(now)),
+    )
 
     private fun alarm(id: Long, label: String, time: LocalTime) = Alarm(
         AlarmId(id), time, true, label, Recurrence.OneTime, null, true, 9, true, Instant.EPOCH, Instant.EPOCH,
