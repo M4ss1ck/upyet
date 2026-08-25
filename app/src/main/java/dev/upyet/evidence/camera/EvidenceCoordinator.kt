@@ -147,7 +147,12 @@ constructor(
                 context,
                 FileOutputOptions.Builder(file).build(),
             )
-            recording = prepared.start(ContextCompat.getMainExecutor(context)) { event -> handleEvent(event, segmentWithId, file) }
+            // Every event must see the state the previous one left behind: finalizing a segment that is
+            // still REQUESTED because Start never updated it throws out of the CameraX callback.
+            var segment = segmentWithId
+            recording = prepared.start(ContextCompat.getMainExecutor(context)) { event ->
+                segment = handleEvent(event, segment, file)
+            }
         } catch (_: IllegalArgumentException) {
             recordingStartFailed(segmentWithId, file)
         } catch (_: IllegalStateException) {
@@ -174,28 +179,32 @@ constructor(
         _surfaceRequest.value = null
     }
 
-    private fun handleEvent(event: VideoRecordEvent, segment: EvidenceSegment?, file: File) {
+    /** Returns the segment as this event leaves it, so the next event works from the current state. */
+    private fun handleEvent(event: VideoRecordEvent, segment: EvidenceSegment?, file: File): EvidenceSegment? {
         when (event) {
             is VideoRecordEvent.Start -> {
                 val startedAt = timeProvider.now()
-                segment?.let { requestedSegment ->
-                    val updated = requestedSegment.withStarted(startedAt)
-                    persist(updated)
-                }
+                val started = segment?.withStarted(startedAt)
+                if (started != null) persist(started)
                 _state.value = EvidenceRecordingState.Recording(startedAt, 0L)
                 AlarmLog.event("recording_started")
+                return started
             }
 
             is VideoRecordEvent.Status -> {
-                val startedAt = (state.value as? EvidenceRecordingState.Recording)?.startedAt ?: return
+                val startedAt = (state.value as? EvidenceRecordingState.Recording)?.startedAt ?: return segment
                 _state.value = EvidenceRecordingState.Recording(
                     startedAt,
                     event.recordingStats.recordedDurationNanos / NANOS_PER_MILLISECOND,
                 )
             }
 
-            is VideoRecordEvent.Finalize -> finalize(event, segment, file)
+            is VideoRecordEvent.Finalize -> {
+                finalize(event, segment, file)
+                return null
+            }
         }
+        return segment
     }
 
     private fun finalize(event: VideoRecordEvent.Finalize, segment: EvidenceSegment?, file: File) {
@@ -203,15 +212,21 @@ constructor(
         val hasFile = file.isFile && file.length() > 0L
         val (status, errorCode) = statusForFinalize(event.error, hasFile, durationMs)
         if (!hasFile) file.delete()
-        segment?.let { requestedSegment ->
+        segment?.let { pending ->
             val now = timeProvider.now()
-            val updated = requestedSegment.withFinalized(
-                at = now,
-                status = status,
-                durationMs = durationMs,
-                sizeBytes = event.recordingStats.numBytesRecorded,
-                errorCode = errorCode,
-            )
+            // CameraX can finalize a recording that never reported Start - a camera error, or a stop
+            // arriving first - and such a segment is still REQUESTED, which only withUnavailable accepts.
+            val updated = if (pending.status == EvidenceStatus.RECORDING) {
+                pending.withFinalized(
+                    at = now,
+                    status = status,
+                    durationMs = durationMs,
+                    sizeBytes = event.recordingStats.numBytesRecorded,
+                    errorCode = errorCode,
+                )
+            } else {
+                pending.withUnavailable(now, EvidenceStatus.FAILED, errorCode ?: EvidenceErrorCode.FINALIZATION_FAILED)
+            }
             persist(updated)
         }
         _state.value = EvidenceRecordingState.Finished(status)
