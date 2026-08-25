@@ -4,6 +4,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 
@@ -20,12 +21,29 @@ val ClockMedium =
 val ClockSmall =
     TextStyle(fontFamily = Brand, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 34.sp, letterSpacing = (-0.8).sp)
 
+/**
+ * The style Material's own components reach for through `displayLarge` - notably the TimePicker's
+ * hour and minute boxes. It is deliberately NOT [ClockLarge]: at 84 sp the digits overflow those
+ * 80 dp squares and sit off-centre. The ringing screen asks for [ClockLarge] explicitly instead.
+ *
+ * lineHeight matches fontSize and the line box is centred, so a digit sits in the middle of
+ * whatever container Material puts it in rather than riding low on its baseline.
+ */
+val ClockDisplay = TextStyle(
+    fontFamily = Brand,
+    fontWeight = FontWeight.ExtraBold,
+    fontSize = 50.sp,
+    lineHeight = 50.sp,
+    letterSpacing = (-1.5).sp,
+    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None),
+)
+
 /** The meridiem that trails a clock face, and the uppercase section labels above every group. */
 val Meridiem = TextStyle(fontFamily = Brand, fontWeight = FontWeight.Bold, fontSize = 13.sp, lineHeight = 16.sp)
 val SectionLabel = TextStyle(fontFamily = Brand, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.5.sp)
 
 val UpYetTypography = Typography(
-    displayLarge = ClockLarge,
+    displayLarge = ClockDisplay,
     displayMedium = ClockMedium,
     displaySmall = ClockSmall,
     headlineMedium = TextStyle(

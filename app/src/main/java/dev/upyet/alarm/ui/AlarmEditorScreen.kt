@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -208,25 +210,34 @@ private fun AlarmEditorForm(
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
+            // Follow the device's clock setting, so a 12-hour locale gets the AM/PM selector rather
+            // than being forced onto a 24-hour dial.
+            val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
             // The picker is created once the alarm has loaded, keyed on that time: a picker remembered before
             // the stored alarm arrived would keep showing the default 07:00 while the alarm is something else.
             key(state.time) {
-                val timeState = rememberTimePickerState(state.time.hour, state.time.minute, true)
+                val timeState = rememberTimePickerState(state.time.hour, state.time.minute, is24Hour)
                 LaunchedEffect(timeState.hour, timeState.minute) {
                     val picked = LocalTime.of(timeState.hour, timeState.minute)
                     if (picked != state.time) onUpdate { it.copy(time = picked) }
                 }
-                TimePicker(
-                    state = timeState,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    colors = TimePickerDefaults.colors(
-                        clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
-                        selectorColor = MaterialTheme.colorScheme.primary,
-                        containerColor = Color.Transparent,
-                        periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
-                    ),
+                val dialNumerals = MaterialTheme.typography.bodyLarge.copy(
+                    lineHeight = MaterialTheme.typography.bodyLarge.fontSize,
+                    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None),
                 )
+                MaterialTheme(typography = MaterialTheme.typography.copy(bodyLarge = dialNumerals)) {
+                    TimePicker(
+                        state = timeState,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        colors = TimePickerDefaults.colors(
+                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                            selectorColor = MaterialTheme.colorScheme.primary,
+                            containerColor = Color.Transparent,
+                            periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                }
             }
         }
 
