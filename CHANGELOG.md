@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before this existed backfill themselves the first time they scroll into view. The thumbnail is evidence
   like any other and is deleted with its clip, so retention still means what it says. A row whose clip has
   no frame yet, or never produced one, keeps the icon it has today
+- The app knows about alarm volume. A reliability check reports an alarm stream sitting at zero - the
+  state in which the alarm is completely silent and nothing said so - and deep-links to system sound
+  settings. When the stream is at zero at ring time the alarm vibrates even if vibration is switched off
+  for it, and the ringing screen says why: a silent alarm that also does not buzz fails the only promise
+  the app makes
+- The ringtone ramps from a fifth of its volume to full over thirty seconds rather than starting at full
+  tilt. The attenuation happens inside the player and never writes to the system alarm stream, so it
+  cannot leave the user's volume slider somewhere they did not put it. The last ring of a snooze chain
+  does not ramp
+- Unanswered alarms re-ring instead of giving up permanently. A timeout still records TIMED_OUT - the
+  honest record that nobody answered - and then schedules the next ring the same way a manual snooze
+  does. The chain stops when the snooze budget runs out or two hours after the first ring, whichever
+  comes first; the two-hour ceiling applies even to an unlimited budget, which is the case it exists for
+- A maximum-snoozes setting, default three, options one, three, five or unlimited. The budget is read
+  once when the alarm first rings and then carried through the chain as an intent extra and in the
+  device-protected mirror, so it survives a reboot mid-chain and works before first unlock, where the
+  database is out of reach. The final ring offers no Snooze at all and the one before it is labelled
+  "Last snooze"
+- History rolls a whole wake-up into one row: the alarm's own time, its final outcome, and "snoozed 2x .
+  18 min" instead of three separate rows saying nothing about each other. The row's frame comes from the
+  ring the user actually got up on, falling back through the earlier ones. Opening it shows every ring in
+  order with its own clips, and deleting it deletes the whole wake-up. Chains are derived from the parent
+  link already stored on each occurrence, so nothing changed in the database
 
 ## [0.1.5] - 2026-08-25
 
