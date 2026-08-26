@@ -40,6 +40,31 @@ precisely which environment and why.
 * Navigation between the main destinations.
 * Receiver/service integration that can reasonably be exercised (scheduler → receiver intent extras,
   service command handling with a fake player).
+* Alarm volume against a real `AudioManager` (`AlarmVolumeTest`): what the stream's floor actually is,
+  that silent and barely-audible are mutually exclusive at every volume, and that the settings deep link
+  resolves. A JVM test cannot ask any of this.
+* The Direct Boot mirror against real device-protected storage (`DirectBootAlarmStoreTest`): the snooze
+  budget and chain start round-trip, and a record written before those fields existed still parses. The
+  mirror is a positional `|` string that nothing validates, so every appended field is a compatibility
+  question only real storage can answer.
+* Compose, snooze chain: the final ring offers no Snooze and stays dismissible, the ring before it is
+  labelled "Last snooze", a silenced stream is explained on the ringing screen, the maximum-snoozes
+  setting renders and reports every option including Unlimited, and a snooze chain collapses into one
+  history row carrying its count, its elapsed time and its final outcome.
+
+### What the emulator taught us
+
+Two findings came out of running these rather than reading them, and both are recorded here because the
+next person will otherwise re-derive them:
+
+* **`STREAM_ALARM` has a non-zero minimum.** On a stock API 34 emulator its range is `[1..7]`; the
+  platform rejects an index of 0 with *"invalid volume index 0 for stream 4"*, and repeated
+  volume-down never reaches silence. A "volume is at zero" check written against `getStreamVolume`
+  alone is therefore unreachable on stock Android. `AlarmVolume.isSilent()` tests
+  `isStreamMute` as well, and a separate barely-audible state covers the "or near zero" case that a
+  real user hits. `AlarmVolumeTest` asserts the floor so this cannot be silently undone.
+* **The AVD needs `-camera-front emulated`.** Without it `CorePathFlowTest` fails at the
+  recording-indicator assertion and nothing else explains why — the prerequisite below is not optional.
 
 ## 4. Device / emulator matrix
 

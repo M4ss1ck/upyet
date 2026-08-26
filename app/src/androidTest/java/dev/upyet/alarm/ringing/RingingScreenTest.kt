@@ -35,4 +35,57 @@ class RingingScreenTest {
         compose.onNodeWithContentDescription("Dismiss alarm").assertIsEnabled().assertHasClickAction()
         compose.onNodeWithContentDescription("Evidence recording in progress").assertIsDisplayed()
     }
+
+    /**
+     * The last ring of a snooze chain offers no Snooze at all rather than a disabled one: a greyed-out
+     * button at 6am is a puzzle, not an affordance.
+     */
+    @Test fun theFinalRingOffersNoSnoozeAtAll() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, snoozeAllowed = false))
+
+        compose.onNodeWithText("Last alarm — no snoozes left").assertIsDisplayed()
+        compose.onNodeWithText("Snooze 9 minutes").assertDoesNotExist()
+        compose.onNodeWithText("Last snooze").assertDoesNotExist()
+    }
+
+    /** Dismissal survives every other state on this screen, and the final ring is not an exception. */
+    @Test fun theFinalRingIsStillDismissible() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, snoozeAllowed = false))
+
+        compose.onNodeWithContentDescription("Dismiss alarm").assertIsEnabled().assertHasClickAction()
+    }
+
+    @Test fun theRingBeforeTheLastOneWarnsThatItIsTheLastSnooze() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, isLastSnooze = true))
+
+        compose.onNodeWithText("Last snooze").assertIsEnabled().assertHasClickAction()
+        compose.onNodeWithText("Snooze 9 minutes").assertDoesNotExist()
+    }
+
+    @Test fun anOrdinarySnoozeKeepsItsMinutesLabel() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9))
+
+        compose.onNodeWithText("Snooze 9 minutes").assertIsEnabled()
+        compose.onNodeWithText("Last snooze").assertDoesNotExist()
+    }
+
+    /**
+     * A stream at zero means the alarm made no sound at all. The screen has to say why it is buzzing
+     * instead, or the user is left with an alarm that behaved inexplicably.
+     */
+    @Test fun aSilentAlarmStreamIsExplainedOnScreen() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, isSilentAlarmStream = true))
+
+        compose.onNodeWithText("Alarm sound is off — vibrating instead").assertIsDisplayed()
+    }
+
+    @Test fun anAudibleAlarmSaysNothingAboutVolume() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9))
+
+        compose.onNodeWithText("Alarm sound is off — vibrating instead").assertDoesNotExist()
+    }
+
+    private fun show(state: RingingUiState) {
+        compose.setContent { UpYetTheme { RingingScreen(state, {}, {}) } }
+    }
 }

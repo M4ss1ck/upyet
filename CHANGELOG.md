@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before this existed backfill themselves the first time they scroll into view. The thumbnail is evidence
   like any other and is deleted with its clip, so retention still means what it says. A row whose clip has
   no frame yet, or never produced one, keeps the icon it has today
-- The app knows about alarm volume. A reliability check reports an alarm stream sitting at zero - the
-  state in which the alarm is completely silent and nothing said so - and deep-links to system sound
-  settings. When the stream is at zero at ring time the alarm vibrates even if vibration is switched off
-  for it, and the ringing screen says why: a silent alarm that also does not buzz fails the only promise
-  the app makes
+- The app knows about alarm volume. A reliability check reports an alarm stream that has been silenced -
+  the state in which the alarm makes no sound at all and nothing said so - and deep-links to system sound
+  settings, with a separate warning for a stream left so low it may not wake anyone. When the stream is
+  silent at ring time the alarm vibrates even if vibration is switched off for it, and the ringing screen
+  says why: a silent alarm that also does not buzz fails the only promise the app makes
 - The ringtone ramps from a fifth of its volume to full over thirty seconds rather than starting at full
   tilt. The attenuation happens inside the player and never writes to the system alarm stream, so it
   cannot leave the user's volume slider somewhere they did not put it. The last ring of a snooze chain
@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ring the user actually got up on, falling back through the earlier ones. Opening it shows every ring in
   order with its own clips, and deleting it deletes the whole wake-up. Chains are derived from the parent
   link already stored on each occurrence, so nothing changed in the database
+
+### Fixed
+- The alarm-volume check now detects a stream that has actually been silenced. It originally tested only
+  whether the volume had reached zero, which stock Android never permits: `STREAM_ALARM` has a minimum of
+  1 and the platform rejects an index of 0 outright, so the check could not fire and the forced-vibration
+  path behind it was unreachable. Found by running it on an emulator rather than reading it
 
 ## [0.1.5] - 2026-08-25
 
