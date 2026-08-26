@@ -47,7 +47,8 @@
     <string name="reliability_battery_informational">Solo informativo: UpYet nunca solicita una exención</string>
     <string name="reliability_volume">Volumen de la alarma</string>
     <string name="reliability_volume_explanation">El volumen de la alarma es audible</string>
-    <string name="reliability_volume_silent">El volumen de la alarma está a cero — la alarma no sonará</string>
+    <string name="reliability_volume_silent">El sonido de la alarma está desactivado — la alarma no sonará</string>
+    <string name="reliability_volume_low">El volumen de la alarma es muy bajo — puede que no te despierte</string>
     <string name="alarm_label">Etiqueta</string>
     <string name="vibration">Vibración</string>
     <string name="snooze_minutes">Minutos de posposición</string>
@@ -151,7 +152,7 @@
     <string name="ringing_date_pattern">EEEE d \'de\' MMMM</string>
     <string name="dismiss_alarm_action">Ya estoy en pie — descartar</string>
     <string name="evidence_privacy_note">Grabación silenciosa, solo mientras esta pantalla esté visible. Nunca sale de tu teléfono.</string>
-    <string name="ringing_volume_silent">El volumen de la alarma está a cero — vibrando en su lugar</string>
+    <string name="ringing_volume_silent">El sonido de la alarma está desactivado — vibrando en su lugar</string>
 
     <!-- History -->
     <string name="history_subtitle">La prueba de cada alarma que has descartado</string>

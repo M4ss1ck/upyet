@@ -30,6 +30,7 @@ class ReliabilityChecks @Inject constructor(
         val nextTrigger = scheduler.nextScheduledTrigger()
         // Read once: two reads can straddle a volume-key press and report BLOCKED with the audible copy.
         val silentAlarmStream = alarmVolume.isSilent()
+        val barelyAudibleAlarmStream = alarmVolume.isBarelyAudible()
         return listOf(
             ReliabilityCheck(
                 "exact",
@@ -50,8 +51,16 @@ class ReliabilityChecks @Inject constructor(
             ReliabilityCheck(
                 "alarm_volume",
                 R.string.reliability_volume,
-                if (silentAlarmStream) ReliabilityStatus.BLOCKED else ReliabilityStatus.OK,
-                if (silentAlarmStream) R.string.reliability_volume_silent else R.string.reliability_volume_explanation,
+                when {
+                    silentAlarmStream -> ReliabilityStatus.BLOCKED
+                    barelyAudibleAlarmStream -> ReliabilityStatus.WARNING
+                    else -> ReliabilityStatus.OK
+                },
+                when {
+                    silentAlarmStream -> R.string.reliability_volume_silent
+                    barelyAudibleAlarmStream -> R.string.reliability_volume_low
+                    else -> R.string.reliability_volume_explanation
+                },
                 settingsIntent = alarmVolume.settingsIntent(),
             ),
             ReliabilityCheck(
