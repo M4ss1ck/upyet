@@ -1,5 +1,6 @@
 package dev.upyet.history.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -31,12 +32,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -52,18 +56,34 @@ import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.core.ui.theme.extraColors
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.thumbnailSourceFileName
 import java.time.ZoneId
+
+/** Test tags for the three thumbnail states; the frame itself is decorative and carries no description. */
+internal const val THUMBNAIL_FRAME_TAG = "history_thumbnail_frame"
+internal const val THUMBNAIL_PENDING_TAG = "history_thumbnail_pending"
+internal const val THUMBNAIL_NO_CLIP_TAG = "history_thumbnail_no_clip"
 
 @Composable
 fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HistoryContent(state, onFilterChange = viewModel::setFilter, onOpen = onOpen)
+    HistoryContent(
+        state,
+        onFilterChange = viewModel::setFilter,
+        onOpen = onOpen,
+        onThumbnailNeeded = viewModel::onThumbnailNeeded,
+    )
 }
 
 /** Stateless history screen, so the layout can be exercised without Hilt or a ViewModel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HistoryContent(state: HistoryUiState, onFilterChange: (HistoryFilter) -> Unit, onOpen: (Long) -> Unit) {
+internal fun HistoryContent(
+    state: HistoryUiState,
+    onFilterChange: (HistoryFilter) -> Unit,
+    onOpen: (Long) -> Unit,
+    onThumbnailNeeded: (String) -> Unit,
+) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
@@ -93,7 +113,7 @@ internal fun HistoryContent(state: HistoryUiState, onFilterChange: (HistoryFilte
                 HistoryEmptyState(Modifier.padding(horizontal = 20.dp, vertical = 32.dp), stringResource(R.string.history_filter_empty))
             }
 
-            else -> historyGroups(state.groups, onOpen)
+            else -> historyGroups(state.groups, state.thumbnails, onOpen, onThumbnailNeeded)
         }
     }
 }
@@ -128,13 +148,23 @@ private fun FilterChipRow(selected: HistoryFilter, onFilterChange: (HistoryFilte
     }
 }
 
-private fun LazyListScope.historyGroups(groups: List<HistoryGroup>, onOpen: (Long) -> Unit) {
+private fun LazyListScope.historyGroups(
+    groups: List<HistoryGroup>,
+    thumbnails: Map<String, ImageBitmap>,
+    onOpen: (Long) -> Unit,
+    onThumbnailNeeded: (String) -> Unit,
+) {
     groups.forEach { group ->
         item {
             SectionLabel(stringResource(group.labelRes), Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
         }
         items(group.items, key = { it.occurrence.id.value }) { historyItem ->
-            OccurrenceRow(historyItem, Modifier.padding(horizontal = 20.dp, vertical = 5.dp)) { onOpen(historyItem.occurrence.id.value) }
+            OccurrenceRow(
+                historyItem,
+                thumbnails,
+                onThumbnailNeeded,
+                Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
+            ) { onOpen(historyItem.occurrence.id.value) }
         }
     }
 }
@@ -163,13 +193,21 @@ private fun HistoryEmptyState(modifier: Modifier = Modifier, message: String = s
 }
 
 @Composable
-private fun OccurrenceRow(item: HistoryViewModel.HistoryItem, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun OccurrenceRow(
+    item: HistoryViewModel.HistoryItem,
+    thumbnails: Map<String, ImageBitmap>,
+    onThumbnailNeeded: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val occurrence = item.occurrence
     val zone = remember { ZoneId.systemDefault() }
     val time = remember(occurrence.scheduledFor, zone) { occurrence.scheduledFor.atZone(zone).toLocalTime() }
+    val source = remember(item.segments) { thumbnailSourceFileName(item.segments) }
+    LaunchedEffect(source) { source?.let(onThumbnailNeeded) }
     UpYetCard(modifier = modifier.clickable(onClick = onClick), contentPadding = PaddingValues(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            HistoryThumbnail(hasClip = item.segments.any { it.fileName != null })
+            HistoryThumbnail(bitmap = source?.let(thumbnails::get), hasClip = source != null)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     ClockText(time, style = MaterialTheme.typography.titleLarge)
@@ -211,14 +249,32 @@ private fun evidenceSecondaryLine(segments: List<EvidenceSegment>): String? {
     return listOfNotNull(clipText, durationText).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
+/**
+ * Three states and no fourth: the extracted frame, a clip whose frame is not there (yet, or at all), and
+ * no clip. The icon state doubles as the loading state, so an arriving frame never shifts the layout.
+ */
 @Composable
-private fun HistoryThumbnail(hasClip: Boolean, modifier: Modifier = Modifier) {
+private fun HistoryThumbnail(bitmap: ImageBitmap?, hasClip: Boolean, modifier: Modifier = Modifier) {
     val background = if (hasClip) MaterialTheme.colorScheme.inverseSurface else MaterialTheme.colorScheme.surfaceVariant
     val tint = if (hasClip) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.outline
-    val icon: ImageVector = if (hasClip) Icons.Default.PlayArrow else Icons.Default.VideocamOff
     Surface(shape = RoundedCornerShape(16.dp), color = background, modifier = modifier.size(62.dp)) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = tint)
+        if (bitmap != null) {
+            // Decorative: the row already announces its time, label and outcome to TalkBack.
+            Image(
+                bitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().testTag(THUMBNAIL_FRAME_TAG),
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    if (hasClip) Icons.Default.PlayArrow else Icons.Default.VideocamOff,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.testTag(if (hasClip) THUMBNAIL_PENDING_TAG else THUMBNAIL_NO_CLIP_TAG),
+                )
+            }
         }
     }
 }

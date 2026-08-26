@@ -34,6 +34,7 @@ class DeleteOccurrenceWithEvidenceTest {
         val deleted = mutableListOf<String>()
         override fun newEvidenceFile() = File("unused")
         override fun resolve(fileName: String) = File(fileName)
+        override fun resolveThumbnail(fileName: String) = File("${fileName.substringBeforeLast('.')}.jpg")
         override fun delete(fileName: String): Boolean {
             deleted += fileName
             return true

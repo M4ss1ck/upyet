@@ -26,10 +26,12 @@ import dev.upyet.core.directboot.UserUnlockState
 import dev.upyet.core.logging.AlarmLog
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.data.EvidenceFileStore
+import dev.upyet.evidence.data.EvidenceThumbnailExtractor
 import dev.upyet.evidence.domain.EvidenceErrorCode
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.thumbnailFrameOffsetMicros
 import dev.upyet.evidence.domain.withFinalized
 import dev.upyet.evidence.domain.withStarted
 import dev.upyet.evidence.domain.withUnavailable
@@ -53,6 +55,7 @@ constructor(
     // Lazy: nothing on the ringing path may build credential-protected storage before first unlock.
     private val occurrenceRepository: Lazy<OccurrenceRepository>,
     private val evidenceFileStore: EvidenceFileStore,
+    private val thumbnailExtractor: EvidenceThumbnailExtractor,
     private val timeProvider: TimeProvider,
     private val userUnlockState: UserUnlockState,
 ) {
@@ -228,11 +231,31 @@ constructor(
                 pending.withUnavailable(now, EvidenceStatus.FAILED, errorCode ?: EvidenceErrorCode.FINALIZATION_FAILED)
             }
             persist(updated)
+            if (hasFile && (status == EvidenceStatus.RECORDED || status == EvidenceStatus.PARTIAL)) {
+                extractThumbnail(file, durationMs)
+            }
         }
         _state.value = EvidenceRecordingState.Finished(status)
         AlarmLog.event("recording_finalized", "status" to status, "error" to errorCode)
         if (errorCode != null) AlarmLog.event("alarm_error", "error" to errorCode)
         recording = null
+    }
+
+    /**
+     * Fire-and-forget is acceptable here and nowhere else on this path: the scope is supervised and
+     * process-lived, the work runs after dismissal so it can never delay or block it, and it touches only
+     * files - no Room, no DataStore - so it stays Direct-Boot-safe. A failure simply leaves the history row
+     * on its placeholder until the screen retries the extraction lazily.
+     */
+    private fun extractThumbnail(file: File, durationMs: Long) {
+        scope.launch {
+            val extracted = thumbnailExtractor.extract(
+                file,
+                evidenceFileStore.resolveThumbnail(file.name),
+                thumbnailFrameOffsetMicros(durationMs),
+            )
+            AlarmLog.event("thumbnail_extracted", "ok" to extracted)
+        }
     }
 
     private fun persist(segment: EvidenceSegment) {

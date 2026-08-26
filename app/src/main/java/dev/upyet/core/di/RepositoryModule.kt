@@ -10,6 +10,8 @@ import dev.upyet.core.time.SystemTimeProvider
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.data.AppEvidenceFileStore
 import dev.upyet.evidence.data.EvidenceFileStore
+import dev.upyet.evidence.data.EvidenceThumbnailExtractor
+import dev.upyet.evidence.data.MediaMetadataThumbnailExtractor
 import dev.upyet.evidence.data.RoomOccurrenceRepository
 import dev.upyet.evidence.domain.OccurrenceRepository
 
@@ -24,6 +26,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindEvidenceFileStore(store: AppEvidenceFileStore): EvidenceFileStore
+
+    @Binds
+    abstract fun bindEvidenceThumbnailExtractor(extractor: MediaMetadataThumbnailExtractor): EvidenceThumbnailExtractor
 
     @Binds
     abstract fun bindTimeProvider(provider: SystemTimeProvider): TimeProvider

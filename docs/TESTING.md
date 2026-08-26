@@ -81,6 +81,7 @@ Then, each recorded as pass/fail with device and API level:
 | 21 | Low storage | evidence status `Storage error`, alarm unaffected |
 | 22 | Delete occurrence | metadata and video files removed |
 | 23 | Retention cleanup | segments older than the policy are removed, active ones never |
+| 24 | History thumbnail | after recording, the history row shows a real frame from the clip, not a placeholder; deleting the occurrence leaves no orphan `.jpg` in `noBackupFilesDir/evidence/` |
 
 ## 5. ADB recipes
 

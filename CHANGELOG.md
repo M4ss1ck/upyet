@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- History rows show a real frame from the clip instead of a play icon. The frame is taken about a second
+  in, where a front camera has finished exposing, and is written as a JPEG beside its clip in app-private
+  evidence storage - never a blob in the database. Extraction happens after the recording is finalized, on
+  the path that already outlives the ringing screen, so it cannot delay or block a dismissal; rows recorded
+  before this existed backfill themselves the first time they scroll into view. The thumbnail is evidence
+  like any other and is deleted with its clip, so retention still means what it says. A row whose clip has
+  no frame yet, or never produced one, keeps the icon it has today
+
 ## [0.1.5] - 2026-08-25
 
 UpYet speaks Spanish, and picks its language the way the rest of the phone does. Verified on an
