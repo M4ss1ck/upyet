@@ -9,6 +9,7 @@ import dev.upyet.MainActivity
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.MirroredRecurrence
@@ -28,13 +29,14 @@ class AndroidAlarmScheduler @Inject constructor(
         triggerAt: Instant,
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId?,
+        snoozesRemaining: Int,
     ): SchedulingResult {
         if (!exactAlarmAccess.canScheduleExact()) return SchedulingResult.ExactAlarmsUnavailable
         return try {
             val operation = PendingIntent.getBroadcast(
                 context,
                 AlarmPendingIntents.requestCode(alarm.id, kind),
-                AlarmPendingIntents.alarmIntent(context, alarm.id, kind, triggerAt, parentOccurrenceId),
+                AlarmPendingIntents.alarmIntent(context, alarm.id, kind, triggerAt, parentOccurrenceId, snoozesRemaining),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val showIntent = PendingIntent.getActivity(
@@ -62,6 +64,7 @@ class AndroidAlarmScheduler @Inject constructor(
                     alarm.time.toSecondOfDay() / 60,
                     recurrenceType,
                     mask,
+                    snoozesRemaining,
                 ),
             )
             SchedulingResult.Scheduled
@@ -71,7 +74,7 @@ class AndroidAlarmScheduler @Inject constructor(
     }
 
     override fun cancel(alarmId: AlarmId, kind: AlarmOccurrenceKind) {
-        val intent = AlarmPendingIntents.alarmIntent(context, alarmId, kind, Instant.EPOCH, null)
+        val intent = AlarmPendingIntents.alarmIntent(context, alarmId, kind, Instant.EPOCH, null, SnoozeBudget.UNSET)
         PendingIntent.getBroadcast(
             context,
             AlarmPendingIntents.requestCode(alarmId, kind),

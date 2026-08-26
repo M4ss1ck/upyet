@@ -60,6 +60,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setRetention(value: RetentionPolicy) = viewModelScope.launch { repository.setRetention(value) }
     fun setSnooze(value: Int) = viewModelScope.launch { repository.setDefaultSnoozeMinutes(value) }
+    fun setMaxSnoozes(value: Int) = viewModelScope.launch { repository.setMaxSnoozes(value) }
     fun setVibration(value: Boolean) = viewModelScope.launch { repository.setDefaultVibrationEnabled(value) }
     fun setEvidence(value: Boolean) = viewModelScope.launch { repository.setEvidenceEnabledByDefault(value) }
 }

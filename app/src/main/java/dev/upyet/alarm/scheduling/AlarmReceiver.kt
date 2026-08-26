@@ -6,6 +6,7 @@ import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.core.logging.AlarmLog
 import java.time.Instant
 import javax.inject.Inject
@@ -23,7 +24,8 @@ class AlarmReceiver : BroadcastReceiver() {
         if (alarmId < 0 || scheduledFor < 0 || kind == null) return
         val parent = intent.getLongExtra(AlarmPendingIntents.EXTRA_PARENT_OCCURRENCE_ID, -1L)
             .takeIf { it >= 0 }?.let(::OccurrenceId)
+        val snoozesRemaining = intent.getIntExtra(AlarmPendingIntents.EXTRA_SNOOZES_REMAINING, SnoozeBudget.UNSET)
         AlarmLog.event("alarm_triggered", "alarmId" to alarmId, "kind" to kind.name)
-        ringingLauncher.launch(AlarmId(alarmId), Instant.ofEpochMilli(scheduledFor), kind, parent)
+        ringingLauncher.launch(AlarmId(alarmId), Instant.ofEpochMilli(scheduledFor), kind, parent, snoozesRemaining)
     }
 }

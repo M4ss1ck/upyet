@@ -88,7 +88,7 @@ class AlarmRescheduler @Inject constructor(
                 skipped++
                 return@forEach
             }
-            val result = alarmScheduler.schedule(alarm, trigger, record.kind)
+            val result = alarmScheduler.schedule(alarm, trigger, record.kind, snoozesRemaining = record.snoozesRemaining)
             when (result) {
                 SchedulingResult.Scheduled -> scheduled++
                 SchedulingResult.ExactAlarmsUnavailable -> unavailable = true

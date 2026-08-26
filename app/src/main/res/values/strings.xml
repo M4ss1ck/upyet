@@ -105,6 +105,11 @@
     <string name="permission_onboarding_title">Two permissions to go</string>
     <string name="permission_onboarding_explanation">Notifications let the alarm take over your lock screen. The camera records the proof. Nothing is recorded outside a ringing alarm, and nothing leaves this phone.</string>
     <string name="default_snooze">Default snooze</string>
+    <string name="max_snoozes">Maximum snoozes</string>
+    <string name="max_snoozes_unlimited">Unlimited</string>
+    <plurals name="max_snoozes_option"><item quantity="one">%1$d snooze</item><item quantity="other">%1$d snoozes</item></plurals>
+    <string name="ringing_last_alarm">Last alarm — no snoozes left</string>
+    <string name="snooze_last">Last snooze</string>
     <string name="app_version">UpYet %1$s (%2$d) · GPL-3.0-or-later</string>
     <string name="edit_alarm">Edit alarm</string>
     <!-- Brand -->

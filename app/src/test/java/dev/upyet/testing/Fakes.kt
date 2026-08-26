@@ -47,6 +47,7 @@ class FakeAlarmScheduler(var result: SchedulingResult = SchedulingResult.Schedul
         triggerAt: Instant,
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId?,
+        snoozesRemaining: Int,
     ): SchedulingResult {
         scheduled += alarm.id
         return result

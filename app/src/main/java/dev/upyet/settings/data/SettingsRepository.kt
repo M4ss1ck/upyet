@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import dev.upyet.alarm.domain.SnoozeBudget
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -16,6 +17,7 @@ data class AppSettings(
     val defaultSnoozeMinutes: Int,
     val defaultVibrationEnabled: Boolean,
     val evidenceEnabledByDefault: Boolean,
+    val maxSnoozes: Int,
 )
 
 @Singleton
@@ -32,6 +34,7 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 defaultSnoozeMinutes = preferences[Keys.snoozeMinutes] ?: 9,
                 defaultVibrationEnabled = preferences[Keys.vibrationEnabled] ?: true,
                 evidenceEnabledByDefault = preferences[Keys.evidenceEnabled] ?: true,
+                maxSnoozes = preferences[Keys.maxSnoozes] ?: SnoozeBudget.DEFAULT_MAX,
             )
         }
 
@@ -51,10 +54,15 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.evidenceEnabled] = enabled }
     }
 
+    suspend fun setMaxSnoozes(value: Int) {
+        dataStore.edit { it[Keys.maxSnoozes] = value }
+    }
+
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val snoozeMinutes = intPreferencesKey("default_snooze_minutes")
         val vibrationEnabled = booleanPreferencesKey("default_vibration_enabled")
         val evidenceEnabled = booleanPreferencesKey("evidence_enabled_by_default")
+        val maxSnoozes = intPreferencesKey("max_snoozes")
     }
 }

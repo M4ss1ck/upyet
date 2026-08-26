@@ -51,7 +51,11 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
     // RingingUiState only carries a clock time, not a date - the ticking view model deliberately drops it
     // since nothing else on this screen needs it. Today's date is a display-only detail read here instead.
     val dateFormatter = DateTimeFormatter.ofPattern(stringResource(R.string.ringing_date_pattern), locale)
-    val snoozeLabel = pluralStringResource(R.plurals.snooze_alarm, state.snoozeMinutes, state.snoozeMinutes)
+    val snoozeLabel = if (state.isLastSnooze) {
+        stringResource(R.string.snooze_last)
+    } else {
+        pluralStringResource(R.plurals.snooze_alarm, state.snoozeMinutes, state.snoozeMinutes)
+    }
     val dismissDescription = stringResource(R.string.dismiss_alarm)
     val dismissLabel = stringResource(R.string.dismiss_alarm_action)
     val privacyNote = stringResource(R.string.evidence_privacy_note)
@@ -128,16 +132,24 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
                 }
             }
             Spacer(Modifier.height(16.dp))
-            OutlinedButton(
-                onClick = onSnooze,
-                modifier = Modifier.fillMaxWidth().height(62.dp).semantics {
-                    contentDescription = snoozeLabel
-                },
-                shape = MaterialTheme.shapes.large,
-                border = BorderStroke(1.5.dp, RingingPalette.outline),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = RingingPalette.onBackgroundMuted),
-                content = { Text(snoozeLabel, style = MaterialTheme.typography.titleLarge) },
-            )
+            if (state.snoozeAllowed) {
+                OutlinedButton(
+                    onClick = onSnooze,
+                    modifier = Modifier.fillMaxWidth().height(62.dp).semantics {
+                        contentDescription = snoozeLabel
+                    },
+                    shape = MaterialTheme.shapes.large,
+                    border = BorderStroke(1.5.dp, RingingPalette.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RingingPalette.onBackgroundMuted),
+                    content = { Text(snoozeLabel, style = MaterialTheme.typography.titleLarge) },
+                )
+            } else {
+                Text(
+                    stringResource(R.string.ringing_last_alarm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RingingPalette.onBackgroundFaint,
+                )
+            }
             Spacer(Modifier.height(14.dp))
             Button(
                 onClick = onDismiss,

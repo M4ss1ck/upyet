@@ -13,10 +13,16 @@ import javax.inject.Singleton
 
 @Singleton
 class ServiceRingingLauncher @Inject constructor(@ApplicationContext private val context: Context) : RingingLauncher {
-    override fun launch(alarmId: AlarmId, scheduledFor: Instant, kind: AlarmOccurrenceKind, parentOccurrenceId: OccurrenceId?) {
+    override fun launch(
+        alarmId: AlarmId,
+        scheduledFor: Instant,
+        kind: AlarmOccurrenceKind,
+        parentOccurrenceId: OccurrenceId?,
+        snoozesRemaining: Int,
+    ) {
         ContextCompat.startForegroundService(
             context,
-            AlarmPlaybackService.startIntent(context, alarmId, scheduledFor, kind, parentOccurrenceId),
+            AlarmPlaybackService.startIntent(context, alarmId, scheduledFor, kind, parentOccurrenceId, snoozesRemaining),
         )
     }
 }

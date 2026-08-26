@@ -15,6 +15,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.alarm.domain.SnoozeCalculator
 import dev.upyet.alarm.domain.VolumeRamp
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
@@ -30,13 +31,16 @@ import dev.upyet.core.notifications.AlarmNotifications
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.settings.data.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -74,6 +78,8 @@ class AlarmPlaybackService : Service() {
     @Inject lateinit var timeProvider: TimeProvider
 
     @Inject lateinit var alarmVolume: AlarmVolume
+
+    @Inject lateinit var settingsRepository: Lazy<SettingsRepository>
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var wakeLock: PowerManager.WakeLock? = null
@@ -121,6 +127,25 @@ class AlarmPlaybackService : Service() {
             val alarm = resolveAlarm(alarmId, kind, unlocked)
             val occurrenceId = createOccurrence(alarmId, scheduledFor, triggeredAt, parent, unlocked)
             val silent = alarmVolume.isSilent()
+            val budget = when (kind) {
+                AlarmOccurrenceKind.MAIN -> {
+                    if (unlocked) {
+                        // Bounded: audio must not wait on DataStore. A slow or stuck read falls back to
+                        // the default rather than delaying the ring, which invariant 1 does not permit.
+                        val max = withTimeoutOrNull(SETTINGS_READ_TIMEOUT_MILLIS) {
+                            runCatching { settingsRepository.get().settings.first().maxSnoozes }
+                                .onFailure { AlarmLog.event("alarm_error", "error" to it.javaClass.simpleName) }
+                                .getOrNull()
+                        } ?: SnoozeBudget.DEFAULT_MAX
+                        SnoozeBudget(max)
+                    } else {
+                        SnoozeBudget(SnoozeBudget.DEFAULT_MAX)
+                    }
+                }
+
+                AlarmOccurrenceKind.SNOOZE ->
+                    SnoozeBudget.of(intent.getIntExtra(EXTRA_SNOOZES_REMAINING, SnoozeBudget.UNSET))
+            }
             val session =
                 RingingSession(
                     alarmId = alarmId,
@@ -133,6 +158,7 @@ class AlarmPlaybackService : Service() {
                     evidenceEnabled = alarm?.evidenceEnabled ?: false,
                     isUserUnlocked = unlocked,
                     isSilentAlarmStream = silent,
+                    budget = budget,
                 )
             current = session
             registry.update(session)
@@ -142,7 +168,7 @@ class AlarmPlaybackService : Service() {
                     notifications.buildRingingNotification(session.label, true),
                 )
             }
-            soundPlayer.start(alarm?.soundUri, ramp = true)
+            soundPlayer.start(alarm?.soundUri, ramp = !session.budget.isExhausted)
             if (silent) {
                 AlarmLog.event("alarm_volume_zero", "alarmId" to alarmId.value)
                 vibrator.start()
@@ -150,7 +176,7 @@ class AlarmPlaybackService : Service() {
                 vibrator.start()
             }
             AlarmLog.event("playback_service_started", "alarmId" to alarmId.value, "unlocked" to unlocked)
-            startVolumeRamp()
+            startVolumeRamp(session.budget.isExhausted)
             startRingingTimeout()
         }
     }
@@ -195,15 +221,16 @@ class AlarmPlaybackService : Service() {
             }
     }
 
-    private fun startVolumeRamp() {
+    private fun startVolumeRamp(finalRing: Boolean) {
         rampJob?.cancel()
+        if (finalRing) return
         val rampStart = timeProvider.now()
         rampJob =
             serviceScope.launch {
                 while (true) {
                     delay(RAMP_TICK_MILLIS)
                     val elapsed = Duration.between(rampStart, timeProvider.now()).toMillis()
-                    val scalar = VolumeRamp.scalarAt(elapsed, finalRing = false)
+                    val scalar = VolumeRamp.scalarAt(elapsed, finalRing = finalRing)
                     soundPlayer.setVolumeScalar(scalar)
                     if (scalar >= 1f) break
                 }
@@ -214,6 +241,11 @@ class AlarmPlaybackService : Service() {
         val session = current
         if (session == null) {
             teardown()
+            return
+        }
+        if (session.budget.isExhausted) {
+            AlarmLog.event("snooze_denied", "alarmId" to session.alarmId.value, "reason" to "budget_exhausted")
+            finish(OccurrenceOutcome.TIMED_OUT)
             return
         }
         // Playback stops first: snoozing must never wait on persistence or scheduling.
@@ -236,7 +268,13 @@ class AlarmPlaybackService : Service() {
     private suspend fun scheduleSnooze(session: RingingSession) {
         val alarm = resolveAlarm(session.alarmId, session.kind, session.isUserUnlocked) ?: return
         val triggerAt = SnoozeCalculator.snoozeAt(timeProvider.now(), session.snoozeMinutes)
-        val result = scheduler.schedule(alarm, triggerAt, AlarmOccurrenceKind.SNOOZE, session.occurrenceId)
+        val result = scheduler.schedule(
+            alarm,
+            triggerAt,
+            AlarmOccurrenceKind.SNOOZE,
+            session.occurrenceId,
+            session.budget.consume().remaining,
+        )
         if (result !is dev.upyet.alarm.scheduling.SchedulingResult.Scheduled) {
             AlarmLog.event("alarm_error", "reason" to "snooze_not_scheduled", "result" to result.javaClass.simpleName)
         }
@@ -327,11 +365,13 @@ class AlarmPlaybackService : Service() {
         private const val EXTRA_SCHEDULED_FOR = "scheduled_for"
         private const val EXTRA_KIND = "kind"
         private const val EXTRA_PARENT_OCCURRENCE_ID = "parent_occurrence_id"
+        private const val EXTRA_SNOOZES_REMAINING = "snoozes_remaining"
         private const val INVALID_ID = -1L
         private const val DEFAULT_SNOOZE_MINUTES = 9
         private const val RINGING_TIMEOUT_MILLIS = 5 * 60 * 1000L
         private const val WAKE_LOCK_TIMEOUT_MILLIS = 6 * 60 * 1000L
         private const val RAMP_TICK_MILLIS = 1_000L
+        private const val SETTINGS_READ_TIMEOUT_MILLIS = 1_000L
         private const val WAKE_LOCK_TAG = "UpYet:ringing"
 
         fun startIntent(
@@ -340,12 +380,14 @@ class AlarmPlaybackService : Service() {
             scheduledFor: Instant,
             kind: AlarmOccurrenceKind,
             parentOccurrenceId: OccurrenceId?,
+            snoozesRemaining: Int = SnoozeBudget.UNSET,
         ): Intent = Intent(context, AlarmPlaybackService::class.java)
             .setAction(ACTION_START)
             .putExtra(EXTRA_ALARM_ID, alarmId.value)
             .putExtra(EXTRA_SCHEDULED_FOR, scheduledFor.toEpochMilli())
             .putExtra(EXTRA_KIND, kind.name)
             .putExtra(EXTRA_PARENT_OCCURRENCE_ID, parentOccurrenceId?.value ?: INVALID_ID)
+            .putExtra(EXTRA_SNOOZES_REMAINING, snoozesRemaining)
 
         fun dismissIntent(context: Context): Intent = Intent(context, AlarmPlaybackService::class.java).setAction(ACTION_DISMISS)
 

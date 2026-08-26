@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.alarm.domain.AlarmId
+import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import java.time.Instant
 import javax.inject.Inject
@@ -20,6 +21,7 @@ data class MirroredAlarm(
     val minuteOfDay: Int,
     val recurrenceType: String,
     val weekdayMask: Int,
+    val snoozesRemaining: Int,
 )
 
 interface AlarmMirror {
@@ -47,6 +49,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                     record.minuteOfDay,
                     record.recurrenceType,
                     record.weekdayMask,
+                    record.snoozesRemaining,
                 ).joinToString("|"),
             )
         }
@@ -59,7 +62,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
     override fun all(): List<MirroredAlarm> = preferences.all.mapNotNull { (key, value) ->
         if (value !is String) return@mapNotNull null
         val parts = value.split('|')
-        if (parts.size !in 4..7) return@mapNotNull null
+        if (parts.size !in 4..8) return@mapNotNull null
         runCatching {
             val identity = key.split(':')
             MirroredAlarm(
@@ -74,6 +77,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                 parts.getOrNull(4)?.toInt() ?: 0,
                 parts.getOrNull(5) ?: "ONE_TIME",
                 parts.getOrNull(6)?.toInt() ?: 0,
+                parts.getOrNull(7)?.toIntOrNull() ?: SnoozeBudget.UNSET,
             )
         }.getOrNull()
     }

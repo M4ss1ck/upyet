@@ -108,6 +108,11 @@
     <string name="permission_onboarding_title">Faltan dos permisos</string>
     <string name="permission_onboarding_explanation">Las notificaciones permiten que la alarma tome tu pantalla de bloqueo. La cámara graba la prueba. No se graba nada fuera de una alarma sonando y nada sale de este teléfono.</string>
     <string name="default_snooze">Posposición predeterminada</string>
+    <string name="max_snoozes">Posposiciones máximas</string>
+    <string name="max_snoozes_unlimited">Sin límite</string>
+    <plurals name="max_snoozes_option"><item quantity="one">%1$d posposición</item><item quantity="many">%1$d posposiciones</item><item quantity="other">%1$d posposiciones</item></plurals>
+    <string name="ringing_last_alarm">Última alarma — no quedan posposiciones</string>
+    <string name="snooze_last">Última posposición</string>
     <string name="app_version">UpYet %1$s (%2$d) · GPL-3.0-or-later</string>
     <string name="edit_alarm">Editar alarma</string>
     <!-- Brand -->

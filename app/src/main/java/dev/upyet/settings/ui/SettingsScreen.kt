@@ -46,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.BuildConfig
 import dev.upyet.R
+import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.core.ui.components.PrimaryButton
 import dev.upyet.core.ui.components.RowDivider
 import dev.upyet.core.ui.components.SectionLabel
@@ -66,6 +67,7 @@ fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hil
         state = state,
         onReliability = onReliability,
         onSnooze = viewModel::setSnooze,
+        onMaxSnoozes = viewModel::setMaxSnoozes,
         onVibration = viewModel::setVibration,
         onEvidence = viewModel::setEvidence,
         onRetention = viewModel::setRetention,
@@ -78,6 +80,7 @@ fun SettingsContent(
     state: SettingsUiState,
     onReliability: () -> Unit,
     onSnooze: (Int) -> Unit = {},
+    onMaxSnoozes: (Int) -> Unit = {},
     onVibration: (Boolean) -> Unit = {},
     onEvidence: (Boolean) -> Unit = {},
     onRetention: (RetentionPolicy) -> Unit = {},
@@ -116,6 +119,42 @@ fun SettingsContent(
                             onClick = {
                                 onSnooze(minutes)
                                 snoozeExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+            RowDivider()
+            var maxSnoozesExpanded by remember { mutableStateOf(false) }
+            val maxSnoozes = state.settings?.maxSnoozes ?: SnoozeBudget.DEFAULT_MAX
+            val maxSnoozesValue = if (maxSnoozes == SnoozeBudget.UNLIMITED) {
+                stringResource(R.string.max_snoozes_unlimited)
+            } else {
+                pluralStringResource(R.plurals.max_snoozes_option, maxSnoozes, maxSnoozes)
+            }
+            Box {
+                SettingsRow(
+                    title = stringResource(R.string.max_snoozes),
+                    icon = Icons.Filled.Snooze,
+                    value = maxSnoozesValue,
+                    showChevron = true,
+                    onClick = { maxSnoozesExpanded = true },
+                )
+                DropdownMenu(maxSnoozesExpanded, { maxSnoozesExpanded = false }) {
+                    MAX_SNOOZE_OPTIONS.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (option == SnoozeBudget.UNLIMITED) {
+                                        stringResource(R.string.max_snoozes_unlimited)
+                                    } else {
+                                        pluralStringResource(R.plurals.max_snoozes_option, option, option)
+                                    },
+                                )
+                            },
+                            onClick = {
+                                onMaxSnoozes(option)
+                                maxSnoozesExpanded = false
                             },
                         )
                     }
@@ -255,6 +294,7 @@ private fun ReliabilityStatusCard(summary: ReliabilitySummary, onReliability: ()
 
 private const val DEFAULT_SNOOZE_MINUTES = 9
 private val SNOOZE_OPTIONS = listOf(1, 5, 9, 10, 15, 20, 30)
+private val MAX_SNOOZE_OPTIONS = listOf(1, 3, 5, SnoozeBudget.UNLIMITED)
 
 private fun languageResource(language: AppLanguage): Int = when (language) {
     AppLanguage.SYSTEM -> R.string.language_system

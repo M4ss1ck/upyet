@@ -5,5 +5,11 @@ import dev.upyet.alarm.domain.OccurrenceId
 import java.time.Instant
 
 interface RingingLauncher {
-    fun launch(alarmId: AlarmId, scheduledFor: Instant, kind: AlarmOccurrenceKind, parentOccurrenceId: OccurrenceId?)
+    fun launch(
+        alarmId: AlarmId,
+        scheduledFor: Instant,
+        kind: AlarmOccurrenceKind,
+        parentOccurrenceId: OccurrenceId?,
+        snoozesRemaining: Int = dev.upyet.alarm.domain.SnoozeBudget.UNSET,
+    )
 }
