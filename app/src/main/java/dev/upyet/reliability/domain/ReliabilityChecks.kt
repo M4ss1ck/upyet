@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.R
+import dev.upyet.alarm.playback.AlarmVolume
 import dev.upyet.alarm.scheduling.AlarmScheduler
 import dev.upyet.alarm.scheduling.ExactAlarmAccess
 import dev.upyet.core.notifications.AlarmNotifications
@@ -23,9 +24,12 @@ class ReliabilityChecks @Inject constructor(
     private val exact: ExactAlarmAccess,
     private val notifications: AlarmNotifications,
     private val scheduler: AlarmScheduler,
+    private val alarmVolume: AlarmVolume,
 ) {
     fun evaluate(): List<ReliabilityCheck> {
         val nextTrigger = scheduler.nextScheduledTrigger()
+        // Read once: two reads can straddle a volume-key press and report BLOCKED with the audible copy.
+        val silentAlarmStream = alarmVolume.isSilent()
         return listOf(
             ReliabilityCheck(
                 "exact",
@@ -42,6 +46,13 @@ class ReliabilityChecks @Inject constructor(
                 settingsIntent = Intent(
                     Settings.ACTION_APP_NOTIFICATION_SETTINGS,
                 ).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+            ),
+            ReliabilityCheck(
+                "alarm_volume",
+                R.string.reliability_volume,
+                if (silentAlarmStream) ReliabilityStatus.BLOCKED else ReliabilityStatus.OK,
+                if (silentAlarmStream) R.string.reliability_volume_silent else R.string.reliability_volume_explanation,
+                settingsIntent = alarmVolume.settingsIntent(),
             ),
             ReliabilityCheck(
                 "fullscreen",

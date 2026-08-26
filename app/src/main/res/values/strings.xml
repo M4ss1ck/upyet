@@ -42,6 +42,9 @@
     <string name="reliability_battery">Battery optimization</string>
     <string name="reliability_battery_active">Exemption is active</string>
     <string name="reliability_battery_informational">Informational only — UpYet never asks for an exemption</string>
+    <string name="reliability_volume">Alarm volume</string>
+    <string name="reliability_volume_explanation">The alarm stream is audible</string>
+    <string name="reliability_volume_silent">Alarm volume is at zero — your alarm will be silent</string>
     <string name="alarm_label">Label</string>
     <string name="vibration">Vibration</string>
     <string name="snooze_minutes">Snooze minutes</string>
@@ -138,6 +141,7 @@
     <string name="ringing_date_pattern">EEEE d MMMM</string>
     <string name="dismiss_alarm_action">I’m up — dismiss</string>
     <string name="evidence_privacy_note">Silent recording, only while this screen is up. Never leaves your phone.</string>
+    <string name="ringing_volume_silent">Alarm volume is at zero — vibrating instead</string>
 
     <!-- History -->
     <string name="history_subtitle">Proof of every alarm you dismissed</string>

@@ -40,6 +40,7 @@ data class RingingUiState(
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val evidenceEnabled: Boolean = false,
     val occurrenceId: OccurrenceId? = null,
+    val isSilentAlarmStream: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_SNOOZE_MINUTES = 9
@@ -88,6 +89,7 @@ constructor(
                 snoozeMinutes = session?.snoozeMinutes ?: RingingUiState.DEFAULT_SNOOZE_MINUTES,
                 evidenceEnabled = session?.evidenceEnabled ?: false,
                 occurrenceId = session?.occurrenceId,
+                isSilentAlarmStream = session?.isSilentAlarmStream ?: false,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RingingUiState())
 

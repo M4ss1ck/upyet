@@ -16,6 +16,7 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeCalculator
+import dev.upyet.alarm.domain.VolumeRamp
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.AlarmScheduler
@@ -36,6 +37,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 
@@ -71,9 +73,12 @@ class AlarmPlaybackService : Service() {
 
     @Inject lateinit var timeProvider: TimeProvider
 
+    @Inject lateinit var alarmVolume: AlarmVolume
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var wakeLock: PowerManager.WakeLock? = null
     private var timeoutJob: Job? = null
+    private var rampJob: Job? = null
     private var current: RingingSession? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -115,6 +120,7 @@ class AlarmPlaybackService : Service() {
             val triggeredAt = timeProvider.now()
             val alarm = resolveAlarm(alarmId, kind, unlocked)
             val occurrenceId = createOccurrence(alarmId, scheduledFor, triggeredAt, parent, unlocked)
+            val silent = alarmVolume.isSilent()
             val session =
                 RingingSession(
                     alarmId = alarmId,
@@ -126,6 +132,7 @@ class AlarmPlaybackService : Service() {
                     snoozeMinutes = alarm?.snoozeMinutes ?: DEFAULT_SNOOZE_MINUTES,
                     evidenceEnabled = alarm?.evidenceEnabled ?: false,
                     isUserUnlocked = unlocked,
+                    isSilentAlarmStream = silent,
                 )
             current = session
             registry.update(session)
@@ -135,9 +142,15 @@ class AlarmPlaybackService : Service() {
                     notifications.buildRingingNotification(session.label, true),
                 )
             }
-            soundPlayer.start(alarm?.soundUri)
-            if (alarm?.vibrationEnabled == true) vibrator.start()
+            soundPlayer.start(alarm?.soundUri, ramp = true)
+            if (silent) {
+                AlarmLog.event("alarm_volume_zero", "alarmId" to alarmId.value)
+                vibrator.start()
+            } else if (alarm?.vibrationEnabled == true) {
+                vibrator.start()
+            }
             AlarmLog.event("playback_service_started", "alarmId" to alarmId.value, "unlocked" to unlocked)
+            startVolumeRamp()
             startRingingTimeout()
         }
     }
@@ -179,6 +192,21 @@ class AlarmPlaybackService : Service() {
             serviceScope.launch {
                 delay(RINGING_TIMEOUT_MILLIS)
                 finish(OccurrenceOutcome.TIMED_OUT)
+            }
+    }
+
+    private fun startVolumeRamp() {
+        rampJob?.cancel()
+        val rampStart = timeProvider.now()
+        rampJob =
+            serviceScope.launch {
+                while (true) {
+                    delay(RAMP_TICK_MILLIS)
+                    val elapsed = Duration.between(rampStart, timeProvider.now()).toMillis()
+                    val scalar = VolumeRamp.scalarAt(elapsed, finalRing = false)
+                    soundPlayer.setVolumeScalar(scalar)
+                    if (scalar >= 1f) break
+                }
             }
     }
 
@@ -263,6 +291,8 @@ class AlarmPlaybackService : Service() {
     }
 
     private fun stopPlayback() {
+        rampJob?.cancel()
+        rampJob = null
         soundPlayer.stop()
         vibrator.stop()
     }
@@ -278,6 +308,10 @@ class AlarmPlaybackService : Service() {
 
     override fun onDestroy() {
         stopPlayback()
+        timeoutJob?.cancel()
+        timeoutJob = null
+        rampJob?.cancel()
+        rampJob = null
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
         registry.clear()
@@ -297,6 +331,7 @@ class AlarmPlaybackService : Service() {
         private const val DEFAULT_SNOOZE_MINUTES = 9
         private const val RINGING_TIMEOUT_MILLIS = 5 * 60 * 1000L
         private const val WAKE_LOCK_TIMEOUT_MILLIS = 6 * 60 * 1000L
+        private const val RAMP_TICK_MILLIS = 1_000L
         private const val WAKE_LOCK_TAG = "UpYet:ringing"
 
         fun startIntent(

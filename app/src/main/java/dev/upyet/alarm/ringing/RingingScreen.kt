@@ -118,6 +118,14 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
                     )
                     Text(privacyNote, style = MaterialTheme.typography.bodySmall, color = RingingPalette.onBackgroundFaint)
                 }
+                if (state.isSilentAlarmStream) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.ringing_volume_silent),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = RingingPalette.onBackgroundFaint,
+                    )
+                }
             }
             Spacer(Modifier.height(16.dp))
             OutlinedButton(
