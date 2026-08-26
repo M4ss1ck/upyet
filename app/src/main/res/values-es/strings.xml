@@ -168,6 +168,16 @@
         <item quantity="many">%1$d clips</item>
         <item quantity="other">%1$d clips</item>
     </plurals>
+    <plurals name="history_snooze_count">
+        <item quantity="one">pospuesta %1$d vez</item>
+        <item quantity="many">pospuesta %1$d veces</item>
+        <item quantity="other">pospuesta %1$d veces</item>
+    </plurals>
+    <plurals name="history_chain_minutes">
+        <item quantity="one">%1$d min</item>
+        <item quantity="many">%1$d min</item>
+        <item quantity="other">%1$d min</item>
+    </plurals>
 
     <!-- Occurrence detail -->
     <string name="occurrence_timeline">Qué pasó</string>

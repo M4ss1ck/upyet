@@ -56,7 +56,7 @@ import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.core.ui.theme.extraColors
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceOutcome
-import dev.upyet.evidence.domain.thumbnailSourceFileName
+import dev.upyet.evidence.domain.chainThumbnailSourceFileName
 import java.time.ZoneId
 
 /** Test tags for the three thumbnail states; the frame itself is decorative and carries no description. */
@@ -158,13 +158,13 @@ private fun LazyListScope.historyGroups(
         item {
             SectionLabel(stringResource(group.labelRes), Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
         }
-        items(group.items, key = { it.occurrence.id.value }) { historyItem ->
+        items(group.items, key = { it.chain.root.id.value }) { historyItem ->
             OccurrenceRow(
                 historyItem,
                 thumbnails,
                 onThumbnailNeeded,
                 Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
-            ) { onOpen(historyItem.occurrence.id.value) }
+            ) { onOpen(historyItem.chain.root.id.value) }
         }
     }
 }
@@ -200,10 +200,10 @@ private fun OccurrenceRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val occurrence = item.occurrence
+    val chain = item.chain
     val zone = remember { ZoneId.systemDefault() }
-    val time = remember(occurrence.scheduledFor, zone) { occurrence.scheduledFor.atZone(zone).toLocalTime() }
-    val source = remember(item.segments) { thumbnailSourceFileName(item.segments) }
+    val time = remember(chain.root.scheduledFor, zone) { chain.root.scheduledFor.atZone(zone).toLocalTime() }
+    val source = remember(item.segmentsByOccurrence, chain) { chainThumbnailSourceFileName(chain, item.segmentsByOccurrence) }
     LaunchedEffect(source) { source?.let(onThumbnailNeeded) }
     UpYetCard(modifier = modifier.clickable(onClick = onClick), contentPadding = PaddingValues(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -218,9 +218,9 @@ private fun OccurrenceRow(
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    val (container, content) = outcomeBadgeColors(occurrence.outcome)
-                    StatusBadge(text = stringResource(outcomeResource(occurrence.outcome)), container = container, content = content)
-                    evidenceSecondaryLine(item.segments)?.let {
+                    val (container, content) = outcomeBadgeColors(chain.finalOutcome)
+                    StatusBadge(text = stringResource(outcomeResource(chain.finalOutcome)), container = container, content = content)
+                    historySecondaryLine(item)?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -233,6 +233,20 @@ private fun OccurrenceRow(
             )
         }
     }
+}
+
+@Composable
+private fun historySecondaryLine(item: HistoryViewModel.HistoryItem): String? {
+    val snoozeRollup = if (item.chain.containsSnooze) {
+        val countText = pluralStringResource(R.plurals.history_snooze_count, item.chain.snoozeCount, item.chain.snoozeCount)
+        val minutes = (item.chain.elapsedMillis / 60_000L).toInt()
+        val minutesText = if (minutes > 0) pluralStringResource(R.plurals.history_chain_minutes, minutes, minutes) else null
+        listOfNotNull(countText, minutesText).joinToString(" · ")
+    } else {
+        null
+    }
+    val clipLine = evidenceSecondaryLine(item.allSegments)
+    return listOfNotNull(snoozeRollup, clipLine).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
 @Composable

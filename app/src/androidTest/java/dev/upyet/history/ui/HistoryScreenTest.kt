@@ -21,6 +21,7 @@ import dev.upyet.core.ui.theme.UpYetTheme
 import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
+import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import org.junit.Rule
 import org.junit.Test
@@ -79,7 +80,9 @@ class HistoryScreenTest {
         )
         val status = if (fileName == null) EvidenceStatus.FAILED else EvidenceStatus.RECORDED
         val segment = EvidenceSegment(1, occurrenceId, Instant.EPOCH, null, null, null, fileName, null, null, status, null)
-        val item = HistoryViewModel.HistoryItem(occurrence, "Wake up", listOf(segment))
+        val chain = OccurrenceChain(listOf(occurrence))
+        val segmentsByOccurrence = mapOf(occurrenceId to listOf(segment))
+        val item = HistoryViewModel.HistoryItem(chain, "Wake up", segmentsByOccurrence)
         return HistoryUiState(
             groups = listOf(HistoryGroup(R.string.history_earlier, listOf(item))),
             isEmpty = false,

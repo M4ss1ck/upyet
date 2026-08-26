@@ -4,7 +4,9 @@ import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.evidence.domain.AlarmOccurrence
+import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.buildOccurrenceChains
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -14,7 +16,7 @@ class HistoryGroupingTest {
     private val zone = ZoneId.of("UTC")
     private val today = LocalDate.of(2026, 8, 24)
 
-    private fun occurrence(id: Long, scheduledFor: Instant, outcome: OccurrenceOutcome) = AlarmOccurrence(
+    private fun occurrence(id: Long, scheduledFor: Instant, outcome: OccurrenceOutcome, parentId: Long? = null) = AlarmOccurrence(
         id = OccurrenceId(id),
         alarmId = AlarmId(1),
         scheduledFor = scheduledFor,
@@ -22,11 +24,19 @@ class HistoryGroupingTest {
         activityVisibleAt = null,
         dismissedAt = null,
         outcome = outcome,
-        parentOccurrenceId = null,
+        parentOccurrenceId = parentId?.let { OccurrenceId(it) },
     )
 
+    private fun chainOf(vararg occurrences: AlarmOccurrence): OccurrenceChain {
+        val chains = buildOccurrenceChains(occurrences.toList())
+        // When single chain expected, return that.
+        return if (occurrences.size == 1) chains.first() else chains.first { it.root.id == occurrences[0].id }
+    }
+
     private fun item(id: Long, scheduledFor: Instant, outcome: OccurrenceOutcome) =
-        HistoryViewModel.HistoryItem(occurrence(id, scheduledFor, outcome), "Label", emptyList())
+        HistoryViewModel.HistoryItem(chainOf(occurrence(id, scheduledFor, outcome)), "Label", emptyMap())
+
+    private fun itemForChain(chain: OccurrenceChain) = HistoryViewModel.HistoryItem(chain, "Label", emptyMap())
 
     @Test fun dayBucketForTodayYesterdayAndEarlier() {
         assertThat(dayBucketFor(today.atStartOfDay(zone).toInstant(), zone, today)).isEqualTo(HistoryDayBucket.TODAY)
@@ -54,6 +64,18 @@ class HistoryGroupingTest {
         assertThat(groupHistoryItemsByDay(emptyList(), zone, today)).isEmpty()
     }
 
+    @Test fun groupHistoryItemsByDayGroupsChainThatCrossesMidnightByRoot() {
+        // Chain rooted at 23:50 today, but its last link is after midnight. It must still bucket as TODAY.
+        val root = occurrence(1, today.atTime(23, 50).atZone(zone).toInstant(), OccurrenceOutcome.SNOOZED)
+        val snoozed = occurrence(2, today.plusDays(1).atTime(0, 5).atZone(zone).toInstant(), OccurrenceOutcome.DISMISSED, parentId = 1)
+        val chain = buildOccurrenceChains(listOf(root, snoozed)).first()
+        val chainItem = itemForChain(chain)
+        val groups = groupHistoryItemsByDay(listOf(chainItem), zone, today)
+        assertThat(groups).hasSize(1)
+        assertThat(groups[0].labelRes).isEqualTo(HistoryDayBucket.TODAY.labelRes)
+        assertThat(groups[0].items).containsExactly(chainItem)
+    }
+
     @Test fun filterAllMatchesEveryOutcome() {
         val items = OccurrenceOutcome.entries.mapIndexed { index, outcome -> item(index.toLong(), Instant.EPOCH, outcome) }
         assertThat(filterHistoryItems(items, HistoryFilter.ALL)).containsExactlyElementsIn(items)
@@ -61,14 +83,19 @@ class HistoryGroupingTest {
 
     @Test fun filterDismissedMatchesOnlyDismissed() {
         val dismissed = item(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED)
+        // A chain whose final outcome is SNOOZED should not match DISMISSED filter.
         val snoozed = item(2, Instant.EPOCH, OccurrenceOutcome.SNOOZED)
         assertThat(filterHistoryItems(listOf(dismissed, snoozed), HistoryFilter.DISMISSED)).containsExactly(dismissed)
     }
 
     @Test fun filterSnoozedMatchesOnlySnoozed() {
-        val dismissed = item(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED)
-        val snoozed = item(2, Instant.EPOCH, OccurrenceOutcome.SNOOZED)
-        assertThat(filterHistoryItems(listOf(dismissed, snoozed), HistoryFilter.SNOOZED)).containsExactly(snoozed)
+        // SNOOZED filter means the wake-up contains a snooze (chain.containsSnooze), not finalOutcome == SNOOZED.
+        val withoutSnooze = item(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED)
+        val root = occurrence(10, Instant.parse("2026-08-24T07:00:00Z"), OccurrenceOutcome.SNOOZED)
+        val final = occurrence(11, Instant.parse("2026-08-24T07:09:00Z"), OccurrenceOutcome.DISMISSED, parentId = 10)
+        val withSnoozeChain = buildOccurrenceChains(listOf(root, final)).first()
+        val withSnooze = itemForChain(withSnoozeChain)
+        assertThat(filterHistoryItems(listOf(withoutSnooze, withSnooze), HistoryFilter.SNOOZED)).containsExactly(withSnooze)
     }
 
     @Test fun filterMissedMatchesTimedOutAndInterrupted() {

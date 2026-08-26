@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.upyet.alarm.domain.AlarmRepository
+import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.data.EvidenceThumbnailCache
-import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.EvidenceSegment
+import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.buildOccurrenceChains
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +38,13 @@ class HistoryViewModel @Inject constructor(
     private val thumbnailCache: EvidenceThumbnailCache,
     private val timeProvider: TimeProvider,
 ) : ViewModel() {
-    data class HistoryItem(val occurrence: AlarmOccurrence, val label: String, val segments: List<EvidenceSegment>)
+    data class HistoryItem(
+        val chain: OccurrenceChain,
+        val label: String,
+        val segmentsByOccurrence: Map<OccurrenceId, List<EvidenceSegment>>,
+    ) {
+        val allSegments: List<EvidenceSegment> = chain.links.flatMap { segmentsByOccurrence[it.id] ?: emptyList() }
+    }
 
     private val filter = MutableStateFlow(HistoryFilter.ALL)
     private val thumbnails = MutableStateFlow<Map<String, ImageBitmap>>(emptyMap())
@@ -51,9 +59,13 @@ class HistoryViewModel @Inject constructor(
             flowOf(emptyList())
         } else {
             combine(occurrences.map { repository.observeSegments(it.id) }) { segmentLists ->
-                occurrences.mapIndexed { index, occurrence ->
-                    val label = alarms.firstOrNull { it.id == occurrence.alarmId }?.label ?: ""
-                    HistoryItem(occurrence, label, segmentLists[index])
+                val segmentsByOccurrence: Map<OccurrenceId, List<EvidenceSegment>> =
+                    occurrences.mapIndexed { index, occurrence -> occurrence.id to segmentLists[index].toList() }.toMap()
+                val chains = buildOccurrenceChains(occurrences)
+                chains.map { chain ->
+                    val label = alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""
+                    val chainSegments = chain.links.associate { it.id to (segmentsByOccurrence[it.id] ?: emptyList()) }
+                    HistoryItem(chain, label, chainSegments)
                 }
             }
         }
@@ -90,7 +102,7 @@ class HistoryViewModel @Inject constructor(
     private fun durationOf(fileName: String): Long? = state.value.groups
         .asSequence()
         .flatMap { it.items }
-        .flatMap { it.segments }
+        .flatMap { it.allSegments }
         .firstOrNull { it.fileName == fileName }
         ?.durationMs
 }
