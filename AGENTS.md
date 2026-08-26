@@ -288,8 +288,10 @@ keystore, a password, or a signing config that embeds either.
 
 ### Known remaining lint warnings (deliberate)
 
-`./gradlew lint` reports zero errors. Fourteen warnings remain and each is intentional:
-`NewerVersionAvailable` / `GradleDependency` (the version catalog is pinned on purpose),
+`./gradlew lint` reports zero errors. Eighteen warnings remain and each is intentional:
+`NewerVersionAvailable` / `GradleDependency` (the version catalog is pinned on purpose — four of these
+are the `kotlinx-serialization` entries that exist only to pin the androidTest classpath to the version
+Room's `MigrationTestHelper` needs, and they move when Room does, not when serialization does),
 `OldTargetApi` (targetSdk 36 is the product requirement), `UnusedAttribute` for
 `showWhenLocked`/`turnScreenOn` (the equivalent APIs are called at runtime for API 26), and
 `ObsoleteSdkInt` for the `mipmap-anydpi-v26` adaptive icon. Do not add a lint baseline and do not silence

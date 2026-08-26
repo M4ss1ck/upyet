@@ -35,6 +35,35 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-08-26 — emulator (`sdk_gphone64_x86_64`), Android 14 (API 34), debug 0.1.5 — instrumented suite green
+
+Lane: automated   Build: 0.1.5 (105)   Package: `dev.upyet.debug`
+
+Re-run after fixing the three failures recorded in the entry below. **18 tests, 0 failures, 0 errors.**
+
+| Scenario | Result | Notes |
+|---|---|---|
+| `core-path` | PASS | Unchanged from the previous run |
+
+### Findings
+
+- All three previously failing instrumented tests were diagnosed to root cause and fixed. None was an
+  application bug; all three were defects in the tests or the build.
+  - `AlarmListScreenTest` asserted a hardcoded `"7:30 AM"`. ICU 72, which shipped in Android 14, changed
+    the space before the day period from U+0020 to U+202F NARROW NO-BREAK SPACE. Confirmed on-device: the
+    formatter emits `U+0037 U+003A U+0033 U+0030 U+202F U+0041 U+004D`. The app was right; the literal was
+    wrong, and would have been wrong again on any other locale. The test now formats its expectation.
+  - `NavigationTest` drove a `NavHostController` from the instrumentation thread. Setting `graph`
+    registers a lifecycle observer, which `LifecycleRegistry` requires on the main thread. Now wrapped in
+    `runOnMainSync`, which is also how the app uses a NavController.
+  - `MigrationSmokeTest` hit `AbstractMethodError` from kotlinx-serialization. `room-migration:2.8.4`
+    needs serialization 1.8.1 to parse the exported schema JSON; `androidx.savedstate:1.4.0`, pulled
+    through lifecycle and navigation, requires 1.7.3 *strictly*, and that strict constraint silently
+    downgraded Room's requirement. Fixed by forcing serialization to 1.8.1 on the androidTest classpaths
+    only. The application's own classpaths still resolve 1.7.3 with no conflict and are unchanged.
+- Lint's deliberate-warning count moved from 14 to 18: the four new `NewerVersionAvailable` entries are
+  the serialization pins above. `AGENTS.md` records the new count and why.
+
 ## 2026-08-26 — emulator (`sdk_gphone64_x86_64`), Android 14 (API 34), debug 0.1.5
 
 Lane: automated   Build: 0.1.5 (105)   Package: `dev.upyet.debug`

@@ -123,6 +123,33 @@ androidComponents {
     }
 }
 
+/*
+ * Room's MigrationTestHelper parses the exported schema JSON with kotlinx-serialization, and
+ * room-migration 2.8.4 is compiled against serialization 1.8.1. androidx.savedstate 1.4.0, pulled in
+ * through lifecycle and navigation, requires serialization 1.7.3 *strictly*, and that strict constraint
+ * silently downgraded json to 1.7.3 - so Room's generated serializers met a GeneratedSerializer interface
+ * that no longer matched and every MigrationTestHelper call died with AbstractMethodError.
+ *
+ * A strict constraint cannot be lifted by asking for a newer version or a newer BOM; both fail to resolve.
+ * Forcing is the mechanism Gradle provides for exactly this. Scoped to the androidTest classpaths, because
+ * room-migration is test-only and the application's own classpaths resolve 1.7.3 consistently with no
+ * conflict to fix. Core is forced alongside json: json 1.8.1 against core 1.7.3 is the same mismatch again.
+ *
+ * Remove this once savedstate ships a release built against serialization 1.8.x.
+ */
+configurations.matching { it.name.contains("AndroidTest") }.configureEach {
+    resolutionStrategy {
+        // The -jvm variants carry the same strict constraint and are the artifacts that actually land on
+        // the classpath, so forcing only the top-level modules leaves 1.7.3 jars in place.
+        force(
+            libs.kotlinx.serialization.core,
+            libs.kotlinx.serialization.json,
+            libs.kotlinx.serialization.core.jvm,
+            libs.kotlinx.serialization.json.jvm,
+        )
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
