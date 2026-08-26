@@ -62,9 +62,16 @@ the APK filename and the version shown in Settings. Releases are tagged `vX.Y.Z`
 
 ## Status
 
-Compile-verified, unit-tested and lint-clean. The end-to-end alarm, lock-screen and camera behaviour has
-**not** been verified on a physical device in this repository's history — see the matrix in
-[`docs/TESTING.md`](docs/TESTING.md) for what still needs to be run on real hardware.
+Compile-verified, unit-tested and lint-clean, and the instrumented suite passes on an emulator.
+
+The end-to-end path — alarm fires, screen wakes, the ringing screen appears above the lock screen, the
+front camera records, dismissal works and the device stays locked — was verified on a physical device on
+2026-08-26: a Xiaomi 14T running Android 16 and HyperOS 3.0, on a release build. That pass also found a
+defect no amount of reading found, in how alarm vibration is requested.
+
+Most of the device matrix has still never been run on real hardware. What has been run, on what, and what
+it found is in [`docs/VERIFICATION-LOG.md`](docs/VERIFICATION-LOG.md); what remains is the matrix in
+[`docs/TESTING.md`](docs/TESTING.md).
 
 ## License
 

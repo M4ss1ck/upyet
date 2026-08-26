@@ -195,21 +195,24 @@ HyperOS restricts background apps harder than stock Android, and its restriction
 cause of "the alarm rang but the ringing screen never appeared". Apply all of these before a pass on that
 device, then re-check them after a HyperOS update, which can reset them.
 
+Verified on HyperOS `OS3.0` (Android 16). The device used has a Spanish UI, so labels below are described
+by function rather than quoted; menus move between HyperOS versions, so treat the path as a hint and the
+description as the thing to look for.
+
 | Setting | Where | Why it matters |
 |---|---|---|
-| Autostart → on | Settings → Apps → UpYet → Autostart | Without it the app is not allowed to start itself after a reboot or a kill, and `BOOT_COMPLETED` never lands |
-| Battery saver → **No restrictions** | Settings → Apps → UpYet → Battery saver | The default restricts background activity and can delay or drop an exact alarm |
-| **Display pop-up windows while running in background** → on | Settings → Apps → UpYet → Other permissions | This is the one that gates full-screen-intent launches on HyperOS. With it off the alarm rings but `RingingActivity` never comes up over the lock screen |
+| Battery saver → **No restrictions** | Settings → Apps → UpYet → the battery entry | The default restricts background activity and can delay or drop an exact alarm |
+| **Open new windows while in background** → on | Settings → Apps → UpYet → Other permissions | The full-screen-intent gate on HyperOS. With it off the alarm rings but `RingingActivity` never comes up over the lock screen. It was already on during the verified pass, which is why that pass cannot say what happens with it off |
+| **Show on lock screen** → on | Settings → Apps → UpYet → Other permissions | Same screen as above; the third item there, home-screen shortcuts, is irrelevant to alarms |
 | Lock the app in Recents | Recents → long-press the UpYet card → lock icon | Stops a Recents clear-all from force-stopping the app, which the platform does not announce and which cancels alarms |
-| Notifications → on, importance high, **Show on lock screen** → on | Settings → Apps → UpYet → Notifications | The ringing notification is the full-screen intent's carrier; a demoted channel silently downgrades it to a heads-up |
+| Notifications → on, importance high | Settings → Apps → UpYet → Notifications | The ringing notification is the full-screen intent's carrier; a demoted channel silently downgrades it to a heads-up |
 
-These paths are a draft written from HyperOS documentation, not from the device. Correct them in place
-during the first Xiaomi pass to match the menus actually seen, and record the HyperOS version in the log
-entry — the paths move between versions.
+**Autostart does not exist on HyperOS 3.0.** Earlier MIUI releases had it as a per-app toggle and older
+guidance still tells you to enable it; on this version there is no such setting to enable. Do not go
+looking for it, and do not treat its absence as a misconfiguration.
 
-Gaps that HyperOS exposes and the app could in principle detect (autostart state, the pop-up permission)
-are noted here as candidates. They are not implemented, and the reliability screen does not claim to check
-them.
+The pop-up permission is a gap the app could in principle detect and surface on the reliability screen. It
+is noted here as a candidate; it is not implemented, and the reliability screen does not claim to check it.
 
 ## 5. ADB recipes
 
