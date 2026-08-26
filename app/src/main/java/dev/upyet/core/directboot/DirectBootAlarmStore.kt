@@ -23,6 +23,7 @@ data class MirroredAlarm(
     val weekdayMask: Int,
     val snoozesRemaining: Int,
     val chainStartedAtMillis: Long,
+    val skipNextOnEpochDay: Long? = null,
 )
 
 interface AlarmMirror {
@@ -52,6 +53,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                     record.weekdayMask,
                     record.snoozesRemaining,
                     record.chainStartedAtMillis,
+                    record.skipNextOnEpochDay?.toString() ?: "",
                 ).joinToString("|"),
             )
         }
@@ -64,7 +66,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
     override fun all(): List<MirroredAlarm> = preferences.all.mapNotNull { (key, value) ->
         if (value !is String) return@mapNotNull null
         val parts = value.split('|')
-        if (parts.size !in 4..9) return@mapNotNull null
+        if (parts.size !in 4..10) return@mapNotNull null
         runCatching {
             val identity = key.split(':')
             MirroredAlarm(
@@ -81,6 +83,7 @@ class DirectBootAlarmStore @Inject constructor(@ApplicationContext context: Cont
                 parts.getOrNull(6)?.toInt() ?: 0,
                 parts.getOrNull(7)?.toIntOrNull() ?: SnoozeBudget.UNSET,
                 parts.getOrNull(8)?.toLongOrNull() ?: 0L,
+                parts.getOrNull(9)?.toLongOrNull(),
             )
         }.getOrNull()
     }

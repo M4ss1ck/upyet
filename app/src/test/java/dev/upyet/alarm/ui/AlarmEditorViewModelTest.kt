@@ -146,7 +146,17 @@ class AlarmEditorViewModelTest {
     )
 
     private fun alarm(id: Long, label: String, time: LocalTime) = Alarm(
-        AlarmId(id), time, true, label, Recurrence.OneTime, null, true, 9, true, Instant.EPOCH, Instant.EPOCH,
+        AlarmId(id),
+        time,
+        true,
+        label,
+        Recurrence.OneTime,
+        null,
+        true,
+        9,
+        true,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
     )
 }
 

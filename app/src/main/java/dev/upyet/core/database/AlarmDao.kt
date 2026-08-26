@@ -23,6 +23,9 @@ interface AlarmDao {
     )
     suspend fun setEnabled(id: Long, enabled: Boolean, updatedAt: Long)
 
+    @Query("UPDATE alarms SET skipNextOnEpochDay = :epochDay, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setSkipNextOn(id: Long, epochDay: Long?, updatedAt: Long)
+
     @Delete
     suspend fun delete(alarm: AlarmEntity)
 

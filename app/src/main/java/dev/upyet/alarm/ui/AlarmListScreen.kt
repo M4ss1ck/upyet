@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -72,13 +73,28 @@ import dev.upyet.core.ui.theme.RingingPalette
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 
 @Composable
-fun AlarmListScreen(onEdit: (Long) -> Unit, onReliability: () -> Unit, viewModel: AlarmListViewModel = hiltViewModel()) {
+fun AlarmListScreen(
+    onEdit: (Long) -> Unit,
+    onReliability: () -> Unit,
+    viewModel: AlarmListViewModel = hiltViewModel(),
+    onSkipNext: (Alarm) -> Unit = { viewModel.toggleSkipNext(it) },
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    AlarmListContent(state, onEdit, onReliability, { alarm, enabled -> viewModel.setEnabled(alarm, enabled) }, { viewModel.delete(it) })
+    AlarmListContent(
+        state,
+        onEdit,
+        onReliability,
+        { alarm, enabled -> viewModel.setEnabled(alarm, enabled) },
+        { viewModel.delete(it) },
+        onSkipNext,
+    )
 }
 
 @Composable
@@ -88,6 +104,7 @@ fun AlarmListContent(
     onReliability: () -> Unit,
     onEnabled: (Alarm, Boolean) -> Unit = { _, _ -> },
     onDelete: (AlarmId) -> Unit = {},
+    onSkipNext: (Alarm) -> Unit = {},
 ) {
     val isEmpty = state.alarms.isEmpty()
     Scaffold(
@@ -126,7 +143,13 @@ fun AlarmListContent(
                 state.nextAlarm?.let { next -> item { NextAlarmHero(next, state.now) } }
                 item { AlarmsSectionHeader(state.alarms) }
                 items(state.alarms, key = { it.id.value }) { alarm ->
-                    AlarmRow(alarm, { onEnabled(alarm, it) }, { onEdit(alarm.id.value) }, { onDelete(alarm.id) })
+                    AlarmRow(
+                        alarm,
+                        { onEnabled(alarm, it) },
+                        { onEdit(alarm.id.value) },
+                        { onDelete(alarm.id) },
+                        { onSkipNext(alarm) },
+                    )
                 }
             }
         }
@@ -259,7 +282,7 @@ private fun SchedulingBanner(@StringRes message: Int, showReliability: Boolean, 
 }
 
 @Composable
-private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onSkipNext: () -> Unit = {}) {
     var showDelete by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val onSurface = if (alarm.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -297,6 +320,23 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
                     Icon(Icons.Default.MoreVert, stringResource(R.string.more_options), tint = onSurfaceVariant)
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    if (alarm.recurrence != Recurrence.OneTime && alarm.enabled) {
+                        val isSkipActive = activeSkipDate(alarm) != null
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (isSkipActive) R.string.cancel_skip_next_alarm else R.string.skip_next_alarm,
+                                    ),
+                                )
+                            },
+                            leadingIcon = { Icon(Icons.Default.SkipNext, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onSkipNext()
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.edit_alarm)) },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
@@ -322,6 +362,16 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
             color = onSurface,
             modifier = Modifier.padding(top = 6.dp),
         )
+        activeSkipDate(alarm)?.let { skipDate ->
+            val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(currentLocale()).format(skipDate)
+            StatusBadge(
+                text = stringResource(R.string.alarm_skipping_next, formatted),
+                container = MaterialTheme.colorScheme.secondaryContainer,
+                content = MaterialTheme.colorScheme.onSecondaryContainer,
+                icon = Icons.Default.SkipNext,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
         if (alarm.recurrence == Recurrence.OneTime) {
             Text(
                 stringResource(R.string.alarm_never_repeats),
@@ -392,6 +442,9 @@ private fun DayPill(day: DayOfWeek, lit: Boolean, size: androidx.compose.ui.unit
         }
     }
 }
+
+/** The skip a row should surface: the stored date, unless it is already in the past and so inert. */
+private fun activeSkipDate(alarm: Alarm): LocalDate? = alarm.skipNextOn?.takeIf { !it.isBefore(LocalDate.now(ZoneId.systemDefault())) }
 
 /** Pulls the overflow glyph back towards the switch; its touch target keeps its full width. */
 private val OVERFLOW_NUDGE = 6.dp

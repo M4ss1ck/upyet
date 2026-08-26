@@ -1,6 +1,7 @@
 package dev.upyet.alarm.domain
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 
 data class Alarm(
@@ -13,6 +14,7 @@ data class Alarm(
     val vibrationEnabled: Boolean,
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,
+    val skipNextOn: LocalDate? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

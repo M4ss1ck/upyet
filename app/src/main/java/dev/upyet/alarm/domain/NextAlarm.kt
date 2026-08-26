@@ -18,7 +18,7 @@ object NextAlarm {
         .asSequence()
         .filter { it.enabled }
         .mapNotNull { alarm ->
-            NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, zone, from)?.let { firesAt ->
+            NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, zone, from, skipOn = alarm.skipNextOn)?.let { firesAt ->
                 NextAlarmInfo(firesAt, alarm.time, alarm.label, alarm.evidenceEnabled)
             }
         }.minByOrNull { it.firesAt }

@@ -75,6 +75,7 @@ class AndroidAlarmScheduler @Inject constructor(
                     mask,
                     snoozesRemaining,
                     chainStartedAtMillis,
+                    alarm.skipNextOn?.toEpochDay(),
                 ),
             )
             SchedulingResult.Scheduled

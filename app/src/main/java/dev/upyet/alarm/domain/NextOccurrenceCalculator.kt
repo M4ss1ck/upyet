@@ -16,13 +16,21 @@ object NextOccurrenceCalculator {
      * Candidate local times use [ZonedDateTime].of: a daylight-saving gap shifts the time
      * forward by the gap duration, while an overlap uses the earlier offset.
      */
-    fun next(time: LocalTime, recurrence: Recurrence, zone: ZoneId, from: Instant, inclusive: Boolean = false): Instant? {
+    fun next(
+        time: LocalTime,
+        recurrence: Recurrence,
+        zone: ZoneId,
+        from: Instant,
+        inclusive: Boolean = false,
+        skipOn: LocalDate? = null,
+    ): Instant? {
         val localDate = from.atZone(zone).toLocalDate()
         val lastDate = localDate.plusDays(SEARCH_DAYS - 1)
 
         return generateSequence(localDate) { date ->
             if (date < lastDate) date.plusDays(1) else null
         }.filter { date -> isAllowed(date, recurrence) }
+            .filter { date -> date != skipOn }
             .map { date ->
                 ZonedDateTime
                     .of(

@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ring the user actually got up on, falling back through the earlier ones. Opening it shows every ring in
   order with its own clips, and deleting it deletes the whole wake-up. Chains are derived from the parent
   link already stored on each occurrence, so nothing changed in the database
+- A recurring alarm can be skipped for its next occurrence only, from the overflow menu on its row, and
+  un-skipped from the same place until it has passed. The skip is stored as the local date being skipped
+  rather than an instant, so it means the same thing across a timezone change or a DST boundary and goes
+  inert on its own once the date is behind us. It is mirrored to device-protected storage alongside the
+  alarm itself, so a reboot before the skipped morning does not resurrect the ring it was meant to cancel.
+  One-time alarms do not offer it: skipping one is what the switch already does
 
 ### Fixed
 - The alarm-volume check now detects a stream that has actually been silenced. It originally tested only

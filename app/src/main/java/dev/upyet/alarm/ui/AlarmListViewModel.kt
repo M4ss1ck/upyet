@@ -10,6 +10,8 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.NextAlarm
 import dev.upyet.alarm.domain.NextAlarmInfo
+import dev.upyet.alarm.domain.NextOccurrenceCalculator
+import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.AlarmScheduler
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class AlarmListUiState(
@@ -104,5 +107,29 @@ class AlarmListViewModel @Inject constructor(
         scheduler.cancel(id, AlarmOccurrenceKind.MAIN)
         scheduler.cancel(id, AlarmOccurrenceKind.SNOOZE)
         repository.delete(id)
+    }
+
+    fun toggleSkipNext(alarm: Alarm) = viewModelScope.launch {
+        if (!alarm.enabled || alarm.recurrence == Recurrence.OneTime) return@launch
+        val today = timeProvider.now().atZone(timeProvider.zone()).toLocalDate()
+        val newSkipOn: LocalDate? = if (alarm.skipNextOn != null && !alarm.skipNextOn.isBefore(today)) {
+            null
+        } else {
+            val next = NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), timeProvider.now())
+                ?: return@launch
+            next.atZone(timeProvider.zone()).toLocalDate()
+        }
+        repository.setSkipNextOn(alarm.id, newSkipOn)
+        val updatedAlarm = alarm.copy(skipNextOn = newSkipOn)
+        when (val result = rescheduler.scheduleNext(updatedAlarm)) {
+            SchedulingResult.Scheduled -> {
+                failedIds.value -= alarm.id
+                schedulingError.value = null
+            }
+
+            SchedulingResult.ExactAlarmsUnavailable -> schedulingFailed(alarm.id, R.string.alarm_scheduling_exact_unavailable)
+
+            is SchedulingResult.Failed -> schedulingFailed(alarm.id, R.string.alarm_scheduling_failed)
+        }
     }
 }

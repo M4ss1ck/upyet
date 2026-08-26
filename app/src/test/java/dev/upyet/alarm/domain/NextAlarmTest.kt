@@ -125,7 +125,30 @@ class NextAlarmTest {
         assertThat(newYork?.firesAt).isEqualTo(Instant.parse("2027-01-10T12:00:00Z"))
     }
 
+    @Test
+    fun aSkippedAlarmLosesTheSoonestSlotToAnotherAlarm() {
+        // Both are daily; the 07:00 alarm would normally win, but its occurrence today is skipped.
+        val skippedSoon = alarm(id = 1, time = LocalTime.of(7, 0), enabled = true)
+            .copy(skipNextOn = java.time.LocalDate.parse("2027-01-10"))
+        val later = alarm(id = 2, time = LocalTime.of(8, 0), enabled = true)
+
+        val result = NextAlarm.select(listOf(skippedSoon, later), zone, from)
+
+        assertThat(result?.label).isEqualTo(later.label)
+        assertThat(result?.firesAt).isEqualTo(Instant.parse("2027-01-10T08:00:00Z"))
+    }
+
     private fun alarm(id: Long, time: LocalTime, enabled: Boolean) = Alarm(
-        AlarmId(id), time, enabled, "Alarm $id", Recurrence.OneTime, null, true, 9, false, Instant.EPOCH, Instant.EPOCH,
+        AlarmId(id),
+        time,
+        enabled,
+        "Alarm $id",
+        Recurrence.OneTime,
+        null,
+        true,
+        9,
+        false,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
     )
 }

@@ -5,6 +5,7 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.core.database.AlarmEntity
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 
 private const val ONE_TIME = "ONE_TIME"
@@ -29,6 +30,7 @@ fun AlarmEntity.toDomain(): Alarm = Alarm(
     vibrationEnabled = vibrationEnabled,
     snoozeMinutes = snoozeMinutes,
     evidenceEnabled = evidenceEnabled,
+    skipNextOn = skipNextOnEpochDay?.let(LocalDate::ofEpochDay),
     createdAt =
     java.time.Instant.ofEpochMilli(
         createdAt,
@@ -52,6 +54,7 @@ fun Alarm.toEntity(): AlarmEntity {
         vibrationEnabled = vibrationEnabled,
         snoozeMinutes = snoozeMinutes,
         evidenceEnabled = evidenceEnabled,
+        skipNextOnEpochDay = skipNextOn?.toEpochDay(),
         createdAt = createdAt.toEpochMilli(),
         updatedAt = updatedAt.toEpochMilli(),
     )

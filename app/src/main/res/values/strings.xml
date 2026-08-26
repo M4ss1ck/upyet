@@ -135,6 +135,9 @@
     <string name="evidence_on">Evidence on</string>
     <string name="alarm_never_repeats">Does not repeat</string>
     <string name="new_alarm">Alarm</string>
+    <string name="skip_next_alarm">Skip next</string>
+    <string name="cancel_skip_next_alarm">Cancel skip</string>
+    <string name="alarm_skipping_next">Skipping %1$s</string>
 
     <!-- Alarm editor -->
     <string name="repeat_once">Once</string>

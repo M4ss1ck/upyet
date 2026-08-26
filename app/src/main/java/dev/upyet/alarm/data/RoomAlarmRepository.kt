@@ -8,6 +8,7 @@ import dev.upyet.core.database.AlarmEntity
 import dev.upyet.core.time.TimeProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +29,14 @@ constructor(private val alarmDao: AlarmDao, private val timeProvider: TimeProvid
         alarmDao.setEnabled(
             id.value,
             enabled,
+            timeProvider.now().toEpochMilli(),
+        )
+    }
+
+    override suspend fun setSkipNextOn(id: AlarmId, date: LocalDate?) {
+        alarmDao.setSkipNextOn(
+            id.value,
+            date?.toEpochDay(),
             timeProvider.now().toEpochMilli(),
         )
     }

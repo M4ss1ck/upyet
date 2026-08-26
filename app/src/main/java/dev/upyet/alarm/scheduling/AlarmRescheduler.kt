@@ -63,7 +63,7 @@ class AlarmRescheduler @Inject constructor(
 
     private fun schedule(alarm: Alarm, now: Instant): SchedulingResult {
         val trigger =
-            NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now)
+            NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now, skipOn = alarm.skipNextOn)
                 ?: return SchedulingResult.Failed(IllegalStateException("No occurrence"))
         return alarmScheduler.schedule(alarm, trigger, AlarmOccurrenceKind.MAIN)
     }
@@ -80,7 +80,7 @@ class AlarmRescheduler @Inject constructor(
             // a one-off or snooze alarm keeps its stored trigger as long as it is still in the future.
             val trigger =
                 if (record.kind == AlarmOccurrenceKind.MAIN && alarm.recurrence != Recurrence.OneTime) {
-                    NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now)
+                    NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now, skipOn = alarm.skipNextOn)
                 } else {
                     record.triggerAt.takeIf { it > now }
                 }

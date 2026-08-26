@@ -139,6 +139,9 @@
     <string name="evidence_on">Prueba activada</string>
     <string name="alarm_never_repeats">No se repite</string>
     <string name="new_alarm">Alarma</string>
+    <string name="skip_next_alarm">Saltar la siguiente</string>
+    <string name="cancel_skip_next_alarm">Cancelar el salto</string>
+    <string name="alarm_skipping_next">Se salta el %1$s</string>
 
     <!-- Alarm editor -->
     <string name="repeat_once">Una vez</string>

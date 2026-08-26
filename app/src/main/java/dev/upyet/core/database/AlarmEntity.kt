@@ -15,6 +15,7 @@ data class AlarmEntity(
     val vibrationEnabled: Boolean,
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,
+    val skipNextOnEpochDay: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
 )

@@ -25,6 +25,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -98,10 +99,95 @@ class AlarmListViewModelTest {
         observer.cancel()
     }
 
-    private fun rescheduler(repository: FakeAlarmRepository, scheduler: FakeAlarmScheduler) =
-        AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUserUnlockState(), FakeAlarmMirror())
+    @Test fun toggleSkipNextOnDailyAlarmPersistsTodayAndReschedules() = runTest {
+        val timeProvider = FixedTimeProvider()
+        val alarm = dailyAlarm(enabled = true)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+
+        viewModel.toggleSkipNext(alarm)
+        runCurrent()
+
+        val expectedDate = LocalDate.of(2026, 8, 24)
+        assertThat(repository.stored.single().skipNextOn).isEqualTo(expectedDate)
+        assertThat(scheduler.scheduled).containsExactly(alarm.id)
+    }
+
+    @Test fun toggleSkipNextAgainClearsIt() = runTest {
+        val timeProvider = FixedTimeProvider()
+        val skipDate = LocalDate.of(2026, 8, 24)
+        val alarm = dailyAlarm(enabled = true).copy(skipNextOn = skipDate)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+
+        viewModel.toggleSkipNext(alarm)
+        runCurrent()
+
+        assertThat(repository.stored.single().skipNextOn).isNull()
+        assertThat(scheduler.scheduled).containsExactly(alarm.id)
+    }
+
+    @Test fun toggleSkipNextIsNoOpForOneTimeAlarm() = runTest {
+        val timeProvider = FixedTimeProvider()
+        val alarm = alarm(enabled = true)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+
+        viewModel.toggleSkipNext(alarm)
+        runCurrent()
+
+        assertThat(repository.stored.single().skipNextOn).isNull()
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    @Test fun toggleSkipNextIsNoOpForDisabledAlarm() = runTest {
+        val timeProvider = FixedTimeProvider()
+        val alarm = dailyAlarm(enabled = false)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+
+        viewModel.toggleSkipNext(alarm)
+        runCurrent()
+
+        assertThat(repository.stored.single().skipNextOn).isNull()
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    private fun rescheduler(
+        repository: FakeAlarmRepository,
+        scheduler: FakeAlarmScheduler,
+        timeProvider: FixedTimeProvider = FixedTimeProvider(),
+    ) = AlarmRescheduler(repository, scheduler, timeProvider, FakeUserUnlockState(), FakeAlarmMirror())
 
     private fun alarm(enabled: Boolean) = Alarm(
-        AlarmId(1), LocalTime.of(11, 0), enabled, "Wake up", Recurrence.OneTime, null, true, 9, false, Instant.EPOCH, Instant.EPOCH,
+        AlarmId(1),
+        LocalTime.of(11, 0),
+        enabled,
+        "Wake up",
+        Recurrence.OneTime,
+        null,
+        true,
+        9,
+        false,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    private fun dailyAlarm(enabled: Boolean) = Alarm(
+        AlarmId(1),
+        LocalTime.of(11, 0),
+        enabled,
+        "Wake up",
+        Recurrence.Daily,
+        null,
+        true,
+        9,
+        false,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
     )
 }

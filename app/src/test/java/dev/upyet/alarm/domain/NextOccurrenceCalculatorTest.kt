@@ -303,6 +303,76 @@ class NextOccurrenceCalculatorTest {
         assertThat(result).isEqualTo(from)
     }
 
+    @Test
+    fun skippingTodaysDailyOccurrenceReturnsTomorrow() {
+        val from = instantAt("2027-01-10", "06:00")
+
+        val result = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Daily,
+            zone,
+            from,
+            skipOn = LocalDate.parse("2027-01-10"),
+        )
+
+        assertThat(result).isEqualTo(instantAt("2027-01-11", "07:30"))
+    }
+
+    @Test
+    fun skippingAWeeklyOccurrenceReturnsTheNextAllowedWeekday() {
+        // 10 Jan 2027 is a Sunday. Weekly Mon+Wed: without skip the next is Mon 11 Jan; with Mon skipped it is Wed 13 Jan.
+        val from = instantAt("2027-01-10", "06:00")
+
+        val result = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY)),
+            zone,
+            from,
+            skipOn = LocalDate.parse("2027-01-11"),
+        )
+
+        assertThat(result).isEqualTo(instantAt("2027-01-13", "07:30"))
+    }
+
+    @Test
+    fun skipDateThatIsNotAnOccurrenceDateChangesNothing() {
+        val from = instantAt("2027-01-10", "06:00")
+
+        val withoutSkip = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.MONDAY)),
+            zone,
+            from,
+        )
+        val withIrrelevantSkip = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.MONDAY)),
+            zone,
+            from,
+            skipOn = LocalDate.parse("2027-01-12"),
+        )
+
+        assertThat(withIrrelevantSkip).isEqualTo(withoutSkip)
+        assertThat(withIrrelevantSkip).isEqualTo(instantAt("2027-01-11", "07:30"))
+    }
+
+    @Test
+    fun staleSkipDateInThePastChangesNothing() {
+        val from = instantAt("2027-01-10", "06:00")
+
+        val withoutSkip = NextOccurrenceCalculator.next(LocalTime.of(7, 30), Recurrence.Daily, zone, from)
+        val withStaleSkip = NextOccurrenceCalculator.next(
+            LocalTime.of(7, 30),
+            Recurrence.Daily,
+            zone,
+            from,
+            skipOn = LocalDate.parse("2027-01-09"),
+        )
+
+        assertThat(withStaleSkip).isEqualTo(withoutSkip)
+        assertThat(withStaleSkip).isEqualTo(instantAt("2027-01-10", "07:30"))
+    }
+
     private fun instantAt(date: String, time: String): Instant = ZonedDateTime
         .of(
             LocalDate.parse(date),

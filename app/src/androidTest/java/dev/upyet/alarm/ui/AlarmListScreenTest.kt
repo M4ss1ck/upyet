@@ -2,9 +2,12 @@ package dev.upyet.alarm.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
@@ -13,7 +16,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -23,10 +28,88 @@ class AlarmListScreenTest {
 
     @Test fun rendersAlarmTimeAndLabel() {
         val time = LocalTime.of(7, 30)
-        val alarm = Alarm(AlarmId(1), time, true, "Wake up", Recurrence.OneTime, null, true, 9, false, Instant.EPOCH, Instant.EPOCH)
+        val alarm = Alarm(
+            AlarmId(1),
+            time,
+            true,
+            "Wake up",
+            Recurrence.OneTime,
+            null,
+            true,
+            9,
+            false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
         compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
         compose.onNodeWithText(shortTime(time)).assertIsDisplayed()
         compose.onNodeWithText("Wake up").assertIsDisplayed()
+    }
+
+    @Test fun skipNextMenuItemAppearsForRecurringEnabledAlarm() {
+        val alarm = Alarm(
+            AlarmId(1),
+            LocalTime.of(7, 30),
+            true,
+            "Wake up",
+            Recurrence.Daily,
+            null,
+            true,
+            9,
+            false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.more_options)).performClick()
+        compose.onNodeWithText(context.getString(R.string.skip_next_alarm)).assertIsDisplayed()
+    }
+
+    @Test fun skipNextMenuItemAbsentForOneTimeAlarm() {
+        val alarm = Alarm(
+            AlarmId(1),
+            LocalTime.of(7, 30),
+            true,
+            "Wake up",
+            Recurrence.OneTime,
+            null,
+            true,
+            9,
+            false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.more_options)).performClick()
+        compose.onNodeWithText(context.getString(R.string.skip_next_alarm)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.cancel_skip_next_alarm)).assertDoesNotExist()
+    }
+
+    @Test fun skippingBadgeRendersWhenSkipIsActive() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val skipDate = LocalDate.now(ZoneId.systemDefault())
+        val alarm = Alarm(
+            AlarmId(1),
+            LocalTime.of(7, 30),
+            true,
+            "Wake up",
+            Recurrence.Daily,
+            null,
+            true,
+            9,
+            false,
+            skipNextOn = skipDate,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(context.resources.configuration.locales[0])
+            .format(skipDate)
+        val expected = context.getString(R.string.alarm_skipping_next, formatted)
+        compose.onNodeWithText(expected).assertIsDisplayed()
     }
 
     /**

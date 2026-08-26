@@ -6,6 +6,7 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 
 class AlarmMapperTest {
@@ -32,12 +33,54 @@ class AlarmMapperTest {
                     true,
                     9,
                     false,
-                    Instant.ofEpochMilli(100),
-                    Instant.ofEpochMilli(200),
+                    createdAt = Instant.ofEpochMilli(100),
+                    updatedAt = Instant.ofEpochMilli(200),
                 )
             assertThat(
                 alarm.toEntity().toDomain(),
             ).isEqualTo(alarm)
         }
+    }
+
+    @Test
+    fun roundTripsSkipNextOn() {
+        val alarm = Alarm(
+            AlarmId(42),
+            LocalTime.of(7, 30),
+            true,
+            "Wake",
+            Recurrence.Daily,
+            null,
+            true,
+            9,
+            false,
+            LocalDate.parse("2027-01-15"),
+            Instant.ofEpochMilli(100),
+            Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
+        assertThat(alarm.toEntity().skipNextOnEpochDay).isEqualTo(LocalDate.parse("2027-01-15").toEpochDay())
+    }
+
+    @Test
+    fun roundTripsNullSkipNextOn() {
+        val alarm = Alarm(
+            AlarmId(42),
+            LocalTime.of(7, 30),
+            true,
+            "Wake",
+            Recurrence.Daily,
+            null,
+            true,
+            9,
+            false,
+            null,
+            Instant.ofEpochMilli(100),
+            Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
+        assertThat(alarm.toEntity().skipNextOnEpochDay).isNull()
     }
 }

@@ -113,8 +113,12 @@ class AlarmReschedulerTest {
 
     private fun rescheduler(repository: FakeRepository, scheduler: FakeScheduler) =
         AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUnlock(true), FakeMirror())
-    private fun alarm(id: Long, enabled: Boolean) =
-        Alarm(AlarmId(id), LocalTime.of(11, 0), enabled, "label", Recurrence.OneTime, null, true, 5, false, now, now)
+    private fun alarm(id: Long, enabled: Boolean) = Alarm(
+        AlarmId(
+            id,
+        ),
+        LocalTime.of(11, 0), enabled, "label", Recurrence.OneTime, null, true, 5, false, createdAt = now, updatedAt = now,
+    )
 
     private class FakeRepository(alarms: List<Alarm>) : AlarmRepository {
         private val flow = MutableStateFlow(alarms)
@@ -126,6 +130,7 @@ class AlarmReschedulerTest {
         override suspend fun getAlarm(id: AlarmId): Alarm? = flow.value.find { it.id == id }
         override suspend fun upsert(alarm: Alarm) = alarm.id
         override suspend fun setEnabled(id: AlarmId, enabled: Boolean) = Unit
+        override suspend fun setSkipNextOn(id: AlarmId, date: java.time.LocalDate?) = Unit
         override suspend fun delete(id: AlarmId) = Unit
     }
 

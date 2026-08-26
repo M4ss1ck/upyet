@@ -33,6 +33,9 @@ class FakeAlarmRepository(initial: List<Alarm> = emptyList()) : AlarmRepository 
         enabledChanges += id to enabled
         alarms.value = alarms.value.map { if (it.id == id) it.copy(enabled = enabled) else it }
     }
+    override suspend fun setSkipNextOn(id: AlarmId, date: java.time.LocalDate?) {
+        alarms.value = alarms.value.map { if (it.id == id) it.copy(skipNextOn = date) else it }
+    }
     override suspend fun delete(id: AlarmId) {
         deleted += id
         alarms.value = alarms.value.filterNot { it.id == id }

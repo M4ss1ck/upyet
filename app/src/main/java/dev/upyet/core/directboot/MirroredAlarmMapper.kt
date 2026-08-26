@@ -4,6 +4,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.Recurrence
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 
 private const val MINUTES_PER_HOUR = 60
@@ -42,6 +43,7 @@ fun MirroredAlarm.toAlarm(): Alarm = Alarm(
     vibrationEnabled = vibrationEnabled,
     snoozeMinutes = snoozeMinutes,
     evidenceEnabled = false,
+    skipNextOn = skipNextOnEpochDay?.let(LocalDate::ofEpochDay),
     createdAt = Instant.EPOCH,
     updatedAt = Instant.EPOCH,
 )
