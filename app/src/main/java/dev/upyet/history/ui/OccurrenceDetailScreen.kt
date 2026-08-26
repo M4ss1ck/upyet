@@ -76,6 +76,8 @@ import dev.upyet.core.ui.theme.extraColors
 import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
+import dev.upyet.evidence.domain.OccurrenceChain
+import dev.upyet.evidence.domain.OccurrenceOutcome
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -95,16 +97,16 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
 
-    item?.let { value ->
+    item?.let { detail ->
         Column(Modifier.fillMaxSize()) {
             UpYetTopBar(
-                title = value.label.ifBlank { stringResource(R.string.unnamed_alarm) },
+                title = detail.label.ifBlank { stringResource(R.string.unnamed_alarm) },
                 onBack = onBack,
-                subtitle = dateFormatter.format(value.occurrence.scheduledFor),
+                subtitle = dateFormatter.format(detail.chain.root.scheduledFor),
                 actions = {
-                    val (container, content) = outcomeBadgeColors(value.occurrence.outcome)
+                    val (container, content) = outcomeBadgeColors(detail.chain.finalOutcome)
                     StatusBadge(
-                        text = stringResource(outcomeResource(value.occurrence.outcome)),
+                        text = stringResource(outcomeResource(detail.chain.finalOutcome)),
                         container = container,
                         content = content,
                         modifier = Modifier.padding(end = 16.dp),
@@ -113,14 +115,33 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
             )
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
                 item {
-                    val files = remember(value.segments) {
-                        value.segments.mapNotNull { segment -> segment.fileName?.let(viewModel::fileUri) }
+                    val files = remember(detail.allSegments) {
+                        detail.allSegments.mapNotNull { segment -> segment.fileName?.let(viewModel::fileUri) }
                     }
                     EvidencePlayer(files)
                 }
-                item { WhatHappenedTimeline(value.occurrence, zone) }
-                itemsIndexed(value.segments) { index, segment ->
-                    SegmentCard(index, segment, Modifier.padding(horizontal = 20.dp, vertical = 5.dp))
+                if (detail.chain.containsSnooze) {
+                    item {
+                        SnoozeSummaryCard(detail.chain, Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                    }
+                }
+                detail.chain.links.forEachIndexed { linkIndex, link ->
+                    if (detail.chain.links.size > 1) {
+                        item {
+                            ChainRingHeader(
+                                ringNumber = linkIndex + 1,
+                                scheduledFor = link.scheduledFor,
+                                outcome = link.outcome,
+                                zone = zone,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    item { WhatHappenedTimeline(link, zone) }
+                    val segments = detail.segmentsByOccurrence[link.id].orEmpty()
+                    itemsIndexed(segments) { index, segment ->
+                        SegmentCard(index, segment, Modifier.padding(horizontal = 20.dp, vertical = 5.dp))
+                    }
                 }
                 item { DeleteSection(onDelete = { confirming = true }) }
             }
@@ -139,6 +160,43 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
             },
             dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun SnoozeSummaryCard(chain: OccurrenceChain, modifier: Modifier = Modifier) {
+    val countText = pluralStringResource(R.plurals.history_snooze_count, chain.snoozeCount, chain.snoozeCount)
+    val minutes = (chain.elapsedMillis / 60_000L).toInt()
+    val minutesText = if (minutes > 0) pluralStringResource(R.plurals.history_chain_minutes, minutes, minutes) else null
+    val text = listOfNotNull(countText, minutesText).joinToString(" · ")
+    UpYetCard(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+private fun ChainRingHeader(
+    ringNumber: Int,
+    scheduledFor: Instant,
+    outcome: OccurrenceOutcome,
+    zone: ZoneId,
+    modifier: Modifier = Modifier,
+) {
+    val timeFormatter =
+        rememberLocalized { locale -> DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
+    val timeText = timeFormatter.format(scheduledFor)
+    Row(
+        modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.occurrence_chain_ring, ringNumber, timeText),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        val (container, content) = outcomeBadgeColors(outcome)
+        StatusBadge(text = stringResource(outcomeResource(outcome)), container = container, content = content)
     }
 }
 

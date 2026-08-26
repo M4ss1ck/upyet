@@ -101,7 +101,8 @@
     <string name="segment_failed">Failed</string>
     <string name="segment_skipped">Skipped</string>
     <string name="delete_occurrence_title">Delete occurrence?</string>
-    <string name="delete_occurrence_message">Evidence files and metadata will be deleted.</string>
+    <string name="delete_occurrence_message">Every clip from this wake-up, including its snoozes, will be deleted together with its metadata.</string>
+    <string name="occurrence_chain_ring">Ring %1$d · %2$s</string>
     <string name="permission_onboarding_title">Two permissions to go</string>
     <string name="permission_onboarding_explanation">Notifications let the alarm take over your lock screen. The camera records the proof. Nothing is recorded outside a ringing alarm, and nothing leaves this phone.</string>
     <string name="default_snooze">Default snooze</string>

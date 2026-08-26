@@ -104,7 +104,8 @@
     <string name="segment_failed">Fallido</string>
     <string name="segment_skipped">Omitido</string>
     <string name="delete_occurrence_title">¿Eliminar la ocurrencia?</string>
-    <string name="delete_occurrence_message">Se eliminarán los archivos de prueba y sus metadatos.</string>
+    <string name="delete_occurrence_message">Se eliminarán todos los clips de este despertar, incluidas sus posposiciones, junto con sus metadatos.</string>
+    <string name="occurrence_chain_ring">Timbre %1$d · %2$s</string>
     <string name="permission_onboarding_title">Faltan dos permisos</string>
     <string name="permission_onboarding_explanation">Las notificaciones permiten que la alarma tome tu pantalla de bloqueo. La cámara graba la prueba. No se graba nada fuera de una alarma sonando y nada sale de este teléfono.</string>
     <string name="default_snooze">Posposición predeterminada</string>
