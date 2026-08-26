@@ -13,6 +13,7 @@ interface AlarmScheduler {
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId? = null,
         snoozesRemaining: Int = SnoozeBudget.UNSET,
+        chainStartedAtMillis: Long = 0L,
     ): SchedulingResult
     fun cancel(alarmId: AlarmId, kind: AlarmOccurrenceKind)
     fun nextScheduledTrigger(): Instant?

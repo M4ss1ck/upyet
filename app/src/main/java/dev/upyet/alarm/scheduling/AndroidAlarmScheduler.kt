@@ -30,13 +30,22 @@ class AndroidAlarmScheduler @Inject constructor(
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId?,
         snoozesRemaining: Int,
+        chainStartedAtMillis: Long,
     ): SchedulingResult {
         if (!exactAlarmAccess.canScheduleExact()) return SchedulingResult.ExactAlarmsUnavailable
         return try {
             val operation = PendingIntent.getBroadcast(
                 context,
                 AlarmPendingIntents.requestCode(alarm.id, kind),
-                AlarmPendingIntents.alarmIntent(context, alarm.id, kind, triggerAt, parentOccurrenceId, snoozesRemaining),
+                AlarmPendingIntents.alarmIntent(
+                    context,
+                    alarm.id,
+                    kind,
+                    triggerAt,
+                    parentOccurrenceId,
+                    snoozesRemaining,
+                    chainStartedAtMillis,
+                ),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val showIntent = PendingIntent.getActivity(
@@ -65,6 +74,7 @@ class AndroidAlarmScheduler @Inject constructor(
                     recurrenceType,
                     mask,
                     snoozesRemaining,
+                    chainStartedAtMillis,
                 ),
             )
             SchedulingResult.Scheduled

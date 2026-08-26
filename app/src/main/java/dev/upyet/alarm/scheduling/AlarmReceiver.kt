@@ -25,7 +25,15 @@ class AlarmReceiver : BroadcastReceiver() {
         val parent = intent.getLongExtra(AlarmPendingIntents.EXTRA_PARENT_OCCURRENCE_ID, -1L)
             .takeIf { it >= 0 }?.let(::OccurrenceId)
         val snoozesRemaining = intent.getIntExtra(AlarmPendingIntents.EXTRA_SNOOZES_REMAINING, SnoozeBudget.UNSET)
+        val chainStartedAtMillis = intent.getLongExtra(AlarmPendingIntents.EXTRA_CHAIN_STARTED_AT, 0L)
         AlarmLog.event("alarm_triggered", "alarmId" to alarmId, "kind" to kind.name)
-        ringingLauncher.launch(AlarmId(alarmId), Instant.ofEpochMilli(scheduledFor), kind, parent, snoozesRemaining)
+        ringingLauncher.launch(
+            AlarmId(alarmId),
+            Instant.ofEpochMilli(scheduledFor),
+            kind,
+            parent,
+            snoozesRemaining,
+            chainStartedAtMillis,
+        )
     }
 }

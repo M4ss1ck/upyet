@@ -60,6 +60,7 @@ class AlarmReschedulerTest {
                 recurrenceType = "ONE_TIME",
                 weekdayMask = 0,
                 snoozesRemaining = dev.upyet.alarm.domain.SnoozeBudget.UNSET,
+                chainStartedAtMillis = 0L,
             ),
         )
         val report = AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror).rescheduleAll()
@@ -136,6 +137,7 @@ class AlarmReschedulerTest {
             kind: AlarmOccurrenceKind,
             parentOccurrenceId: dev.upyet.alarm.domain.OccurrenceId?,
             snoozesRemaining: Int,
+            chainStartedAtMillis: Long,
         ) = result
         override fun cancel(alarmId: AlarmId, kind: AlarmOccurrenceKind) {
             cancelled += alarmId to kind

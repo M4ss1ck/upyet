@@ -23,6 +23,7 @@ data class RingingSession(
     val isUserUnlocked: Boolean,
     val isSilentAlarmStream: Boolean = false,
     val budget: SnoozeBudget,
+    val chainStartedAt: Instant,
 )
 
 @Singleton

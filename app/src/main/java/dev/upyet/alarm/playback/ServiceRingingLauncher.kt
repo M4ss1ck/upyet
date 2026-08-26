@@ -19,10 +19,19 @@ class ServiceRingingLauncher @Inject constructor(@ApplicationContext private val
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId?,
         snoozesRemaining: Int,
+        chainStartedAtMillis: Long,
     ) {
         ContextCompat.startForegroundService(
             context,
-            AlarmPlaybackService.startIntent(context, alarmId, scheduledFor, kind, parentOccurrenceId, snoozesRemaining),
+            AlarmPlaybackService.startIntent(
+                context,
+                alarmId,
+                scheduledFor,
+                kind,
+                parentOccurrenceId,
+                snoozesRemaining,
+                chainStartedAtMillis,
+            ),
         )
     }
 }

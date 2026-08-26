@@ -14,6 +14,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
+import dev.upyet.alarm.domain.AutoSnoozeDecision
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.alarm.domain.SnoozeCalculator
@@ -146,6 +147,14 @@ class AlarmPlaybackService : Service() {
                 AlarmOccurrenceKind.SNOOZE ->
                     SnoozeBudget.of(intent.getIntExtra(EXTRA_SNOOZES_REMAINING, SnoozeBudget.UNSET))
             }
+            val chainStartedAt = when (kind) {
+                AlarmOccurrenceKind.MAIN -> triggeredAt
+
+                AlarmOccurrenceKind.SNOOZE -> {
+                    val millis = intent.getLongExtra(EXTRA_CHAIN_STARTED_AT, 0L)
+                    if (millis == 0L) triggeredAt else Instant.ofEpochMilli(millis)
+                }
+            }
             val session =
                 RingingSession(
                     alarmId = alarmId,
@@ -159,6 +168,7 @@ class AlarmPlaybackService : Service() {
                     isUserUnlocked = unlocked,
                     isSilentAlarmStream = silent,
                     budget = budget,
+                    chainStartedAt = chainStartedAt,
                 )
             current = session
             registry.update(session)
@@ -274,10 +284,22 @@ class AlarmPlaybackService : Service() {
             AlarmOccurrenceKind.SNOOZE,
             session.occurrenceId,
             session.budget.consume().remaining,
+            session.chainStartedAt.toEpochMilli(),
         )
         if (result !is dev.upyet.alarm.scheduling.SchedulingResult.Scheduled) {
             AlarmLog.event("alarm_error", "reason" to "snooze_not_scheduled", "result" to result.javaClass.simpleName)
         }
+    }
+
+    private suspend fun completeTimedOutWithAutoSnooze(session: RingingSession): Boolean {
+        complete(session, OccurrenceOutcome.TIMED_OUT, dismissedAt = null)
+        val now = timeProvider.now()
+        if (AutoSnoozeDecision.shouldAutoSnooze(session.budget, session.chainStartedAt, now)) {
+            scheduleSnooze(session)
+            AlarmLog.event("alarm_auto_snoozed", "alarmId" to session.alarmId.value)
+            return true
+        }
+        return false
     }
 
     private fun finish(outcome: OccurrenceOutcome) {
@@ -290,16 +312,22 @@ class AlarmPlaybackService : Service() {
         timeoutJob?.cancel()
         serviceScope.launch {
             try {
-                val dismissedAt = if (outcome == OccurrenceOutcome.DISMISSED) timeProvider.now() else null
-                complete(session, outcome, dismissedAt)
-                // The alarm has rung, so a one-time one is spent. Before first unlock the alarm store is
-                // out of reach; the pending occurrence carries it, and UserUnlockedReceiver retires it there.
-                if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
-                rescheduler.get().rescheduleAll()
-                AlarmLog.event(
-                    if (outcome == OccurrenceOutcome.TIMED_OUT) "alarm_timed_out" else "alarm_dismissed",
-                    "alarmId" to session.alarmId.value,
-                )
+                if (outcome == OccurrenceOutcome.TIMED_OUT) {
+                    val autoSnoozed = completeTimedOutWithAutoSnooze(session)
+                    if (!autoSnoozed) {
+                        // The alarm has rung, so a one-time one is spent. Before first unlock the alarm store is
+                        // out of reach; the pending occurrence carries it, and UserUnlockedReceiver retires it there.
+                        if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
+                        rescheduler.get().rescheduleAll()
+                        AlarmLog.event("alarm_timed_out", "alarmId" to session.alarmId.value)
+                    }
+                } else {
+                    val dismissedAt = timeProvider.now()
+                    complete(session, outcome, dismissedAt)
+                    if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
+                    rescheduler.get().rescheduleAll()
+                    AlarmLog.event("alarm_dismissed", "alarmId" to session.alarmId.value)
+                }
             } catch (error: Exception) {
                 AlarmLog.event("alarm_error", "error" to error.javaClass.simpleName)
             } finally {
@@ -366,6 +394,7 @@ class AlarmPlaybackService : Service() {
         private const val EXTRA_KIND = "kind"
         private const val EXTRA_PARENT_OCCURRENCE_ID = "parent_occurrence_id"
         private const val EXTRA_SNOOZES_REMAINING = "snoozes_remaining"
+        private const val EXTRA_CHAIN_STARTED_AT = "chain_started_at"
         private const val INVALID_ID = -1L
         private const val DEFAULT_SNOOZE_MINUTES = 9
         private const val RINGING_TIMEOUT_MILLIS = 5 * 60 * 1000L
@@ -381,6 +410,7 @@ class AlarmPlaybackService : Service() {
             kind: AlarmOccurrenceKind,
             parentOccurrenceId: OccurrenceId?,
             snoozesRemaining: Int = SnoozeBudget.UNSET,
+            chainStartedAtMillis: Long = 0L,
         ): Intent = Intent(context, AlarmPlaybackService::class.java)
             .setAction(ACTION_START)
             .putExtra(EXTRA_ALARM_ID, alarmId.value)
@@ -388,6 +418,7 @@ class AlarmPlaybackService : Service() {
             .putExtra(EXTRA_KIND, kind.name)
             .putExtra(EXTRA_PARENT_OCCURRENCE_ID, parentOccurrenceId?.value ?: INVALID_ID)
             .putExtra(EXTRA_SNOOZES_REMAINING, snoozesRemaining)
+            .putExtra(EXTRA_CHAIN_STARTED_AT, chainStartedAtMillis)
 
         fun dismissIntent(context: Context): Intent = Intent(context, AlarmPlaybackService::class.java).setAction(ACTION_DISMISS)
 

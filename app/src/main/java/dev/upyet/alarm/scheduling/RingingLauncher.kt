@@ -11,5 +11,6 @@ interface RingingLauncher {
         kind: AlarmOccurrenceKind,
         parentOccurrenceId: OccurrenceId?,
         snoozesRemaining: Int = dev.upyet.alarm.domain.SnoozeBudget.UNSET,
+        chainStartedAtMillis: Long = 0L,
     )
 }
