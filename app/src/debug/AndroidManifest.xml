@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <!--
+            Exported so `adb shell am broadcast` can actually reach it: driving a verification pass from a
+            shell is the only reason this receiver exists, and a non-exported receiver silently drops
+            broadcasts that come from the shell uid. Guarded by DUMP, which the shell and system hold and
+            ordinary apps cannot be granted, so "exported" here means "reachable from adb" and nothing
+            wider. The whole component lives in the debug source set, so the shipped release package
+            (dev.upyet) has no such receiver and no such surface at all.
+        -->
         <receiver
             android:name=".debug.DebugAlarmReceiver"
-            android:exported="false">
+            android:exported="true"
+            android:permission="android.permission.DUMP">
             <intent-filter>
                 <action android:name="dev.upyet.debug.SCHEDULE" />
             </intent-filter>

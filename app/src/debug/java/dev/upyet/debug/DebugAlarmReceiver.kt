@@ -41,7 +41,7 @@ class DebugAlarmReceiver : BroadcastReceiver() {
                     soundUri = null,
                     vibrationEnabled = true,
                     snoozeMinutes = 9,
-                    evidenceEnabled = false,
+                    evidenceEnabled = intent.getBooleanExtra(EXTRA_EVIDENCE, true),
                     createdAt = now,
                     updatedAt = now,
                 )
@@ -62,6 +62,7 @@ class DebugAlarmReceiver : BroadcastReceiver() {
     private companion object {
         const val ACTION_SCHEDULE = "dev.upyet.debug.SCHEDULE"
         const val EXTRA_SECONDS = "seconds"
+        const val EXTRA_EVIDENCE = "evidence"
         const val DEFAULT_SECONDS = 60
     }
 }
