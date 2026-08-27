@@ -72,7 +72,7 @@
     <string name="evidence_retention">Evidence retention</string>
     <string name="default_vibration">Default vibration</string>
     <string name="evidence_by_default">Evidence by default</string>
-    <string name="permission_onboarding">Grant permissions</string>
+    <string name="permission_onboarding">Agree &amp; continue</string>
     <string name="outcome_ringing">Ringing</string>
     <string name="outcome_dismissed">Dismissed</string>
     <string name="outcome_snoozed">Snoozed</string>
@@ -108,8 +108,8 @@
     <string name="delete_occurrence_title">Delete occurrence?</string>
     <string name="delete_occurrence_message">Every clip from this wake-up, including its snoozes, will be deleted together with its metadata.</string>
     <string name="occurrence_chain_ring">Ring %1$d · %2$s</string>
-    <string name="permission_onboarding_title">Two permissions to go</string>
-    <string name="permission_onboarding_explanation">Notifications let the alarm take over your lock screen. The camera records the proof. Nothing is recorded outside a ringing alarm, and nothing leaves this phone.</string>
+    <string name="permission_onboarding_title">Before the camera turns on</string>
+    <string name="permission_onboarding_explanation">UpYet records silent video from the front camera — no sound, ever — and only while UpYet\'s own alarm screen is on your display. It never records in the background. Clips are saved on this phone alone, are never sent anywhere, and are deleted automatically after the time you choose in Settings, where you can also turn recording off. Notifications let the alarm take over your lock screen.</string>
     <string name="default_snooze">Default snooze</string>
     <string name="max_snoozes">Maximum snoozes</string>
     <string name="max_snoozes_unlimited">Unlimited</string>

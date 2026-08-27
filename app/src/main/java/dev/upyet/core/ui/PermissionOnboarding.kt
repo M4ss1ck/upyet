@@ -40,6 +40,12 @@ import dev.upyet.core.ui.theme.ControlHeight
 /**
  * Asks for the two permissions the product actually needs, in context and with an explanation.
  * Camera permission is requested here - never for the first time while an alarm is already ringing.
+ *
+ * This card is also UpYet's Play **prominent disclosure** for the camera, which is a policy requirement
+ * and not decoration: it must stay in-app, stay ahead of the camera permission request, keep saying what
+ * is recorded, when it is recorded and that nothing leaves the device, and keep a distinct affirmative
+ * tap that is not the system permission dialog. Its copy is quoted in `docs/STORE.md`, where a reviewer
+ * reads it. Before changing it, read `docs/adr/0006`.
  */
 @Composable
 fun PermissionOnboardingCard(modifier: Modifier = Modifier) {

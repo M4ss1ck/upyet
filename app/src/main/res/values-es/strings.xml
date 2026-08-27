@@ -75,7 +75,7 @@
     <string name="evidence_retention">Conservación de pruebas</string>
     <string name="default_vibration">Vibración predeterminada</string>
     <string name="evidence_by_default">Prueba de forma predeterminada</string>
-    <string name="permission_onboarding">Conceder permisos</string>
+    <string name="permission_onboarding">Aceptar y continuar</string>
     <string name="outcome_ringing">Sonando</string>
     <string name="outcome_dismissed">Descartada</string>
     <string name="outcome_snoozed">Pospuesta</string>
@@ -111,8 +111,8 @@
     <string name="delete_occurrence_title">¿Eliminar la ocurrencia?</string>
     <string name="delete_occurrence_message">Se eliminarán todos los clips de este despertar, incluidas sus posposiciones, junto con sus metadatos.</string>
     <string name="occurrence_chain_ring">Timbre %1$d · %2$s</string>
-    <string name="permission_onboarding_title">Faltan dos permisos</string>
-    <string name="permission_onboarding_explanation">Las notificaciones permiten que la alarma tome tu pantalla de bloqueo. La cámara graba la prueba. No se graba nada fuera de una alarma sonando y nada sale de este teléfono.</string>
+    <string name="permission_onboarding_title">Antes de encender la cámara</string>
+    <string name="permission_onboarding_explanation">UpYet graba vídeo sin sonido con la cámara frontal —nunca audio— y solo mientras la pantalla de alarma de UpYet está visible. Nunca graba en segundo plano. Los clips se guardan únicamente en este teléfono, no se envían a ninguna parte y se borran automáticamente pasado el tiempo que elijas en Ajustes, donde también puedes desactivar la grabación. Las notificaciones permiten que la alarma tome tu pantalla de bloqueo.</string>
     <string name="default_snooze">Posposición predeterminada</string>
     <string name="max_snoozes">Posposiciones máximas</string>
     <string name="max_snoozes_unlimited">Sin límite</string>

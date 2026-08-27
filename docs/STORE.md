@@ -68,10 +68,19 @@ declaration a reviewer reads closely.
 **Prominent disclosure.** Play requires an in-app disclosure shown before camera access begins, describing
 the data and its use, with affirmative consent that is not merely the system permission dialog. UpYet's is
 `PermissionOnboardingCard` on the alarm list — shown before the camera permission is ever requested, and
-before any recording is possible. It states what is recorded, when it is recorded, that no audio is
-captured, and that nothing leaves the phone; the user's affirmative action is the button on that card,
-which is what triggers the system dialog. It is not dismissible-and-forgotten: it remains until the
-permissions are granted. See `docs/adr/0006`.
+therefore before any recording is possible. It is not dismissible-and-forgotten: it remains until the
+permissions are granted. The user's affirmative action is its button, which is what triggers the system
+dialog. See `docs/adr/0006`.
+
+The card is headed **"Before the camera turns on"** and reads, verbatim:
+
+> UpYet records silent video from the front camera — no sound, ever — and only while UpYet's own alarm
+> screen is on your display. It never records in the background. Clips are saved on this phone alone, are
+> never sent anywhere, and are deleted automatically after the time you choose in Settings, where you can
+> also turn recording off. Notifications let the alarm take over your lock screen.
+
+The button beneath it reads **"Agree & continue"**. This is `permission_onboarding_explanation` in
+`app/src/main/res/values/strings.xml`; if the string changes, change it here too.
 
 ### USE_FULL_SCREEN_INTENT
 
