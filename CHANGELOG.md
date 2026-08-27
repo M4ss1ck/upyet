@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-26
+
 ### Added
-- History rows show a real frame from the clip instead of a play icon. The frame is taken about a second
-  in, where a front camera has finished exposing, and is written as a JPEG beside its clip in app-private
+- History rows show a real frame from the clip instead of a play icon. The final available frame is
+  selected and written as a JPEG beside its clip in app-private
   evidence storage - never a blob in the database. Extraction happens after the recording is finalized, on
   the path that already outlives the ringing screen, so it cannot delay or block a dismissal; rows recorded
   before this existed backfill themselves the first time they scroll into view. The thumbnail is evidence
