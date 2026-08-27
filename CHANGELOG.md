@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A failed alarm now leaves evidence for the developer. `AlarmLog` events are persisted to an append-only
+  file in device-protected storage - not Room, because the alarm path may not touch it and because Direct
+  Boot, before the first unlock, is exactly the window an "it never rang" report is about. Two files of
+  128 KB bound it, rotated by size and not by age: the user reporting last Tuesday is the one whose
+  evidence retention already reclaimed. `AndroidAlarmScheduler` logged nothing at all before this, so
+  scheduling now records that an alarm was set, cancelled, denied for want of exact-alarm access, or
+  failed - without which a report from the top failure case would have said nothing about the alarm that
+  did not ring. Settings gains one row that assembles those events into a diagnostic report - app and
+  Android version, phone model, every reliability check, the settings that change alarm behaviour - and
+  hands it to the share sheet. Labels, alarm times and evidence file names are redacted where the line is
+  written rather than where it is shared, in every build type, so no window exists in which the file holds
+  one. See `docs/adr/0004` and `docs/adr/0005`.
+- Everything Play asks for that is not the build: a privacy policy published from `docs/site/` via GitHub
+  Pages, a Data Safety declaration of "collects no data, shares no data" with the reasoning written down,
+  written justifications for camera, `USE_FULL_SCREEN_INTENT` and `USE_EXACT_ALARM`, listing copy, a
+  screenshot shot list, and a release procedure in `docs/RELEASING.md`. The permission card on the alarm
+  list becomes the Play prominent disclosure rather than gaining a modal in front of it: it now says that
+  no audio is captured, that recording is bound to the alarm screen being visible, that retention deletes
+  the clips and that recording can be turned off, under a heading that names the moment and above an
+  affirmative "Agree & continue". See `docs/adr/0006`.
 - Evidence can leave the app through the Android share sheet. The share action on a wake-up sends every
   clip in the chain at once; each segment card can also send its own clip alone. Clips leave as readable
   copies named for their own ring time (`upyet-2026-08-27-1455.mp4`), so a snoozed wake-up arrives as a
