@@ -238,6 +238,8 @@
     <string name="language_system">Idioma del sistema</string>
     <string name="language_english">English</string>
     <string name="language_spanish">Español</string>
+    <string name="diagnostic_report">Compartir un informe de diagnóstico</string>
+    <string name="diagnostic_report_summary">Lo que hicieron las alarmas, con tu dispositivo y ajustes. Sin nombres de alarmas, y no se envía nada automáticamente.</string>
 
     <!-- Reliability -->
     <string name="reliability_checks">Comprobaciones</string>

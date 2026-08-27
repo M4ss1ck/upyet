@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoDelete
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
@@ -40,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -63,6 +65,7 @@ fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hil
     // Changing the language recreates the activity but retains this ViewModel, and the system's own per-app
     // language screen can change it too, so the stored value is re-read on every configuration change.
     val configuration = LocalConfiguration.current
+    val context = LocalContext.current
     LaunchedEffect(configuration) { viewModel.refreshLanguage() }
     SettingsContent(
         state = state,
@@ -74,6 +77,7 @@ fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hil
         onRetention = viewModel::setRetention,
         onLanguage = viewModel::setLanguage,
         onUpcomingAlarmLead = viewModel::setUpcomingAlarmLead,
+        onShareDiagnostics = { viewModel.shareDiagnosticReport { intent -> context.startActivity(intent) } },
     )
 }
 
@@ -88,6 +92,7 @@ fun SettingsContent(
     onRetention: (RetentionPolicy) -> Unit = {},
     onLanguage: (AppLanguage) -> Unit = {},
     onUpcomingAlarmLead: (Int) -> Unit = {},
+    onShareDiagnostics: () -> Unit = {},
 ) {
     // Scrollable: this screen grows with every new setting and must never hide one below the fold.
     Column(
@@ -261,6 +266,14 @@ fun SettingsContent(
                 title = stringResource(R.string.app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                 icon = Icons.Filled.Info,
                 subtitle = stringResource(R.string.about_local_only),
+            )
+            RowDivider()
+            SettingsRow(
+                title = stringResource(R.string.diagnostic_report),
+                subtitle = stringResource(R.string.diagnostic_report_summary),
+                icon = Icons.Filled.BugReport,
+                showChevron = true,
+                onClick = { onShareDiagnostics() },
             )
         }
 

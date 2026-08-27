@@ -4,7 +4,6 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import dev.upyet.core.logging.AlarmLog
 import dev.upyet.core.logging.DiagnosticLogStore
-import java.io.File
 
 @HiltAndroidApp
 class UpYetApplication : Application() {
@@ -12,6 +11,6 @@ class UpYetApplication : Application() {
         super.onCreate()
         // Use device-protected storage because AlarmLog is called from directBootAware components before the
         // user has unlocked, and that window is exactly where "the alarm never rang" lives. See docs/adr/0004.
-        AlarmLog.install(DiagnosticLogStore(File(createDeviceProtectedStorageContext().filesDir, "diagnostics")))
+        AlarmLog.install(DiagnosticLogStore.forApp(this))
     }
 }

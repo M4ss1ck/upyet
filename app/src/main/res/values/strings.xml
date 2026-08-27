@@ -230,6 +230,8 @@
     <string name="language_system">System default</string>
     <string name="language_english">English</string>
     <string name="language_spanish">Español</string>
+    <string name="diagnostic_report">Share a diagnostic report</string>
+    <string name="diagnostic_report_summary">What the alarms did, plus your device and settings. No alarm names, and nothing is sent automatically.</string>
 
     <!-- Reliability -->
     <string name="reliability_checks">Checks</string>

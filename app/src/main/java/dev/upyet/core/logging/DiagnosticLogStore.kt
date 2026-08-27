@@ -1,5 +1,6 @@
 package dev.upyet.core.logging
 
+import android.content.Context
 import java.io.File
 import java.io.FileOutputStream
 
@@ -37,5 +38,9 @@ class DiagnosticLogStore(private val directory: File) {
         const val MAX_BYTES = 128 * 1024
         const val CURRENT = "diagnostics.log"
         const val PREVIOUS = "diagnostics-previous.log"
+        const val DIRECTORY = "diagnostics"
+
+        /** The app's own store. Two instances over the same directory are equivalent - it holds no state. */
+        fun forApp(context: Context) = DiagnosticLogStore(File(context.createDeviceProtectedStorageContext().filesDir, DIRECTORY))
     }
 }
