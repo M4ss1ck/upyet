@@ -55,6 +55,14 @@
             </intent-filter>
         </receiver>
         <receiver
+            android:name=".alarm.scheduling.UpcomingAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="dev.upyet.action.UPCOMING_ALARM" />
+                <action android:name="dev.upyet.action.UPCOMING_ALARM_SKIP" />
+            </intent-filter>
+        </receiver>
+        <receiver
             android:name=".alarm.scheduling.BootReceiver"
             android:directBootAware="true"
             android:exported="false">

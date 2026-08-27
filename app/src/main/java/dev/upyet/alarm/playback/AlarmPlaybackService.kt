@@ -112,6 +112,7 @@ class AlarmPlaybackService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
 
     private fun startRinging(intent: Intent, unlocked: Boolean) {
+        notifications.cancelUpcoming()
         val alarmId = AlarmId(intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ID))
         val kindName = intent.getStringExtra(EXTRA_KIND)
         val kind = AlarmOccurrenceKind.entries.firstOrNull { it.name == kindName }

@@ -16,11 +16,15 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel
 @Inject
-constructor(private val retentionCleaner: RetentionCleaner) : ViewModel() {
+constructor(private val retentionCleaner: RetentionCleaner, private val rescheduler: AlarmRescheduler) :
+    ViewModel() {
     init {
         viewModelScope.launch {
             val removed = retentionCleaner.clean()
             AlarmLog.event("retention_cleanup", "removed" to removed)
+            // Launching is the one moment the upcoming-alarm notification can be recomputed after a
+            // force stop, which the platform does not announce.
+            rescheduler.refreshUpcoming()
         }
     }
 }

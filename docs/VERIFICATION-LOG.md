@@ -35,6 +35,41 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-08-26 — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.5
+
+Lane: mixed (automated + adb)   Build: 0.1.5 (105)   Package: `dev.upyet.debug`
+
+Emulator run covering the upcoming-alarm notification (TODO item 7) only. Not a physical-device result.
+AVD started with `-camera-front emulated`. The whole instrumented suite was run as a regression gate, then
+the new feature was driven by hand through `adb` and the notification shade.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| instrumented suite | PASS | 52/52, 0 failures. The three failures recorded in the previous emulator entry (`AlarmListScreenTest.rendersAlarmTimeAndLabel`, `MigrationSmokeTest.opensVersionOne`, `NavigationTest`) did not reproduce on this AVD |
+| upcoming notification posts | PASS | Alarm 30 min out, default 1 h lead. Posted at launch as id 1004 on `alarm_upcoming`, `importance=2`, `sound=null`, `vibrate=null`, `category=reminder`, one action. Title was the alarm's local time (`8:33 PM`), text the label (`Debug alarm`) |
+| body tap | PASS | Opened the alarm list and auto-cancelled the notification |
+| `Turn off` action | PASS | Correct label for a one-time alarm. Tapped in the real shade: notification cleared and both `MAIN` and `SNOOZE` exact alarms were cancelled |
+| ringing clears it | PASS | Alarm scheduled 75 s out with the notification already posted; on `alarm_triggered` the upcoming notification was gone and only the ringing notification remained |
+| `Skip` action (recurring) | NOT RUN | The debug receiver only creates one-time alarms, so only the `Turn off` branch was exercised on device. The `Skip` branch is covered by `SkipNextOccurrenceTest` |
+
+### Findings
+
+- **`rescheduleAll()` is never called at app launch,** contrary to `AGENTS.md` §6 and §17b, which both name
+  `MainViewModel` as the force-stop recovery point. Its only live callers are `BootReceiver`,
+  `UserUnlockedReceiver` and `AlarmPlaybackService`. Found because the upcoming notification never appeared:
+  the launch recompute it was designed around did not exist. `MainViewModel` now calls `refreshUpcoming()`
+  directly, which fixes this feature but leaves the force-stop gap open — recorded in §17b as outstanding.
+- **A non-exported receiver cannot be driven by `adb broadcast`.** The first attempt to fire the skip action
+  from the shell reported `result=0` and did nothing, exactly as the 0.1.5 entry describes for
+  `DebugAlarmReceiver`. `UpcomingAlarmReceiver` is correctly `exported="false"`, so the action was verified
+  by tapping the real button in the shade via `uiautomator` instead.
+- **Recompute is stateless, so a swiped-away notification comes back.** Cancel-then-recompute re-posts the
+  same alarm's notification at the next recompute. A swipe does not promote the second alarm, which is the
+  intended rule, but it does not suppress the first one permanently either.
+- Lint reports 24 warnings, not the 18 `AGENTS.md` documents. All 24 sit in `build.gradle.kts`,
+  `libs.versions.toml` and the two documented `AndroidManifest.xml` attributes; the drift is upstream
+  releases, not this work.
+
 ## 2026-08-26 — Xiaomi 14T (`2406APNFAG`), Android 16 (API 36), HyperOS `OS3.0.302.0.WNEMIXM`, release 0.1.5
 
 Lane: mixed (human-eyes + adb capture)   Build: 0.1.5 (105)   Package: `dev.upyet`

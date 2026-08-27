@@ -44,6 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inert on its own once the date is behind us. It is mirrored to device-protected storage alongside the
   alarm itself, so a reboot before the skipped morning does not resurrect the ring it was meant to cancel.
   One-time alarms do not offer it: skipping one is what the switch already does
+- An upcoming-alarm notification appears some minutes before the next alarm is due, as a silent shade
+  entry that says when it is due and whose label it carries, with a single action that either skips the
+  next occurrence or turns a one-time alarm off. The lead time is a setting — off, 10 or 30 minutes, 1 or
+  2 hours, default 1 hour — and only the earliest enabled alarm is ever shown; a second alarm whose window
+  overlaps waits its turn. The notification is inexact on purpose, posted with `setAndAllowWhileIdle`, and
+  never touches the alarm-critical scheduling, the Direct Boot mirror, or the exact-alarm permission, so a
+  failure to show it can never make the UI claim the alarm is not set, and ringing clears any stale
+  entry. It is recomputed on launch, on boot, on unlock and after every ring
 
 ### Fixed
 - The alarm-volume check now detects a stream that has actually been silenced. It originally tested only

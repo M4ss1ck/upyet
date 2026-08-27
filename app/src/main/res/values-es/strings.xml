@@ -229,4 +229,15 @@
     <string name="reliability_all_good_body">Las alarmas se programan de forma exacta y la prueba puede grabarse.</string>
     <string name="open_app_settings">Abrir ajustes</string>
     <string name="back">Atrás</string>
+
+    <!-- Upcoming alarm -->
+    <string name="upcoming_channel_name">Próxima alarma</string>
+    <string name="upcoming_alarm">Próxima alarma</string>
+    <string name="upcoming_off">Desactivado</string>
+    <string name="upcoming_one_hour">1 hora</string>
+    <string name="upcoming_two_hours">2 horas</string>
+    <plurals name="upcoming_minutes"><item quantity="one">%1$d minuto</item><item quantity="many">%1$d minutos</item><item quantity="other">%1$d minutos</item></plurals>
+    <string name="upcoming_alarm_text">Próxima alarma</string>
+    <string name="upcoming_skip">Saltar</string>
+    <string name="upcoming_turn_off">Desactivar</string>
 </resources>

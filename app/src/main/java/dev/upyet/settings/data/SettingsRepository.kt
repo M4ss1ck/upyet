@@ -18,6 +18,7 @@ data class AppSettings(
     val defaultVibrationEnabled: Boolean,
     val evidenceEnabledByDefault: Boolean,
     val maxSnoozes: Int,
+    val upcomingAlarmLeadMinutes: Int = 60,
 )
 
 @Singleton
@@ -35,6 +36,7 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 defaultVibrationEnabled = preferences[Keys.vibrationEnabled] ?: true,
                 evidenceEnabledByDefault = preferences[Keys.evidenceEnabled] ?: true,
                 maxSnoozes = preferences[Keys.maxSnoozes] ?: SnoozeBudget.DEFAULT_MAX,
+                upcomingAlarmLeadMinutes = preferences[Keys.upcomingLeadMinutes] ?: 60,
             )
         }
 
@@ -58,11 +60,16 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.maxSnoozes] = value }
     }
 
+    suspend fun setUpcomingAlarmLeadMinutes(value: Int) {
+        dataStore.edit { it[Keys.upcomingLeadMinutes] = value }
+    }
+
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val snoozeMinutes = intPreferencesKey("default_snooze_minutes")
         val vibrationEnabled = booleanPreferencesKey("default_vibration_enabled")
         val evidenceEnabled = booleanPreferencesKey("evidence_enabled_by_default")
         val maxSnoozes = intPreferencesKey("max_snoozes")
+        val upcomingLeadMinutes = intPreferencesKey("upcoming_alarm_lead_minutes")
     }
 }

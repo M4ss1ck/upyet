@@ -17,6 +17,8 @@ import dev.upyet.settings.data.SettingsRepository
 import dev.upyet.testing.FakeAlarmMirror
 import dev.upyet.testing.FakeAlarmRepository
 import dev.upyet.testing.FakeAlarmScheduler
+import dev.upyet.testing.FakeDataStore
+import dev.upyet.testing.FakeUpcomingAlarmScheduler
 import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.testing.FixedTimeProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -140,7 +142,15 @@ class AlarmEditorViewModelTest {
     ): AlarmEditorViewModel = AlarmEditorViewModel(
         savedState,
         repository,
-        AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUserUnlockState(), FakeAlarmMirror()),
+        AlarmRescheduler(
+            repository,
+            scheduler,
+            FixedTimeProvider(),
+            FakeUserUnlockState(),
+            FakeAlarmMirror(),
+            SettingsRepository(FakeDataStore()),
+            FakeUpcomingAlarmScheduler(),
+        ),
         SettingsRepository(FakeSettingsDataStore()),
         FixedTimeProvider(Instant.parse(now)),
     )

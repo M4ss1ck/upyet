@@ -3,6 +3,7 @@ package dev.upyet.settings.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.reliability.domain.ReliabilityChecks
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.reliability.domain.summarize
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val localeController: AppLocaleController,
     reliabilityChecks: ReliabilityChecks,
+    private val rescheduler: AlarmRescheduler,
 ) : ViewModel() {
     // Evaluated once: this screen only needs a summary to point at the reliability screen, which
     // does its own fresh evaluation, so re-checking permissions on every settings emission is unnecessary.
@@ -63,4 +65,9 @@ class SettingsViewModel @Inject constructor(
     fun setMaxSnoozes(value: Int) = viewModelScope.launch { repository.setMaxSnoozes(value) }
     fun setVibration(value: Boolean) = viewModelScope.launch { repository.setDefaultVibrationEnabled(value) }
     fun setEvidence(value: Boolean) = viewModelScope.launch { repository.setEvidenceEnabledByDefault(value) }
+
+    fun setUpcomingAlarmLead(value: Int) = viewModelScope.launch {
+        repository.setUpcomingAlarmLeadMinutes(value)
+        rescheduler.refreshUpcoming()
+    }
 }

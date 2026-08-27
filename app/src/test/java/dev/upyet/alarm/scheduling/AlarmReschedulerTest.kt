@@ -1,5 +1,6 @@
 package dev.upyet.alarm.scheduling
 
+import androidx.datastore.preferences.core.intPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
@@ -10,14 +11,18 @@ import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.UserUnlockState
 import dev.upyet.core.time.TimeProvider
+import dev.upyet.settings.data.SettingsRepository
 import dev.upyet.testing.FakeAlarmRepository
 import dev.upyet.testing.FakeAlarmScheduler
+import dev.upyet.testing.FakeDataStore
+import dev.upyet.testing.FakeUpcomingAlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -63,9 +68,12 @@ class AlarmReschedulerTest {
                 chainStartedAtMillis = 0L,
             ),
         )
-        val report = AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror).rescheduleAll()
+        val upcoming = FakeUpcomingAlarmScheduler()
+        val report = AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror, settings(), upcoming)
+            .rescheduleAll()
         assertThat(repository.queried).isFalse()
         assertThat(report.scheduled).isEqualTo(1)
+        assertThat(upcoming.synced).isEmpty()
     }
 
     /**
@@ -76,7 +84,16 @@ class AlarmReschedulerTest {
     fun aRungOneTimeAlarmIsRetiredAndDoesNotRollToTomorrow() = runTest {
         val repository = FakeAlarmRepository(listOf(alarm(1, true)))
         val scheduler = FakeAlarmScheduler()
-        val rescheduler = AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+        val rescheduler =
+            AlarmRescheduler(
+                repository,
+                scheduler,
+                FixedTimeProvider(),
+                FakeUnlock(true),
+                FakeMirror(),
+                settings(),
+                FakeUpcomingAlarmScheduler(),
+            )
 
         rescheduler.retireIfOneTime(AlarmId(1))
         rescheduler.rescheduleAll()
@@ -92,7 +109,16 @@ class AlarmReschedulerTest {
         val daily = alarm(1, true).copy(recurrence = Recurrence.Daily)
         val weekly = alarm(2, true).copy(recurrence = Recurrence.Weekly(setOf(DayOfWeek.MONDAY)))
         val repository = FakeAlarmRepository(listOf(daily, weekly))
-        val rescheduler = AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+        val rescheduler =
+            AlarmRescheduler(
+                repository,
+                FakeAlarmScheduler(),
+                FixedTimeProvider(),
+                FakeUnlock(true),
+                FakeMirror(),
+                settings(),
+                FakeUpcomingAlarmScheduler(),
+            )
 
         rescheduler.retireIfOneTime(AlarmId(1))
         rescheduler.retireIfOneTime(AlarmId(2))
@@ -104,15 +130,105 @@ class AlarmReschedulerTest {
     @Test
     fun retiringAnAlarmThatIsAlreadyGoneDoesNothing() = runTest {
         val repository = FakeAlarmRepository(emptyList())
-        val rescheduler = AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+        val rescheduler =
+            AlarmRescheduler(
+                repository,
+                FakeAlarmScheduler(),
+                FixedTimeProvider(),
+                FakeUnlock(true),
+                FakeMirror(),
+                settings(),
+                FakeUpcomingAlarmScheduler(),
+            )
 
         rescheduler.retireIfOneTime(AlarmId(99))
 
         assertThat(repository.enabledChanges).isEmpty()
     }
 
-    private fun rescheduler(repository: FakeRepository, scheduler: FakeScheduler) =
-        AlarmRescheduler(repository, scheduler, FixedTimeProvider(), FakeUnlock(true), FakeMirror())
+    @Test
+    fun refreshUpcomingSyncsEarliestEnabledAlarm() = runTest {
+        val early = alarm(1, true).copy(time = LocalTime.of(6, 0))
+        val late = alarm(2, true).copy(time = LocalTime.of(7, 0))
+        val repository = FakeAlarmRepository(listOf(late, early))
+        val upcoming = FakeUpcomingAlarmScheduler()
+        val rescheduler =
+            AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror(), settings(60), upcoming)
+
+        rescheduler.refreshUpcoming()
+
+        assertThat(upcoming.synced).hasSize(1)
+        assertThat(upcoming.synced.single().first?.alarmId).isEqualTo(AlarmId(1))
+    }
+
+    @Test
+    fun refreshUpcomingIgnoresDisabledAlarms() = runTest {
+        val enabled = alarm(1, true).copy(time = LocalTime.of(6, 0))
+        val disabled = alarm(2, false).copy(time = LocalTime.of(5, 0))
+        val repository = FakeAlarmRepository(listOf(disabled, enabled))
+        val upcoming = FakeUpcomingAlarmScheduler()
+        val rescheduler =
+            AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror(), settings(60), upcoming)
+
+        rescheduler.refreshUpcoming()
+
+        assertThat(upcoming.synced.single().first?.alarmId).isEqualTo(AlarmId(1))
+    }
+
+    @Test
+    fun refreshUpcomingExcludesSkippedOccurrence() = runTest {
+        val skipDate = LocalDate.of(2026, 8, 24)
+        val skipped = alarm(1, true).copy(time = LocalTime.of(11, 0), recurrence = Recurrence.Daily, skipNextOn = skipDate)
+        val other = alarm(2, true).copy(time = LocalTime.of(12, 0))
+        val repository = FakeAlarmRepository(listOf(skipped, other))
+        val upcoming = FakeUpcomingAlarmScheduler()
+        val rescheduler =
+            AlarmRescheduler(repository, FakeAlarmScheduler(), FixedTimeProvider(), FakeUnlock(true), FakeMirror(), settings(60), upcoming)
+
+        rescheduler.refreshUpcoming()
+
+        // Skipped alarm's next trigger is tomorrow, so the other alarm wins.
+        assertThat(upcoming.synced.single().first?.alarmId).isEqualTo(AlarmId(2))
+    }
+
+    @Test
+    fun preUnlockMirrorPathDoesNotCallUpcomingScheduler() = runTest {
+        val repository = FakeRepository(emptyList())
+        val upcoming = FakeUpcomingAlarmScheduler()
+        val mirror = FakeMirror(
+            MirroredAlarm(
+                AlarmId(1),
+                AlarmOccurrenceKind.MAIN,
+                now.plusSeconds(3600),
+                5,
+                true,
+                null,
+                7 * 60,
+                "ONE_TIME",
+                0,
+                dev.upyet.alarm.domain.SnoozeBudget.UNSET,
+                0L,
+            ),
+        )
+        AlarmRescheduler(repository, FakeScheduler(), FixedTimeProvider(), FakeUnlock(false), mirror, settings(), upcoming).rescheduleAll()
+        assertThat(upcoming.synced).isEmpty()
+    }
+
+    private fun rescheduler(repository: FakeRepository, scheduler: FakeScheduler) = AlarmRescheduler(
+        repository,
+        scheduler,
+        FixedTimeProvider(),
+        FakeUnlock(true),
+        FakeMirror(),
+        settings(),
+        FakeUpcomingAlarmScheduler(),
+    )
+
+    private fun settings(leadMinutes: Int = 60) = SettingsRepository(FakeDataStore(preferencesWithLead(leadMinutes)))
+
+    private fun preferencesWithLead(leadMinutes: Int) = androidx.datastore.preferences.core.mutablePreferencesOf(
+        intPreferencesKey("upcoming_alarm_lead_minutes") to leadMinutes,
+    )
     private fun alarm(id: Long, enabled: Boolean) = Alarm(
         AlarmId(
             id,

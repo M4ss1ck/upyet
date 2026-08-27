@@ -264,9 +264,15 @@ only.
 
 ## 17b. Housekeeping on launch
 
-`MainViewModel` runs exactly two things once per launch: `AlarmRescheduler.rescheduleAll()` (force-stop
-recovery) and `RetentionCleaner.clean()` (evidence retention). Neither may become a background worker, and
-neither may block the first frame.
+`MainViewModel` runs `RetentionCleaner.clean()` (evidence retention) and
+`AlarmRescheduler.refreshUpcoming()` (the upcoming-alarm notification, which a force stop clears) once per
+launch. Neither may become a background worker, and neither may block the first frame.
+
+`AlarmRescheduler.rescheduleAll()` is specified as the third thing to run here - it is the only supported
+force-stop recovery, since the platform does not announce a force stop - but it is **not currently wired to
+launch**. Its live callers are `BootReceiver`, `UserUnlockedReceiver` and `AlarmPlaybackService`, so after a
+force stop an alarm stays cancelled until one of those fires. Wiring it is outstanding work, not a licence
+to schedule alarms any other way.
 
 ## 18. Required validation commands
 

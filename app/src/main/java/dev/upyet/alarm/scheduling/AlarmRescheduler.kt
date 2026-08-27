@@ -6,10 +6,13 @@ import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.NextOccurrenceCalculator
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.UpcomingAlarmSelector
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.UserUnlockState
 import dev.upyet.core.directboot.toAlarm
+import dev.upyet.core.logging.AlarmLog
 import dev.upyet.core.time.TimeProvider
+import dev.upyet.settings.data.SettingsRepository
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
@@ -22,6 +25,8 @@ class AlarmRescheduler @Inject constructor(
     private val timeProvider: TimeProvider,
     private val userUnlockState: UserUnlockState,
     private val mirror: AlarmMirror,
+    private val settingsRepository: SettingsRepository,
+    private val upcomingAlarmScheduler: UpcomingAlarmScheduler,
 ) {
     data class RescheduleReport(val scheduled: Int, val skipped: Int, val failures: List<AlarmId>, val exactAlarmsUnavailable: Boolean)
 
@@ -44,10 +49,42 @@ class AlarmRescheduler @Inject constructor(
                 }
             }
         }
+        try {
+            refreshUpcoming()
+        } catch (error: Exception) {
+            AlarmLog.event("upcoming_alarm_error", "error" to error.javaClass.simpleName)
+        }
         return RescheduleReport(scheduled, skipped, failures, unavailable)
     }
 
-    suspend fun scheduleNext(alarm: Alarm): SchedulingResult = schedule(alarm, timeProvider.now())
+    suspend fun scheduleNext(alarm: Alarm): SchedulingResult {
+        val result = schedule(alarm, timeProvider.now())
+        try {
+            refreshUpcoming()
+        } catch (error: Exception) {
+            AlarmLog.event("upcoming_alarm_error", "error" to error.javaClass.simpleName)
+        }
+        return result
+    }
+
+    suspend fun refreshUpcoming() {
+        if (!userUnlockState.isUserUnlocked()) return
+        try {
+            val now = timeProvider.now()
+            val leadMinutes = settingsRepository.settings.first().upcomingAlarmLeadMinutes
+            val alarms = alarmRepository.observeAlarms().first()
+            val candidates = alarms.filter { it.enabled }.mapNotNull { alarm ->
+                val trigger =
+                    NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), now, skipOn = alarm.skipNextOn)
+                        ?: return@mapNotNull null
+                alarm to trigger
+            }
+            val upcoming = UpcomingAlarmSelector.select(candidates, leadMinutes)
+            upcomingAlarmScheduler.sync(upcoming, now)
+        } catch (error: Exception) {
+            AlarmLog.event("upcoming_alarm_error", "error" to error.javaClass.simpleName)
+        }
+    }
 
     /**
      * Switches off a one-time alarm that has finished ringing.

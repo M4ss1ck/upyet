@@ -10,12 +10,12 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.NextAlarm
 import dev.upyet.alarm.domain.NextAlarmInfo
-import dev.upyet.alarm.domain.NextOccurrenceCalculator
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.AlarmScheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
+import dev.upyet.alarm.scheduling.SkipNextOccurrence
 import dev.upyet.core.time.TimeProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.LocalDate
 import javax.inject.Inject
 
 data class AlarmListUiState(
@@ -46,6 +45,7 @@ class AlarmListViewModel @Inject constructor(
     private val rescheduler: AlarmRescheduler,
     private val scheduler: AlarmScheduler,
     private val timeProvider: TimeProvider,
+    private val skipNextOccurrence: SkipNextOccurrence,
 ) : ViewModel() {
     private val schedulingError = MutableStateFlow<Int?>(null)
     private val failedIds = MutableStateFlow<Set<AlarmId>>(emptySet())
@@ -94,6 +94,7 @@ class AlarmListViewModel @Inject constructor(
             scheduler.cancel(alarm.id, AlarmOccurrenceKind.SNOOZE)
             failedIds.value -= alarm.id
             repository.setEnabled(alarm.id, false)
+            rescheduler.refreshUpcoming()
         }
     }
 
@@ -107,21 +108,15 @@ class AlarmListViewModel @Inject constructor(
         scheduler.cancel(id, AlarmOccurrenceKind.MAIN)
         scheduler.cancel(id, AlarmOccurrenceKind.SNOOZE)
         repository.delete(id)
+        rescheduler.refreshUpcoming()
     }
 
     fun toggleSkipNext(alarm: Alarm) = viewModelScope.launch {
         if (!alarm.enabled || alarm.recurrence == Recurrence.OneTime) return@launch
         val today = timeProvider.now().atZone(timeProvider.zone()).toLocalDate()
-        val newSkipOn: LocalDate? = if (alarm.skipNextOn != null && !alarm.skipNextOn.isBefore(today)) {
-            null
-        } else {
-            val next = NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), timeProvider.now())
-                ?: return@launch
-            next.atZone(timeProvider.zone()).toLocalDate()
-        }
-        repository.setSkipNextOn(alarm.id, newSkipOn)
-        val updatedAlarm = alarm.copy(skipNextOn = newSkipOn)
-        when (val result = rescheduler.scheduleNext(updatedAlarm)) {
+        val isSkipped = alarm.skipNextOn != null && !alarm.skipNextOn.isBefore(today)
+        val result = if (isSkipped) skipNextOccurrence.unskip(alarm) else skipNextOccurrence.skip(alarm)
+        when (result) {
             SchedulingResult.Scheduled -> {
                 failedIds.value -= alarm.id
                 schedulingError.value = null
@@ -130,6 +125,8 @@ class AlarmListViewModel @Inject constructor(
             SchedulingResult.ExactAlarmsUnavailable -> schedulingFailed(alarm.id, R.string.alarm_scheduling_exact_unavailable)
 
             is SchedulingResult.Failed -> schedulingFailed(alarm.id, R.string.alarm_scheduling_failed)
+
+            null -> return@launch
         }
     }
 }

@@ -8,9 +8,13 @@ import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
+import dev.upyet.alarm.scheduling.SkipNextOccurrence
+import dev.upyet.settings.data.SettingsRepository
 import dev.upyet.testing.FakeAlarmMirror
 import dev.upyet.testing.FakeAlarmRepository
 import dev.upyet.testing.FakeAlarmScheduler
+import dev.upyet.testing.FakeDataStore
+import dev.upyet.testing.FakeUpcomingAlarmScheduler
 import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.testing.FixedTimeProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +42,7 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = false)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler(SchedulingResult.ExactAlarmsUnavailable)
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
+        val viewModel = viewModel(repository, scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
 
         viewModel.setEnabled(alarm, true)
@@ -53,7 +57,7 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = false)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler(SchedulingResult.ExactAlarmsUnavailable)
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
+        val viewModel = viewModel(repository, scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
         viewModel.setEnabled(alarm, true)
         runCurrent()
@@ -71,7 +75,7 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = true)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, FixedTimeProvider())
+        val viewModel = viewModel(repository, scheduler, FixedTimeProvider())
         val observer = launch { viewModel.state.collect {} }
 
         viewModel.delete(alarm.id)
@@ -90,7 +94,7 @@ class AlarmListViewModelTest {
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
         val timeProvider = FixedTimeProvider()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler), scheduler, timeProvider)
+        val viewModel = viewModel(repository, scheduler, timeProvider)
         val observer = launch { viewModel.state.collect {} }
         runCurrent()
 
@@ -104,7 +108,7 @@ class AlarmListViewModelTest {
         val alarm = dailyAlarm(enabled = true)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+        val viewModel = viewModel(repository, scheduler, timeProvider)
 
         viewModel.toggleSkipNext(alarm)
         runCurrent()
@@ -120,7 +124,7 @@ class AlarmListViewModelTest {
         val alarm = dailyAlarm(enabled = true).copy(skipNextOn = skipDate)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+        val viewModel = viewModel(repository, scheduler, timeProvider)
 
         viewModel.toggleSkipNext(alarm)
         runCurrent()
@@ -134,7 +138,7 @@ class AlarmListViewModelTest {
         val alarm = alarm(enabled = true)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+        val viewModel = viewModel(repository, scheduler, timeProvider)
 
         viewModel.toggleSkipNext(alarm)
         runCurrent()
@@ -148,7 +152,7 @@ class AlarmListViewModelTest {
         val alarm = dailyAlarm(enabled = false)
         val repository = FakeAlarmRepository(listOf(alarm))
         val scheduler = FakeAlarmScheduler()
-        val viewModel = AlarmListViewModel(repository, rescheduler(repository, scheduler, timeProvider), scheduler, timeProvider)
+        val viewModel = viewModel(repository, scheduler, timeProvider)
 
         viewModel.toggleSkipNext(alarm)
         runCurrent()
@@ -157,11 +161,31 @@ class AlarmListViewModelTest {
         assertThat(scheduler.scheduled).isEmpty()
     }
 
+    private fun viewModel(
+        repository: FakeAlarmRepository,
+        scheduler: FakeAlarmScheduler,
+        timeProvider: FixedTimeProvider,
+    ): AlarmListViewModel {
+        val rescheduler = rescheduler(repository, scheduler, timeProvider)
+        val skip = SkipNextOccurrence(repository, timeProvider, rescheduler)
+        return AlarmListViewModel(repository, rescheduler, scheduler, timeProvider, skip)
+    }
+
     private fun rescheduler(
         repository: FakeAlarmRepository,
         scheduler: FakeAlarmScheduler,
         timeProvider: FixedTimeProvider = FixedTimeProvider(),
-    ) = AlarmRescheduler(repository, scheduler, timeProvider, FakeUserUnlockState(), FakeAlarmMirror())
+    ) = AlarmRescheduler(
+        repository,
+        scheduler,
+        timeProvider,
+        FakeUserUnlockState(),
+        FakeAlarmMirror(),
+        settings(),
+        FakeUpcomingAlarmScheduler(),
+    )
+
+    private fun settings() = SettingsRepository(FakeDataStore())
 
     private fun alarm(enabled: Boolean) = Alarm(
         AlarmId(1),

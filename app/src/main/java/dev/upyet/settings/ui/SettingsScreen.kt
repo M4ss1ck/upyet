@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -72,6 +73,7 @@ fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hil
         onEvidence = viewModel::setEvidence,
         onRetention = viewModel::setRetention,
         onLanguage = viewModel::setLanguage,
+        onUpcomingAlarmLead = viewModel::setUpcomingAlarmLead,
     )
 }
 
@@ -85,6 +87,7 @@ fun SettingsContent(
     onEvidence: (Boolean) -> Unit = {},
     onRetention: (RetentionPolicy) -> Unit = {},
     onLanguage: (AppLanguage) -> Unit = {},
+    onUpcomingAlarmLead: (Int) -> Unit = {},
 ) {
     // Scrollable: this screen grows with every new setting and must never hide one below the fold.
     Column(
@@ -155,6 +158,29 @@ fun SettingsContent(
                             onClick = {
                                 onMaxSnoozes(option)
                                 maxSnoozesExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+            RowDivider()
+            var upcomingExpanded by remember { mutableStateOf(false) }
+            val upcomingLead = state.settings?.upcomingAlarmLeadMinutes ?: 60
+            Box {
+                SettingsRow(
+                    title = stringResource(R.string.upcoming_alarm),
+                    icon = Icons.Filled.Alarm,
+                    value = upcomingValue(upcomingLead),
+                    showChevron = true,
+                    onClick = { upcomingExpanded = true },
+                )
+                DropdownMenu(upcomingExpanded, { upcomingExpanded = false }) {
+                    UPCOMING_OPTIONS.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(upcomingValue(option)) },
+                            onClick = {
+                                onUpcomingAlarmLead(option)
+                                upcomingExpanded = false
                             },
                         )
                     }
@@ -307,4 +333,14 @@ private fun retentionResource(policy: RetentionPolicy): Int = when (policy) {
     RetentionPolicy.SEVEN_DAYS -> R.string.retention_seven_days
     RetentionPolicy.THIRTY_DAYS -> R.string.retention_thirty_days
     RetentionPolicy.FOREVER -> R.string.retention_forever
+}
+
+private val UPCOMING_OPTIONS = listOf(0, 10, 30, 60, 120)
+
+@Composable
+private fun upcomingValue(leadMinutes: Int): String = when (leadMinutes) {
+    0 -> stringResource(R.string.upcoming_off)
+    60 -> stringResource(R.string.upcoming_one_hour)
+    120 -> stringResource(R.string.upcoming_two_hours)
+    else -> pluralStringResource(R.plurals.upcoming_minutes, leadMinutes, leadMinutes)
 }

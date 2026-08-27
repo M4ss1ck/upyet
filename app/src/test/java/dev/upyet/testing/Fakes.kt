@@ -4,9 +4,11 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.UpcomingAlarm
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmScheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
+import dev.upyet.alarm.scheduling.UpcomingAlarmScheduler
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.UserUnlockState
@@ -80,4 +82,30 @@ class FixedTimeProvider(
 
 class FakeUserUnlockState(private val unlocked: Boolean = true) : UserUnlockState {
     override fun isUserUnlocked(): Boolean = unlocked
+}
+
+class FakeUpcomingAlarmScheduler : UpcomingAlarmScheduler {
+    val synced = mutableListOf<Pair<UpcomingAlarm?, Instant>>()
+    var cancelCalls = 0
+
+    override fun sync(upcoming: UpcomingAlarm?, now: Instant) {
+        synced += upcoming to now
+    }
+
+    override fun cancelNotification() {
+        cancelCalls++
+    }
+}
+
+class FakeDataStore(initial: androidx.datastore.preferences.core.Preferences = androidx.datastore.preferences.core.emptyPreferences()) :
+    androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {
+    private val flow = kotlinx.coroutines.flow.MutableStateFlow(initial)
+    override val data: kotlinx.coroutines.flow.Flow<androidx.datastore.preferences.core.Preferences> = flow
+    override suspend fun updateData(
+        transform: suspend (t: androidx.datastore.preferences.core.Preferences) -> androidx.datastore.preferences.core.Preferences,
+    ): androidx.datastore.preferences.core.Preferences {
+        val newValue = transform(flow.value)
+        flow.value = newValue
+        return newValue
+    }
 }

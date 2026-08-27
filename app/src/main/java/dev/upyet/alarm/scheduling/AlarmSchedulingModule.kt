@@ -24,6 +24,9 @@ abstract class AlarmSchedulingModule {
     abstract fun bindAlarmScheduler(scheduler: AndroidAlarmScheduler): AlarmScheduler
 
     @Binds
+    abstract fun bindUpcomingAlarmScheduler(scheduler: AndroidUpcomingAlarmScheduler): UpcomingAlarmScheduler
+
+    @Binds
     abstract fun bindAlarmMirror(store: DirectBootAlarmStore): AlarmMirror
 
     @Binds
