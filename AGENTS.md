@@ -310,6 +310,9 @@ from it (`0.1.0` → `100`), APK filenames carry it, and the Settings screen sho
 name a build. Bumping a version means: edit that one property, move the `CHANGELOG.md` entries out of
 `[Unreleased]` into the new version, commit, then tag `vX.Y.Z`. Never hand-edit `versionCode`.
 
+The full release procedure - validation, tagging, the signed APK, the GitHub release and the Play
+submission - is `docs/RELEASING.md`; everything Play asks for that is not the build is `docs/STORE.md`.
+
 ## 19. Agent workflow
 
 1. Read this file. 2. Read `docs/ARCHITECTURE.md` and `docs/TESTING.md` as relevant.
