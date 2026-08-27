@@ -59,9 +59,9 @@ class MediaMetadataThumbnailExtractor @Inject constructor() : EvidenceThumbnailE
         val size = displaySize(retriever)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1 && size != null) {
             val (width, height) = scaledToShortEdge(size.first, size.second)
-            return retriever.getScaledFrameAtTime(offsetMicros, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, width, height)
+            return retriever.getScaledFrameAtTime(offsetMicros, MediaMetadataRetriever.OPTION_CLOSEST, width, height)
         }
-        val full = retriever.getFrameAtTime(offsetMicros, MediaMetadataRetriever.OPTION_CLOSEST_SYNC) ?: return null
+        val full = retriever.getFrameAtTime(offsetMicros, MediaMetadataRetriever.OPTION_CLOSEST) ?: return null
         val (width, height) = scaledToShortEdge(full.width, full.height)
         return full.scale(width, height)
     }

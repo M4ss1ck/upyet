@@ -28,16 +28,28 @@ class ThumbnailSelectionTest {
         assertThat(thumbnailFrameOffsetMicros(null)).isEqualTo(0L)
     }
 
-    @Test fun fallsBackToTheFirstFrameForAClipShorterThanTheOffset() {
-        assertThat(thumbnailFrameOffsetMicros(400L)).isEqualTo(0L)
+    @Test fun fallsBackToTheFirstFrameForAnInvalidDuration() {
+        assertThat(thumbnailFrameOffsetMicros(0L)).isEqualTo(0L)
     }
 
-    @Test fun fallsBackToTheFirstFrameForAClipExactlyAsLongAsTheOffset() {
-        assertThat(thumbnailFrameOffsetMicros(1_000L)).isEqualTo(0L)
+    @Test fun fallsBackToTheFirstFrameForANegativeDuration() {
+        assertThat(thumbnailFrameOffsetMicros(-1L)).isEqualTo(0L)
     }
 
-    @Test fun usesTheOneSecondFrameForALongerClip() {
-        assertThat(thumbnailFrameOffsetMicros(1_500L)).isEqualTo(1_000_000L)
+    @Test fun fallsBackToTheFirstFrameForAClipShorterThanTheMargin() {
+        assertThat(thumbnailFrameOffsetMicros(80L)).isEqualTo(0L)
+    }
+
+    @Test fun backsOffFromTheEndForAClipShorterThanOneSecond() {
+        assertThat(thumbnailFrameOffsetMicros(400L)).isEqualTo(300_000L)
+    }
+
+    @Test fun backsOffFromTheEndForAClipExactlyOneSecondLong() {
+        assertThat(thumbnailFrameOffsetMicros(1_000L)).isEqualTo(900_000L)
+    }
+
+    @Test fun backsOffFromTheEndForALongerClip() {
+        assertThat(thumbnailFrameOffsetMicros(1_500L)).isEqualTo(1_400_000L)
     }
 
     private fun segment(status: EvidenceStatus, fileName: String?) =
