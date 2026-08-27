@@ -1,5 +1,6 @@
 package dev.upyet.history.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,8 +31,10 @@ import dev.upyet.evidence.domain.WakeUpStats
 fun StatsCard(stats: WakeUpStats, window: StatsWindow, onWindowChange: (StatsWindow) -> Unit, modifier: Modifier = Modifier) {
     UpYetCard(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Three window labels are wider than a narrow phone, and a plain Row answers that by breaking
+            // "All time" across two lines. The filter row below solves the same squeeze the same way.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 val options = listOf(

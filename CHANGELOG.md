@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Evidence can leave the app through the Android share sheet. The share action on a wake-up sends every
+  clip in the chain at once; each segment card can also send its own clip alone. Clips leave as readable
+  copies named for their own ring time (`upyet-2026-08-27-1455.mp4`), so a snoozed wake-up arrives as a
+  set of files whose names tell the snooze story, and a written summary of the wake-up rides along in the
+  share text - a bare clip proves nothing to whoever receives it. A FileProvider scoped to a cache
+  directory carries the copies out; the evidence directory itself is never exposed, the app still declares
+  no `INTERNET` permission, and there is deliberately no export-to-storage path. Before the first share
+  ever, a one-time explainer says the one thing a user cannot work out alone: retention will never reclaim
+  that copy, and deleting the wake-up here will not remove it. See `docs/adr/0003`.
+- History answers "how am I doing" instead of only "what happened". A card above the list shows wake-ups
+  answered on the first ring as *n of m*, the snoozes and the minutes they cost, and the wake-ups missed
+  entirely, over a window of 7 days, 30 days or all time that survives a restart. All-time is answerable
+  because retention expires clips, never the record that the alarm rang. The figures ignore the filter
+  chips - the filter answers "show me these", the stats answer a question about all of them - and the
+  denominator leaves out in-flight rings and our own errors, since counting those against the user would
+  make the number a lie. The card stays put on an empty window rather than vanishing.
 - An alarm can be vibrate-only or fully silent. A Sound switch in the editor turns the ringtone off
   without discarding it: the ringtone row stays visible with the sound the user picked, so switching
   sound back on restores their choice rather than dropping to the system default. An alarm with
