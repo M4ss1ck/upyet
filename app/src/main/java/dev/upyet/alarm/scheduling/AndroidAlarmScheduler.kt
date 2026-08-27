@@ -13,6 +13,7 @@ import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.MirroredRecurrence
+import dev.upyet.core.logging.AlarmLog
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,7 +33,10 @@ class AndroidAlarmScheduler @Inject constructor(
         snoozesRemaining: Int,
         chainStartedAtMillis: Long,
     ): SchedulingResult {
-        if (!exactAlarmAccess.canScheduleExact()) return SchedulingResult.ExactAlarmsUnavailable
+        if (!exactAlarmAccess.canScheduleExact()) {
+            AlarmLog.event("alarm_schedule_denied", "alarmId" to alarm.id.value, "kind" to kind.name, "reason" to "no_exact_access")
+            return SchedulingResult.ExactAlarmsUnavailable
+        }
         return try {
             val operation = PendingIntent.getBroadcast(
                 context,
@@ -79,8 +83,17 @@ class AndroidAlarmScheduler @Inject constructor(
                     alarm.soundEnabled,
                 ),
             )
+            // The success path is logged, not only the failures: "my alarm never rang" is the report this
+            // log exists to answer, and it is unanswerable without knowing whether the alarm was ever set.
+            AlarmLog.event("alarm_scheduled", "alarmId" to alarm.id.value, "kind" to kind.name, "triggerAt" to triggerAt)
             SchedulingResult.Scheduled
         } catch (exception: SecurityException) {
+            AlarmLog.event(
+                "alarm_schedule_failed",
+                "alarmId" to alarm.id.value,
+                "kind" to kind.name,
+                "error" to exception.javaClass.simpleName,
+            )
             SchedulingResult.Failed(exception)
         }
     }
@@ -97,6 +110,7 @@ class AndroidAlarmScheduler @Inject constructor(
             it.cancel()
         }
         mirror.remove(alarmId, kind)
+        AlarmLog.event("alarm_cancelled", "alarmId" to alarmId.value, "kind" to kind.name)
     }
 
     override fun nextScheduledTrigger(): Instant? = mirror.nextTrigger()

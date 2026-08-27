@@ -54,7 +54,7 @@ class AlarmRescheduler @Inject constructor(
         } catch (error: Exception) {
             AlarmLog.event("upcoming_alarm_error", "error" to error.javaClass.simpleName)
         }
-        return RescheduleReport(scheduled, skipped, failures, unavailable)
+        return report(scheduled, skipped, failures, unavailable, source = "repository")
     }
 
     suspend fun scheduleNext(alarm: Alarm): SchedulingResult {
@@ -138,6 +138,23 @@ class AlarmRescheduler @Inject constructor(
                 is SchedulingResult.Failed -> failures += record.alarmId
             }
         }
+        return report(scheduled, skipped, failures, unavailable, source = "mirror")
+    }
+
+    /**
+     * Both reschedule paths end here so a diagnostic log always says what the last one did. `source`
+     * separates them because the mirror path runs before the user has unlocked, which is exactly the
+     * window an "it never rang" report is usually about.
+     */
+    private fun report(scheduled: Int, skipped: Int, failures: List<AlarmId>, unavailable: Boolean, source: String): RescheduleReport {
+        AlarmLog.event(
+            "alarms_rescheduled",
+            "source" to source,
+            "scheduled" to scheduled,
+            "skipped" to skipped,
+            "failed" to failures.size,
+            "exactUnavailable" to unavailable,
+        )
         return RescheduleReport(scheduled, skipped, failures, unavailable)
     }
 }
