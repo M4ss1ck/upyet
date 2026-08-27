@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- An alarm can be vibrate-only or fully silent. A Sound switch in the editor turns the ringtone off
+  without discarding it: the ringtone row stays visible with the sound the user picked, so switching
+  sound back on restores their choice rather than dropping to the system default. An alarm with
+  neither sound nor vibration is a supported configuration - it matters for a deaf or hard-of-hearing
+  user, and for a shared bedroom - and the editor says what it will do rather than blocking it. The
+  alarm list marks a silent alarm with a muted icon carrying a content description, so the fact
+  reaches a screen reader too, and the ringing screen says "Vibration only" or "Silent alarm" so a
+  screen that makes no noise reads as working rather than broken
+
+### Fixed
+- The ringtone picker offered the system's own "Silent" entry, which returns no URI - and no URI means
+  "the system default alarm sound" in this app. Choosing Silent therefore gave you a loud alarm. The
+  picker now only picks sounds; silence is the Sound switch's job
+- A muted alarm stream no longer forces vibration on an alarm whose sound the user deliberately
+  switched off. The override remains for the case it was written for: an alarm that expected to be
+  heard, on a device whose alarm stream is at zero
+
 ## [0.1.6] - 2026-08-26
 
 ### Added
