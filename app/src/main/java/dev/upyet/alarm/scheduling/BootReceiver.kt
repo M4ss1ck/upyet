@@ -30,14 +30,11 @@ class BootReceiver : BroadcastReceiver() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope.launch {
             try {
-                val report = rescheduler.rescheduleAll()
-                AlarmLog.event(
-                    "alarms_rescheduled",
-                    "scheduled" to report.scheduled,
-                    "skipped" to report.skipped,
-                    "failures" to report.failures.size,
-                    "exactAlarmsUnavailable" to report.exactAlarmsUnavailable,
-                )
+                // Only the trigger is logged here. rescheduleAll() reports its own counts, and logging them
+                // twice under one name with two spellings of the same fields made a diagnostic log read as
+                // if the work had happened twice.
+                AlarmLog.event("boot_rescheduled", "action" to intent.action)
+                rescheduler.rescheduleAll()
             } finally {
                 pending.finish()
                 scope.cancel()
