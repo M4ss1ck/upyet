@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Delete
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -356,12 +358,26 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
                 }
             }
         }
-        Text(
-            alarm.label.ifBlank { stringResource(R.string.unnamed_alarm) },
-            style = MaterialTheme.typography.titleSmall,
-            color = onSurface,
+        Row(
             modifier = Modifier.padding(top = 6.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                alarm.label.ifBlank { stringResource(R.string.unnamed_alarm) },
+                style = MaterialTheme.typography.titleSmall,
+                color = onSurface,
+            )
+            if (!alarm.soundEnabled) {
+                Icon(
+                    imageVector = if (alarm.vibrationEnabled) Icons.Filled.Vibration else Icons.AutoMirrored.Filled.VolumeOff,
+                    contentDescription = stringResource(
+                        if (alarm.vibrationEnabled) R.string.alarm_vibrate_only else R.string.alarm_silent,
+                    ),
+                    tint = onSurfaceVariant,
+                    modifier = Modifier.padding(start = 6.dp).size(16.dp),
+                )
+            }
+        }
         activeSkipDate(alarm)?.let { skipDate ->
             val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(currentLocale()).format(skipDate)
             StatusBadge(

@@ -14,11 +14,13 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.R
 import dev.upyet.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
@@ -81,6 +83,50 @@ class AlarmEditorScreenTest {
 
         assertThat(state.time.minute).isEqualTo(35)
         compose.onNodeWithContentDescription(minuteMode).assertIsSelected()
+    }
+
+    @Test fun togglingSoundOffLeavesRingtoneRowVisible() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var state by mutableStateOf(AlarmEditorUiState(isLoaded = true, soundEnabled = true, vibration = true))
+        compose.setContent {
+            UpYetTheme {
+                AlarmEditorContent(
+                    state = state,
+                    isNewAlarm = true,
+                    onUpdate = { transform -> state = transform(state) },
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+        // The row sits below the fold on a phone-sized viewport, so scroll to it before asserting.
+        compose.onNodeWithText(context.getString(R.string.ringtone)).performScrollTo().assertIsDisplayed()
+        // Simulate toggling the Sound switch off.
+        state = state.copy(soundEnabled = false)
+        compose.waitForIdle()
+        compose.onNodeWithText(context.getString(R.string.ringtone)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun screenOnlyWarningDisplayedWhenSoundAndVibrationOff() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val state = AlarmEditorUiState(isLoaded = true, soundEnabled = false, vibration = false)
+        compose.setContent {
+            UpYetTheme {
+                AlarmEditorContent(state = state, isNewAlarm = true, onUpdate = {}, onSave = {}, onCancel = {})
+            }
+        }
+        compose.onNodeWithText(context.getString(R.string.alarm_screen_only_warning)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun screenOnlyWarningNotDisplayedWhenSoundOn() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val state = AlarmEditorUiState(isLoaded = true, soundEnabled = true, vibration = false)
+        compose.setContent {
+            UpYetTheme {
+                AlarmEditorContent(state = state, isNewAlarm = true, onUpdate = {}, onSave = {}, onCancel = {})
+            }
+        }
+        compose.onNodeWithText(context.getString(R.string.alarm_screen_only_warning)).assertDoesNotExist()
     }
 
     /** The picker labels its own parts with Material's strings, so the test asks for them by resource. */

@@ -50,9 +50,13 @@
     <string name="reliability_volume_silent">El sonido de la alarma está desactivado — la alarma no sonará</string>
     <string name="reliability_volume_low">El volumen de la alarma es muy bajo — puede que no te despierte</string>
     <string name="alarm_label">Etiqueta</string>
+    <string name="sound">Sonido</string>
     <string name="vibration">Vibración</string>
     <string name="snooze_minutes">Minutos de posposición</string>
     <string name="ringtone">Tono</string>
+    <string name="alarm_vibrate_only">Solo vibración</string>
+    <string name="alarm_silent">Silenciosa</string>
+    <string name="alarm_screen_only_warning">Esta alarma solo encenderá la pantalla</string>
     <string name="save">Guardar alarma</string>
     <string name="cancel">Cancelar</string>
     <string name="delete_alarm_title">¿Eliminar la alarma?</string>
@@ -156,6 +160,8 @@
     <string name="dismiss_alarm_action">Ya estoy en pie — descartar</string>
     <string name="evidence_privacy_note">Grabación silenciosa, solo mientras esta pantalla esté visible. Nunca sale de tu teléfono.</string>
     <string name="ringing_volume_silent">El sonido de la alarma está desactivado — vibrando en su lugar</string>
+    <string name="ringing_vibration_only">Solo vibración</string>
+    <string name="ringing_silent_alarm">Alarma silenciosa: solo pantalla</string>
 
     <!-- History -->
     <string name="history_subtitle">La prueba de cada alarma que has descartado</string>

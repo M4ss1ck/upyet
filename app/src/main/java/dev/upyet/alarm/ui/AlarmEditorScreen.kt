@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Videocam
@@ -55,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -85,6 +87,9 @@ import java.time.LocalTime
 import java.time.format.TextStyle
 
 private val SNOOZE_OPTIONS = listOf(5, 9, 10, 15, 30)
+
+/** The ringtone row stays readable but inert while sound is switched off. */
+private const val DISABLED_ROW_ALPHA = 0.5f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -283,16 +288,31 @@ private fun AlarmEditorForm(
 
         UpYetCard {
             SettingsRow(
-                title = stringResource(R.string.ringtone),
+                title = stringResource(R.string.sound),
                 icon = Icons.AutoMirrored.Filled.VolumeUp,
+                trailing = {
+                    Switch(checked = state.soundEnabled, onCheckedChange = { value -> onUpdate { it.copy(soundEnabled = value) } })
+                },
+            )
+            RowDivider()
+            SettingsRow(
+                title = stringResource(R.string.ringtone),
+                icon = Icons.Filled.MusicNote,
                 value = ringtoneName,
-                showChevron = true,
-                onClick = {
-                    val intent =
-                        Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
-                            .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                            .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, state.soundUri?.let(Uri::parse))
-                    ringtoneLauncher.launch(intent)
+                modifier = Modifier.alpha(if (state.soundEnabled) 1f else DISABLED_ROW_ALPHA),
+                showChevron = state.soundEnabled,
+                onClick = if (state.soundEnabled) {
+                    {
+                        val intent =
+                            Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, state.soundUri?.let(Uri::parse))
+                                // Silence is now the Sound switch's job, and the picker only picks sounds.
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                        ringtoneLauncher.launch(intent)
+                    }
+                } else {
+                    null
                 },
             )
             RowDivider()
@@ -323,6 +343,14 @@ private fun AlarmEditorForm(
                 icon = Icons.Filled.Vibration,
                 trailing = { Switch(checked = state.vibration, onCheckedChange = { value -> onUpdate { it.copy(vibration = value) } }) },
             )
+            if (!state.soundEnabled && !state.vibration) {
+                Text(
+                    stringResource(R.string.alarm_screen_only_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp),
+                )
+            }
             RowDivider()
             SettingsRow(
                 title = stringResource(R.string.video_evidence),

@@ -116,6 +116,67 @@ class AlarmListScreenTest {
         compose.onNodeWithText(expected).assertIsDisplayed()
     }
 
+    @Test fun vibrateOnlyAlarmShowsVibrationOnlyIndicator() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val alarm = Alarm(
+            AlarmId(2),
+            LocalTime.of(7, 30),
+            true,
+            "Vibrate only",
+            Recurrence.OneTime,
+            null,
+            soundEnabled = false,
+            vibrationEnabled = true,
+            snoozeMinutes = 9,
+            evidenceEnabled = false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.alarm_vibrate_only)).assertIsDisplayed()
+    }
+
+    @Test fun silentAlarmShowsSilentIndicator() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val alarm = Alarm(
+            AlarmId(3),
+            LocalTime.of(7, 30),
+            true,
+            "Silent",
+            Recurrence.OneTime,
+            null,
+            soundEnabled = false,
+            vibrationEnabled = false,
+            snoozeMinutes = 9,
+            evidenceEnabled = false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.alarm_silent)).assertIsDisplayed()
+    }
+
+    @Test fun ordinaryAlarmShowsNoSilenceIndicator() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val alarm = Alarm(
+            AlarmId(4),
+            LocalTime.of(7, 30),
+            true,
+            "Ordinary",
+            Recurrence.OneTime,
+            null,
+            soundEnabled = true,
+            vibrationEnabled = true,
+            snoozeMinutes = 9,
+            evidenceEnabled = false,
+            createdAt = Instant.EPOCH,
+            updatedAt = Instant.EPOCH,
+        )
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.alarm_vibrate_only)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.alarm_silent)).assertDoesNotExist()
+    }
+
     /**
      * The expected time is formatted, never written out. A literal "7:30 AM" passes only on the exact
      * locale and ICU version it was typed against: ICU 72, which shipped in Android 14, changed the space

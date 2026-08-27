@@ -47,9 +47,13 @@
     <string name="reliability_volume_silent">Alarm sound is off — your alarm will be silent</string>
     <string name="reliability_volume_low">Alarm volume is very low — it may not wake you</string>
     <string name="alarm_label">Label</string>
+    <string name="sound">Sound</string>
     <string name="vibration">Vibration</string>
     <string name="snooze_minutes">Snooze minutes</string>
     <string name="ringtone">Ringtone</string>
+    <string name="alarm_vibrate_only">Vibration only</string>
+    <string name="alarm_silent">Silent</string>
+    <string name="alarm_screen_only_warning">This alarm will only light up the screen</string>
     <string name="save">Save alarm</string>
     <string name="cancel">Cancel</string>
     <string name="delete_alarm_title">Delete alarm?</string>
