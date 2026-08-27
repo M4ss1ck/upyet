@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-27
+
 ### Added
 - A failed alarm now leaves evidence for the developer. `AlarmLog` events are persisted to an append-only
   file in device-protected storage - not Room, because the alarm path may not touch it and because Direct
@@ -60,6 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A muted alarm stream no longer forces vibration on an alarm whose sound the user deliberately
   switched off. The override remains for the case it was written for: an alarm that expected to be
   heard, on a device whose alarm stream is at zero
+- A single reschedule was recorded as two events. `BootReceiver` already logged `alarms_rescheduled`
+  with its own spelling of the fields, so once `AlarmRescheduler` began logging its own, a diagnostic
+  log read as though the work had happened twice. The receiver now logs only what triggered it, and the
+  counts come from the one place that counts them. Found by reading the first report the app produced,
+  not by reading the code
+- The instrumented suite had not compiled since the stats card landed, so `connectedDebugAndroidTest`
+  had silently done nothing for two releases - a compile failure in a test source set reports no red
+  test, the task simply refuses to build. Repairing it exposed a second failure behind it: "Missed" is
+  both a history filter and a stats figure, so the chip-height assertion matched two nodes. The filter
+  row now carries a test tag and the assertion is scoped to it. 62 tests pass on the emulator
 
 ## [0.1.6] - 2026-08-26
 
