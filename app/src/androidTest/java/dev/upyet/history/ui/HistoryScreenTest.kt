@@ -7,6 +7,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -155,7 +158,7 @@ class HistoryScreenTest {
         compose.setContent {
             UpYetTheme {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
-                    HistoryContent(state, onFilterChange = {}, onOpen = {}, onThumbnailNeeded = {})
+                    HistoryContent(state, onFilterChange = {}, onOpen = {}, onThumbnailNeeded = {}, onStatsWindowChange = {})
                 }
             }
         }
@@ -185,5 +188,8 @@ class HistoryScreenTest {
         )
     }
 
-    private fun labelHeight(text: String): Dp = compose.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().height
+    /** Scoped to the filter row: "Missed" is also a stats figure, so an unscoped text query finds two nodes. */
+    private fun labelHeight(text: String): Dp =
+        compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(FILTER_ROW_TAG)), useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().height
 }

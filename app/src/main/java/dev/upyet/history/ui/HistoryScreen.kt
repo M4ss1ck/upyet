@@ -65,6 +65,12 @@ internal const val THUMBNAIL_FRAME_TAG = "history_thumbnail_frame"
 internal const val THUMBNAIL_PENDING_TAG = "history_thumbnail_pending"
 internal const val THUMBNAIL_NO_CLIP_TAG = "history_thumbnail_no_clip"
 
+/**
+ * The filter row, tagged so a test can measure a chip label without catching the stats card: "Missed" is
+ * both a filter and a stats figure, and an unscoped text query finds both.
+ */
+internal const val FILTER_ROW_TAG = "history_filter_row"
+
 @Composable
 fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,7 +117,7 @@ internal fun HistoryContent(
             // chip until "Missed" breaks across lines. A scrolling row keeps every label on one line at
             // any width and in any language; the padding sits inside the scroll so it travels with the chips.
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+                Modifier.fillMaxWidth().testTag(FILTER_ROW_TAG).horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChipRow(state.filter, onFilterChange)
