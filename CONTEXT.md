@@ -73,6 +73,26 @@ proves nothing to whoever receives it. Once shared it is beyond the app's reach:
 and deleting the occurrence does not delete it.
 _Avoid_: Export, backup, upload
 
+### Diagnostics
+
+**Log event**:
+One recorded fact about what the alarm machinery did — that an alarm was scheduled, that it fired, that the
+camera failed to start. A time, a name and a few fields, never a sentence. Log events are recorded whether
+or not anyone will ever read them, and they never carry an alarm label or an evidence file name.
+_Avoid_: Log line, trace, breadcrumb
+
+**Diagnostic report**:
+The single shareable artifact a user sends when their alarm did not work: the recent log events plus the
+context needed to read them — app and Android version, phone model, and the state of every reliability
+check. Its reader is a developer, not the user, which is why the app never displays one.
+_Avoid_: Log export, crash report, bug report
+
+**Prominent disclosure**:
+The in-app explanation of what the camera records and when, shown before the camera permission is ever
+requested and requiring a deliberate tap to proceed. A Play requirement with a specific shape, met by the
+permission card on the alarm list — not a general term for any screen that mentions the camera.
+_Avoid_: Consent screen, onboarding, permission rationale
+
 ### Stats
 
 **Stats**:
