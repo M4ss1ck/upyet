@@ -1,0 +1,20 @@
+# GitHub Pages configuration.
+#
+# Pages can only publish from the repository root or from `/docs` — it cannot be pointed at an
+# arbitrary subfolder — so the source is `/docs` and everything that is not a public page is excluded
+# here. Only `docs/site/` is published, and each page in it declares its own `permalink`, which is why
+# the privacy policy lives at /privacy/ rather than /site/privacy.html.
+#
+# Adding an internal document to docs/ does NOT publish it: `include` is empty and Jekyll only renders
+# what is not excluded, but the exclude list below is explicit so that a new file is never published by
+# accident. Add new internal docs to it.
+title: UpYet
+description: An Android alarm clock that records video evidence that you actually woke up.
+exclude:
+  - ARCHITECTURE.md
+  - TESTING.md
+  - VERIFICATION-LOG.md
+  - RELEASING.md
+  - STORE.md
+  - adr/
+  - plans/
