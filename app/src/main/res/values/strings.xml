@@ -183,6 +183,14 @@
         <item quantity="other">%1$d min</item>
     </plurals>
 
+    <!-- Share -->
+    <string name="share_evidence">Share evidence</string>
+    <string name="share_summary_header">UpYet — %1$s</string>
+    <string name="share_summary_alarm">Alarm: %1$s</string>
+    <string name="share_explainer_title">This copy leaves UpYet</string>
+    <string name="share_explainer_message">The video is copied out of the app. Automatic cleanup will never delete that copy, and deleting this wake-up here will not remove it either.</string>
+    <string name="share_explainer_confirm">Share anyway</string>
+
     <!-- Occurrence detail -->
     <string name="occurrence_timeline">What happened</string>
     <string name="timeline_scheduled">Scheduled for</string>

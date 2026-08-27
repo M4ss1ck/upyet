@@ -190,6 +190,14 @@
         <item quantity="other">%1$d min</item>
     </plurals>
 
+    <!-- Share -->
+    <string name="share_evidence">Compartir prueba</string>
+    <string name="share_summary_header">UpYet — %1$s</string>
+    <string name="share_summary_alarm">Alarma: %1$s</string>
+    <string name="share_explainer_title">Esta copia sale de UpYet</string>
+    <string name="share_explainer_message">El vídeo se copia fuera de la aplicación. La limpieza automática nunca eliminará esa copia y eliminar este despertar aquí tampoco la eliminará.</string>
+    <string name="share_explainer_confirm">Compartir de todos modos</string>
+
     <!-- Occurrence detail -->
     <string name="occurrence_timeline">Qué pasó</string>
     <string name="timeline_scheduled">Programada para</string>

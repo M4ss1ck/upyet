@@ -19,6 +19,7 @@ data class AppSettings(
     val evidenceEnabledByDefault: Boolean,
     val maxSnoozes: Int,
     val upcomingAlarmLeadMinutes: Int = 60,
+    val shareExplainerShown: Boolean = false,
 )
 
 @Singleton
@@ -37,6 +38,7 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 evidenceEnabledByDefault = preferences[Keys.evidenceEnabled] ?: true,
                 maxSnoozes = preferences[Keys.maxSnoozes] ?: SnoozeBudget.DEFAULT_MAX,
                 upcomingAlarmLeadMinutes = preferences[Keys.upcomingLeadMinutes] ?: 60,
+                shareExplainerShown = preferences[Keys.shareExplainerShown] ?: false,
             )
         }
 
@@ -64,6 +66,10 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.upcomingLeadMinutes] = value }
     }
 
+    suspend fun setShareExplainerShown() {
+        dataStore.edit { it[Keys.shareExplainerShown] = true }
+    }
+
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val snoozeMinutes = intPreferencesKey("default_snooze_minutes")
@@ -71,5 +77,6 @@ constructor(private val dataStore: DataStore<Preferences>) {
         val evidenceEnabled = booleanPreferencesKey("evidence_enabled_by_default")
         val maxSnoozes = intPreferencesKey("max_snoozes")
         val upcomingLeadMinutes = intPreferencesKey("upcoming_alarm_lead_minutes")
+        val shareExplainerShown = booleanPreferencesKey("share_explainer_shown")
     }
 }

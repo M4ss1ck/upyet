@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Videocam
@@ -92,10 +93,23 @@ private val EvidenceFrameMaxHeight = 380.dp
 @Composable
 fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewModel = hiltViewModel()) {
     val item by viewModel.item.collectAsStateWithLifecycle()
+    val shareExplainerShown by viewModel.shareExplainerShown.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf(false) }
+    var showShareExplainer by remember { mutableStateOf(false) }
+    var pendingShare by remember { mutableStateOf<(() -> Unit)?>(null) }
     val zone = remember { ZoneId.systemDefault() }
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
+    val context = LocalContext.current
+
+    fun requestShare(action: () -> Unit) {
+        if (!shareExplainerShown) {
+            pendingShare = action
+            showShareExplainer = true
+        } else {
+            action()
+        }
+    }
 
     item?.let { detail ->
         Column(Modifier.fillMaxSize()) {
@@ -109,8 +123,18 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
                         text = stringResource(outcomeResource(detail.chain.finalOutcome)),
                         container = container,
                         content = content,
-                        modifier = Modifier.padding(end = 16.dp),
+                        modifier = Modifier.padding(end = 8.dp),
                     )
+                    if (detail.isShareable) {
+                        val wholeSummary = shareSummary(detail, detail.shareableFileNames.size, zone)
+                        IconButton(onClick = {
+                            requestShare {
+                                viewModel.share(wholeSummary) { intent -> context.startActivity(intent) }
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_evidence))
+                        }
+                    }
                 },
             )
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
@@ -140,7 +164,21 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
                     item { WhatHappenedTimeline(link, zone) }
                     val segments = detail.segmentsByOccurrence[link.id].orEmpty()
                     itemsIndexed(segments) { index, segment ->
-                        SegmentCard(index, segment, Modifier.padding(horizontal = 20.dp, vertical = 5.dp))
+                        val canShare = segment.fileName != null &&
+                            (segment.status == EvidenceStatus.RECORDED || segment.status == EvidenceStatus.PARTIAL) &&
+                            detail.shareableFileNames.contains(segment.fileName)
+                        val segmentSummary = shareSummary(detail, 1, zone)
+                        SegmentCard(
+                            index = index,
+                            segment = segment,
+                            canShare = canShare,
+                            onShare = {
+                                requestShare {
+                                    viewModel.shareSegment(segment, segmentSummary) { intent -> context.startActivity(intent) }
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
+                        )
                     }
                 }
                 item { DeleteSection(onDelete = { confirming = true }) }
@@ -161,6 +199,60 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
             dismissButton = { TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
+    if (showShareExplainer) {
+        AlertDialog(
+            onDismissRequest = {
+                showShareExplainer = false
+                pendingShare = null
+            },
+            title = { Text(stringResource(R.string.share_explainer_title)) },
+            text = { Text(stringResource(R.string.share_explainer_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showShareExplainer = false
+                    viewModel.markShareExplainerShown()
+                    val action = pendingShare
+                    pendingShare = null
+                    action?.invoke()
+                }) { Text(stringResource(R.string.share_explainer_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showShareExplainer = false
+                    pendingShare = null
+                }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun shareSummary(detail: OccurrenceDetailViewModel.OccurrenceDetail, clipCount: Int, zone: ZoneId): String {
+    val dateFormatter =
+        rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
+    val header = stringResource(R.string.share_summary_header, dateFormatter.format(detail.chain.root.scheduledFor))
+    val label = detail.label.ifBlank { stringResource(R.string.unnamed_alarm) }
+    val outcomeText = stringResource(outcomeResource(detail.chain.finalOutcome))
+    val line2Base = stringResource(R.string.share_summary_alarm, label) + " · " + outcomeText
+    val line2 = if (detail.chain.containsSnooze) {
+        val countText = pluralStringResource(
+            R.plurals.history_snooze_count,
+            detail.chain.snoozeCount,
+            detail.chain.snoozeCount,
+        )
+        val minutes = (detail.chain.elapsedMillis / 60_000L).toInt()
+        val minutesText = if (minutes > 0) {
+            pluralStringResource(R.plurals.history_chain_minutes, minutes, minutes)
+        } else {
+            null
+        }
+        val snoozeRollup = listOfNotNull(countText, minutesText).joinToString(" · ")
+        "$line2Base · $snoozeRollup"
+    } else {
+        line2Base
+    }
+    val line3 = pluralStringResource(R.plurals.evidence_clip_count, clipCount, clipCount)
+    return listOf(header, line2, line3).joinToString("\n")
 }
 
 @Composable
@@ -393,7 +485,7 @@ private fun TimelineStepRow(step: TimelineStep, timeFormatter: DateTimeFormatter
 }
 
 @Composable
-private fun SegmentCard(index: Int, segment: EvidenceSegment, modifier: Modifier = Modifier) {
+private fun SegmentCard(index: Int, segment: EvidenceSegment, canShare: Boolean, onShare: () -> Unit, modifier: Modifier = Modifier) {
     val (container, content, icon) = segmentTileStyle(segment.status)
     val zone = remember { ZoneId.systemDefault() }
     val timeFormatter =
@@ -405,7 +497,7 @@ private fun SegmentCard(index: Int, segment: EvidenceSegment, modifier: Modifier
                     Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(19.dp))
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     stringResource(R.string.evidence_segment_index, index + 1) + " · " +
                         stringResource(segmentStatusResource(segment.status)),
@@ -425,6 +517,11 @@ private fun SegmentCard(index: Int, segment: EvidenceSegment, modifier: Modifier
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            if (canShare) {
+                IconButton(onClick = onShare) {
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_evidence))
                 }
             }
         }
