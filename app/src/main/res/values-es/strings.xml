@@ -189,6 +189,18 @@
         <item quantity="many">%1$d min</item>
         <item quantity="other">%1$d min</item>
     </plurals>
+    <string name="stats_window_7">7 días</string>
+    <string name="stats_window_30">30 días</string>
+    <string name="stats_window_all">Todo</string>
+    <string name="stats_first_try">A la primera</string>
+    <string name="stats_first_try_value">%1$d de %2$d</string>
+    <string name="stats_snoozes">Posposiciones</string>
+    <string name="stats_missed">Perdidas</string>
+    <plurals name="stats_snoozed_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="many">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
 
     <!-- Share -->
     <string name="share_evidence">Compartir prueba</string>

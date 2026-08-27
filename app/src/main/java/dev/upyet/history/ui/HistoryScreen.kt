@@ -56,6 +56,7 @@ import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.core.ui.theme.extraColors
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.StatsWindow
 import dev.upyet.evidence.domain.chainThumbnailSourceFileName
 import java.time.ZoneId
 
@@ -72,6 +73,7 @@ fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltView
         onFilterChange = viewModel::setFilter,
         onOpen = onOpen,
         onThumbnailNeeded = viewModel::onThumbnailNeeded,
+        onStatsWindowChange = viewModel::setStatsWindow,
     )
 }
 
@@ -83,6 +85,7 @@ internal fun HistoryContent(
     onFilterChange: (HistoryFilter) -> Unit,
     onOpen: (Long) -> Unit,
     onThumbnailNeeded: (String) -> Unit,
+    onStatsWindowChange: (StatsWindow) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
@@ -94,6 +97,14 @@ internal fun HistoryContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        item {
+            StatsCard(
+                stats = state.stats,
+                window = state.statsWindow,
+                onWindowChange = onStatsWindowChange,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
         }
         item {
             // The four labels are wider than a phone, and a plain Row answers that by squeezing the last

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.evidence.domain.StatsWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -20,6 +21,7 @@ data class AppSettings(
     val maxSnoozes: Int,
     val upcomingAlarmLeadMinutes: Int = 60,
     val shareExplainerShown: Boolean = false,
+    val statsWindow: StatsWindow = StatsWindow.SEVEN_DAYS,
 )
 
 @Singleton
@@ -39,6 +41,10 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 maxSnoozes = preferences[Keys.maxSnoozes] ?: SnoozeBudget.DEFAULT_MAX,
                 upcomingAlarmLeadMinutes = preferences[Keys.upcomingLeadMinutes] ?: 60,
                 shareExplainerShown = preferences[Keys.shareExplainerShown] ?: false,
+                statsWindow =
+                preferences[Keys.statsWindow]?.let { value ->
+                    StatsWindow.entries.firstOrNull { it.name == value }
+                } ?: StatsWindow.SEVEN_DAYS,
             )
         }
 
@@ -70,6 +76,10 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.shareExplainerShown] = true }
     }
 
+    suspend fun setStatsWindow(window: StatsWindow) {
+        dataStore.edit { it[Keys.statsWindow] = window.name }
+    }
+
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val snoozeMinutes = intPreferencesKey("default_snooze_minutes")
@@ -78,5 +88,6 @@ constructor(private val dataStore: DataStore<Preferences>) {
         val maxSnoozes = intPreferencesKey("max_snoozes")
         val upcomingLeadMinutes = intPreferencesKey("upcoming_alarm_lead_minutes")
         val shareExplainerShown = booleanPreferencesKey("share_explainer_shown")
+        val statsWindow = stringPreferencesKey("stats_window")
     }
 }

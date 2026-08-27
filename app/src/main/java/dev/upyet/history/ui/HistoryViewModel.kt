@@ -11,13 +11,18 @@ import dev.upyet.evidence.data.EvidenceThumbnailCache
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.StatsWindow
+import dev.upyet.evidence.domain.WakeUpStats
 import dev.upyet.evidence.domain.buildOccurrenceChains
+import dev.upyet.evidence.domain.wakeUpStats
+import dev.upyet.settings.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,6 +34,8 @@ data class HistoryUiState(
     val isEmpty: Boolean = true,
     val isFilterEmpty: Boolean = false,
     val thumbnails: Map<String, ImageBitmap> = emptyMap(),
+    val stats: WakeUpStats = WakeUpStats(0, 0, 0, 0, 0),
+    val statsWindow: StatsWindow = StatsWindow.SEVEN_DAYS,
 )
 
 @HiltViewModel
@@ -37,6 +44,7 @@ class HistoryViewModel @Inject constructor(
     alarmRepository: AlarmRepository,
     private val thumbnailCache: EvidenceThumbnailCache,
     private val timeProvider: TimeProvider,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
     data class HistoryItem(
         val chain: OccurrenceChain,
@@ -71,19 +79,37 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<HistoryUiState> = combine(items, filter, thumbnails) { allItems, selectedFilter, loadedThumbnails ->
+    private val statsWindow = settingsRepository.settings.map { it.statsWindow }
+
+    val state: StateFlow<HistoryUiState> = combine(items, filter, thumbnails, statsWindow) {
+            allItems,
+            selectedFilter,
+            loadedThumbnails,
+            window,
+        ->
         val filtered = filterHistoryItems(allItems, selectedFilter)
+        val now = timeProvider.now()
+        val zone = timeProvider.zone()
+        val today = now.atZone(zone).toLocalDate()
+        val chains = allItems.map { it.chain }
+        val stats = wakeUpStats(chains, window, now)
         HistoryUiState(
             filter = selectedFilter,
-            groups = groupHistoryItemsByDay(filtered, timeProvider.zone(), timeProvider.now().atZone(timeProvider.zone()).toLocalDate()),
+            groups = groupHistoryItemsByDay(filtered, zone, today),
             isEmpty = allItems.isEmpty(),
             isFilterEmpty = allItems.isNotEmpty() && filtered.isEmpty(),
             thumbnails = loadedThumbnails,
+            stats = stats,
+            statsWindow = window,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
 
     fun setFilter(value: HistoryFilter) {
         filter.value = value
+    }
+
+    fun setStatsWindow(window: StatsWindow) {
+        viewModelScope.launch { settingsRepository.setStatsWindow(window) }
     }
 
     /** A row reporting that it is showing [fileName]. Recomposition repeats it, so each clip loads once. */
