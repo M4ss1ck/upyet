@@ -35,6 +35,28 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-08-27 (later) — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.6
+
+Lane: automated   Build: 0.1.6 (106)   Package: `dev.upyet.debug`
+
+Regression-only run: the instrumented suite, after repairing it. AVD started with
+`-camera-front emulated`. Not a physical-device result.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| instrumented-regression | PASS | 62 tests, 0 failures, 0 skipped. First green run of the whole suite since the stats card landed. |
+
+### Findings
+
+- **The suite had been dead, not passing.** `HistoryScreenTest` passed no value for `onStatsWindowChange`,
+  so the entire `androidTest` source set failed to compile and `connectedDebugAndroidTest` did nothing at
+  all. A compile failure in a test source set is silent in a way a failing test is not — nothing reports a
+  red test, the task simply refuses to build.
+- **A second failure was hiding behind the first.** With the compile fixed,
+  `theLastFilterChipKeepsItsLabelOnOneLine` failed: "Missed" is both a history filter and a stats figure,
+  so the assertion matched two nodes. The filter row now carries a test tag and the query is scoped to it.
+  Both fixed in `b930638`.
+
 ## 2026-08-27 — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.6
 
 Lane: adb   Build: 0.1.6 (106)   Package: `dev.upyet.debug`
@@ -49,7 +71,7 @@ the findings.
 | diagnostic-log-persistence | PASS | `/data/user_de/0/.../files/diagnostics/diagnostics.log` is written on the alarm path and survives an app reinstall, confirming device-protected storage. |
 | scheduling-events | PASS | `alarm_scheduled` (with trigger time), `alarm_cancelled` and `alarms_rescheduled` all recorded on a `MY_PACKAGE_REPLACED` reschedule. |
 | camera-disclosure | PASS | With CAMERA revoked, the card appears above the fold on the alarm list, headed "Before the camera turns on", and "Agree & continue" launches the system permission dialog. Granting removes the card. |
-| instrumented-regression | SKIPPED | `compileDebugAndroidTestKotlin` does not compile on `main`; see findings. |
+| instrumented-regression | SKIPPED | `compileDebugAndroidTestKotlin` does not compile on `main`; see findings. Superseded by the 2026-08-27 (later) entry, which ran it. |
 
 ### Findings
 
