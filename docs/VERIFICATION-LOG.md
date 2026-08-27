@@ -35,6 +35,35 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-08-27 — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.6
+
+Lane: adb   Build: 0.1.6 (106)   Package: `dev.upyet.debug`
+
+Emulator run covering the diagnostic report and the camera prominent disclosure only. Not a
+physical-device result. The instrumented suite could not be used as the regression gate this time — see
+the findings.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| diagnostic-report | PASS | Settings → About → Share a diagnostic report opens the share sheet with `upyet-diagnostics-2026-08-27-1547.txt` attached. File read back off the device with `run-as`: header, all eight reliability checks, seven settings and the event log all present and correctly formatted. |
+| diagnostic-log-persistence | PASS | `/data/user_de/0/.../files/diagnostics/diagnostics.log` is written on the alarm path and survives an app reinstall, confirming device-protected storage. |
+| scheduling-events | PASS | `alarm_scheduled` (with trigger time), `alarm_cancelled` and `alarms_rescheduled` all recorded on a `MY_PACKAGE_REPLACED` reschedule. |
+| camera-disclosure | PASS | With CAMERA revoked, the card appears above the fold on the alarm list, headed "Before the camera turns on", and "Agree & continue" launches the system permission dialog. Granting removes the card. |
+| instrumented-regression | SKIPPED | `compileDebugAndroidTestKotlin` does not compile on `main`; see findings. |
+
+### Findings
+
+- **One reschedule was logged as two events.** The first diagnostic report read off the device showed
+  `alarms_rescheduled` twice, one millisecond apart, with two spellings of the same fields — `BootReceiver`
+  was already logging that event name, and `AlarmRescheduler` had just started logging its own. A log that
+  reads as if the work happened twice. Fixed in `3749feb`: the receiver now logs only what triggered it.
+  Reading the code did not find this; reading the report the code produced did.
+- **`app/src/androidTest` does not compile on `main`, and predates this work.**
+  `HistoryScreenTest.kt:158` passes no value for `onStatsWindowChange`, so `connectedDebugAndroidTest`
+  cannot run at all. Verified identical at `a84ee78`, the commit before this work began — it arrived with
+  the stats feature. Not fixed here: it is outside the diagnostic-report scope, and it means the whole
+  instrumented suite has been unavailable as a release gate since then.
+
 ## 2026-08-26 — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.5
 
 Lane: mixed (automated + adb)   Build: 0.1.5 (105)   Package: `dev.upyet.debug`
