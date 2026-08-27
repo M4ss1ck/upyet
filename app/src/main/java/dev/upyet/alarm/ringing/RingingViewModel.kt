@@ -1,6 +1,7 @@
 package dev.upyet.alarm.ringing
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.camera.core.SurfaceRequest
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -40,7 +41,7 @@ data class RingingUiState(
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val evidenceEnabled: Boolean = false,
     val occurrenceId: OccurrenceId? = null,
-    val isSilentAlarmStream: Boolean = false,
+    @StringRes val ringingNoteRes: Int? = null,
     val snoozeAllowed: Boolean = true,
     val isLastSnooze: Boolean = false,
 ) {
@@ -91,7 +92,7 @@ constructor(
                 snoozeMinutes = session?.snoozeMinutes ?: RingingUiState.DEFAULT_SNOOZE_MINUTES,
                 evidenceEnabled = session?.evidenceEnabled ?: false,
                 occurrenceId = session?.occurrenceId,
-                isSilentAlarmStream = session?.isSilentAlarmStream ?: false,
+                ringingNoteRes = session?.let { ringingNoteRes(it.soundEnabled, it.vibrationEnabled, it.isSilentAlarmStream) },
                 snoozeAllowed = session?.budget?.isExhausted?.not() ?: true,
                 isLastSnooze = session?.budget?.isLastSnooze ?: false,
             )

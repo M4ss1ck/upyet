@@ -21,6 +21,8 @@ data class RingingSession(
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,
     val isUserUnlocked: Boolean,
+    val soundEnabled: Boolean = true,
+    val vibrationEnabled: Boolean = false,
     val isSilentAlarmStream: Boolean = false,
     val budget: SnoozeBudget,
     val chainStartedAt: Instant,

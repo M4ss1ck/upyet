@@ -152,6 +152,8 @@
     <string name="dismiss_alarm_action">I’m up — dismiss</string>
     <string name="evidence_privacy_note">Silent recording, only while this screen is up. Never leaves your phone.</string>
     <string name="ringing_volume_silent">Alarm sound is off — vibrating instead</string>
+    <string name="ringing_vibration_only">Vibration only</string>
+    <string name="ringing_silent_alarm">Silent alarm — screen only</string>
 
     <!-- History -->
     <string name="history_subtitle">Proof of every alarm you dismissed</string>

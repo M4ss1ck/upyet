@@ -122,10 +122,10 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
                     )
                     Text(privacyNote, style = MaterialTheme.typography.bodySmall, color = RingingPalette.onBackgroundFaint)
                 }
-                if (state.isSilentAlarmStream) {
+                state.ringingNoteRes?.let { noteRes ->
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        stringResource(R.string.ringing_volume_silent),
+                        stringResource(noteRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = RingingPalette.onBackgroundFaint,
                     )

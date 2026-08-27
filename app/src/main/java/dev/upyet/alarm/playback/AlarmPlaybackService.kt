@@ -156,6 +156,7 @@ class AlarmPlaybackService : Service() {
                     if (millis == 0L) triggeredAt else Instant.ofEpochMilli(millis)
                 }
             }
+            val soundOn = alarm?.soundEnabled ?: true
             val session =
                 RingingSession(
                     alarmId = alarmId,
@@ -167,7 +168,9 @@ class AlarmPlaybackService : Service() {
                     snoozeMinutes = alarm?.snoozeMinutes ?: DEFAULT_SNOOZE_MINUTES,
                     evidenceEnabled = alarm?.evidenceEnabled ?: false,
                     isUserUnlocked = unlocked,
-                    isSilentAlarmStream = silent,
+                    soundEnabled = soundOn,
+                    vibrationEnabled = alarm?.vibrationEnabled ?: false,
+                    isSilentAlarmStream = silent && soundOn,
                     budget = budget,
                     chainStartedAt = chainStartedAt,
                 )
@@ -179,15 +182,19 @@ class AlarmPlaybackService : Service() {
                     notifications.buildRingingNotification(session.label, true),
                 )
             }
-            soundPlayer.start(alarm?.soundUri, ramp = !session.budget.isExhausted)
-            if (silent) {
+            if (soundOn) {
+                soundPlayer.start(alarm?.soundUri, ramp = !session.budget.isExhausted)
+            }
+            if (soundOn && silent) {
                 AlarmLog.event("alarm_volume_zero", "alarmId" to alarmId.value)
                 vibrator.start()
             } else if (alarm?.vibrationEnabled == true) {
                 vibrator.start()
             }
             AlarmLog.event("playback_service_started", "alarmId" to alarmId.value, "unlocked" to unlocked)
-            startVolumeRamp(session.budget.isExhausted)
+            if (soundOn) {
+                startVolumeRamp(session.budget.isExhausted)
+            }
             startRingingTimeout()
         }
     }

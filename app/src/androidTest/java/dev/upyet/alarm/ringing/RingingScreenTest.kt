@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.upyet.R
 import dev.upyet.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
@@ -74,9 +75,15 @@ class RingingScreenTest {
      * instead, or the user is left with an alarm that behaved inexplicably.
      */
     @Test fun aSilentAlarmStreamIsExplainedOnScreen() {
-        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, isSilentAlarmStream = true))
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, ringingNoteRes = R.string.ringing_volume_silent))
 
         compose.onNodeWithText("Alarm sound is off — vibrating instead").assertIsDisplayed()
+    }
+
+    @Test fun aVibrateOnlyAlarmIsExplainedOnScreen() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, ringingNoteRes = R.string.ringing_vibration_only))
+
+        compose.onNodeWithText("Vibration only").assertIsDisplayed()
     }
 
     @Test fun anAudibleAlarmSaysNothingAboutVolume() {
