@@ -1,5 +1,6 @@
 package dev.upyet.core.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -12,6 +13,7 @@ data class AlarmEntity(
     val recurrenceType: String,
     val weekdayMask: Int,
     val soundUri: String?,
+    @ColumnInfo(defaultValue = "1") val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean,
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,

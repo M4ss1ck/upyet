@@ -79,6 +79,7 @@ class UpcomingAlarmSelectorTest {
         recurrence,
         null,
         true,
+        true,
         9,
         false,
         createdAt = Instant.EPOCH,

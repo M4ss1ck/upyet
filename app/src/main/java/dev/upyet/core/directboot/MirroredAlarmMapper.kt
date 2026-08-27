@@ -40,6 +40,7 @@ fun MirroredAlarm.toAlarm(): Alarm = Alarm(
     label = "",
     recurrence = MirroredRecurrence.decode(recurrenceType, weekdayMask),
     soundUri = soundUri,
+    soundEnabled = soundEnabled,
     vibrationEnabled = vibrationEnabled,
     snoozeMinutes = snoozeMinutes,
     evidenceEnabled = false,

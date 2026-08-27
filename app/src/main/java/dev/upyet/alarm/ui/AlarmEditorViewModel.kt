@@ -42,6 +42,7 @@ private const val KEY_VIBRATION = "draft_vibration"
 private const val KEY_SNOOZE_MINUTES = "draft_snooze_minutes"
 private const val KEY_EVIDENCE = "draft_evidence"
 private const val KEY_SOUND_URI = "draft_sound_uri"
+private const val KEY_SOUND_ENABLED = "draft_sound_enabled"
 
 data class AlarmEditorUiState(
     /** Placeholder until [AlarmEditorViewModel] fills it in; never shown, because the picker waits for [isLoaded]. */
@@ -52,6 +53,7 @@ data class AlarmEditorUiState(
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val evidence: Boolean = true,
     val soundUri: String? = null,
+    val soundEnabled: Boolean = true,
     /** False until the stored alarm (or the defaults) have been read; the time picker must wait for it. */
     val isLoaded: Boolean = false,
     @StringRes val errorRes: Int? = null,
@@ -127,6 +129,7 @@ class AlarmEditorViewModel @Inject constructor(
                 alarm.snoozeMinutes,
                 alarm.evidenceEnabled,
                 alarm.soundUri,
+                alarm.soundEnabled,
                 isLoaded = true,
             )
         saveDraft(_state.value)
@@ -147,6 +150,7 @@ class AlarmEditorViewModel @Inject constructor(
         savedState[KEY_SNOOZE_MINUTES] = state.snoozeMinutes
         savedState[KEY_EVIDENCE] = state.evidence
         savedState[KEY_SOUND_URI] = state.soundUri
+        savedState[KEY_SOUND_ENABLED] = state.soundEnabled
     }
 
     private fun hasDraft(): Boolean = savedState.get<Boolean>(KEY_DRAFT) == true
@@ -166,6 +170,7 @@ class AlarmEditorViewModel @Inject constructor(
             snoozeMinutes = savedState.get<Int>(KEY_SNOOZE_MINUTES) ?: DEFAULT_SNOOZE_MINUTES,
             evidence = savedState.get<Boolean>(KEY_EVIDENCE) ?: true,
             soundUri = savedState.get<String>(KEY_SOUND_URI),
+            soundEnabled = savedState.get<Boolean>(KEY_SOUND_ENABLED) ?: true,
         )
     }
 
@@ -180,6 +185,7 @@ class AlarmEditorViewModel @Inject constructor(
             label = current.label,
             recurrence = current.recurrence,
             soundUri = current.soundUri,
+            soundEnabled = current.soundEnabled,
             vibrationEnabled = current.vibration,
             snoozeMinutes = current.snoozeMinutes,
             evidenceEnabled = current.evidence,

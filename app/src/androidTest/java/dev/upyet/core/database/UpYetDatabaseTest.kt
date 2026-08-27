@@ -42,6 +42,7 @@ class UpYetDatabaseTest {
                     0,
                     null,
                     true,
+                    true,
                     9,
                     true,
                     null,

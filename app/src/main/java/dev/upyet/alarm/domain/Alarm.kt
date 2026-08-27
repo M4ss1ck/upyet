@@ -11,6 +11,7 @@ data class Alarm(
     val label: String,
     val recurrence: Recurrence,
     val soundUri: String?,
+    val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean,
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,

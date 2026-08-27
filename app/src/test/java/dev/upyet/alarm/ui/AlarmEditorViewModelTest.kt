@@ -163,6 +163,7 @@ class AlarmEditorViewModelTest {
         Recurrence.OneTime,
         null,
         true,
+        true,
         9,
         true,
         createdAt = Instant.EPOCH,

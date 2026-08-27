@@ -89,6 +89,60 @@ class DirectBootAlarmStoreTest {
         assertThat(store.all().single().kind).isEqualTo(AlarmOccurrenceKind.MAIN)
     }
 
+    @Test fun soundDisabledWithRingtoneSurvivesRoundTrip() {
+        val ringtone = "content://media/internal/audio/media/42"
+        store.put(
+            MirroredAlarm(
+                alarmId = AlarmId(1),
+                kind = AlarmOccurrenceKind.MAIN,
+                triggerAt = Instant.parse("2026-08-24T07:00:00Z"),
+                snoozeMinutes = 9,
+                vibrationEnabled = true,
+                soundUri = ringtone,
+                minuteOfDay = 420,
+                recurrenceType = "DAILY",
+                weekdayMask = 0,
+                snoozesRemaining = SnoozeBudget.DEFAULT_MAX,
+                chainStartedAtMillis = 0L,
+                skipNextOnEpochDay = null,
+                soundEnabled = false,
+            ),
+        )
+
+        val restored = store.all().single()
+
+        assertThat(restored.soundEnabled).isFalse()
+        assertThat(restored.soundUri).isEqualTo(ringtone)
+    }
+
+    @Test fun aRecordWrittenBeforeSoundEnabledStillParsesAsEnabled() {
+        val triggerAt = Instant.parse("2026-08-24T07:30:00Z")
+        // 10 fields is the format before soundEnabled was added (9..10 includes skipNextOnEpochDay, but no soundEnabled).
+        preferences.edit().putString(
+            "alarm:7:MAIN",
+            listOf(
+                triggerAt.toEpochMilli(),
+                9,
+                true,
+                "content://ring",
+                450,
+                "WEEKLY",
+                0b0011111,
+                SnoozeBudget.UNSET,
+                0L,
+                "",
+            ).joinToString("|"),
+        ).commit()
+
+        val restored = store.all().single()
+
+        assertThat(restored.alarmId).isEqualTo(AlarmId(7))
+        assertThat(restored.triggerAt).isEqualTo(triggerAt)
+        assertThat(restored.soundUri).isEqualTo("content://ring")
+        assertThat(restored.soundEnabled).isTrue()
+        assertThat(restored.skipNextOnEpochDay).isNull()
+    }
+
     private fun record(
         kind: AlarmOccurrenceKind = AlarmOccurrenceKind.MAIN,
         snoozesRemaining: Int = SnoozeBudget.DEFAULT_MAX,

@@ -233,7 +233,7 @@ class AlarmReschedulerTest {
         AlarmId(
             id,
         ),
-        LocalTime.of(11, 0), enabled, "label", Recurrence.OneTime, null, true, 5, false, createdAt = now, updatedAt = now,
+        LocalTime.of(11, 0), enabled, "label", Recurrence.OneTime, null, true, true, 5, false, createdAt = now, updatedAt = now,
     )
 
     private class FakeRepository(alarms: List<Alarm>) : AlarmRepository {

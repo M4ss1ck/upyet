@@ -31,6 +31,7 @@ class AlarmMapperTest {
                     recurrence,
                     null,
                     true,
+                    true,
                     9,
                     false,
                     createdAt = Instant.ofEpochMilli(100),
@@ -51,6 +52,7 @@ class AlarmMapperTest {
             "Wake",
             Recurrence.Daily,
             null,
+            true,
             true,
             9,
             false,
@@ -73,6 +75,7 @@ class AlarmMapperTest {
             Recurrence.Daily,
             null,
             true,
+            true,
             9,
             false,
             null,
@@ -82,5 +85,32 @@ class AlarmMapperTest {
 
         assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
         assertThat(alarm.toEntity().skipNextOnEpochDay).isNull()
+    }
+
+    @Test
+    fun roundTripsSoundDisabledAndPreservesRingtone() {
+        val alarm = Alarm(
+            AlarmId(42),
+            LocalTime.of(7, 30),
+            true,
+            "Silent",
+            Recurrence.Daily,
+            "content://media/internal/audio/media/42",
+            false,
+            true,
+            9,
+            false,
+            LocalDate.parse("2027-01-15"),
+            Instant.ofEpochMilli(100),
+            Instant.ofEpochMilli(200),
+        )
+
+        val roundTripped = alarm.toEntity().toDomain()
+
+        assertThat(roundTripped).isEqualTo(alarm)
+        assertThat(roundTripped.soundEnabled).isFalse()
+        assertThat(roundTripped.soundUri).isEqualTo("content://media/internal/audio/media/42")
+        assertThat(alarm.toEntity().soundEnabled).isFalse()
+        assertThat(alarm.toEntity().soundUri).isEqualTo("content://media/internal/audio/media/42")
     }
 }
