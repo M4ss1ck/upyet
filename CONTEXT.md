@@ -19,6 +19,12 @@ One firing of an alarm at one wall-clock instant, and the thing history records.
 occurrence chained to the one it came from.
 _Avoid_: Instance, trigger, ring
 
+**Wake-up**:
+One occurrence plus every snooze occurrence chained to it — the whole story of one alarm going off, from
+the first ring to the dismissal, timeout or interruption that ended it. Someone who snoozed four times had
+one wake-up, not five. History rows, sharing and stats all count wake-ups, never individual occurrences.
+_Avoid_: Session, event, group
+
 **Ringing**:
 The state between an occurrence firing and the user dismissing it: wake lock held, notification posted,
 full-screen intent launched, and whatever sound and vibration the alarm is configured for.
@@ -57,3 +63,30 @@ Reliability checks describe the device, never an individual alarm.
 **Skip next**:
 A one-shot suppression of a recurring alarm's next occurrence, after which the alarm resumes on its own.
 Distinct from disabling an alarm, which is indefinite and requires the user to remember to undo it.
+
+### Sharing
+
+**Shared copy**:
+A copy of a wake-up's evidence that the user has deliberately sent out of the app through the Android share
+sheet. It leaves with a readable name and a written summary of the wake-up it came from, because a bare clip
+proves nothing to whoever receives it. Once shared it is beyond the app's reach: retention never expires it,
+and deleting the occurrence does not delete it.
+_Avoid_: Export, backup, upload
+
+### Stats
+
+**Stats**:
+The rolled-up answer to "how am I doing" over a chosen window: first-try wake-ups as a fraction of the
+finished ones, the snoozes and minutes lost to them, and the wake-ups missed entirely. Stats describe
+wake-ups, never individual occurrences, and they never follow the history filter — the filter answers
+"show me these", the stats answer a question about all of them.
+
+**First-try wake-up**:
+A wake-up the user dismissed on the first ring, having snoozed none. The one outcome the stats treat as
+good.
+_Avoid_: Clean wake, success, streak
+
+**Stats window**:
+The stretch of time the stats describe — the last 7 days, the last 30 days, or all of it. It bounds the
+stats alone; the history list below is unaffected by it. All-time is answerable because occurrences outlive
+their evidence: retention expires clips, never the record that the alarm rang.
