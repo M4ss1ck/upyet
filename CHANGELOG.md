@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-07
+
 ### Added
 - Turning a recurring alarm off with its switch now asks first: skip only the next occurrence (named by
   date), turn it off, or cancel. Turning off is indefinite and easy to forget to undo, and most of the time
