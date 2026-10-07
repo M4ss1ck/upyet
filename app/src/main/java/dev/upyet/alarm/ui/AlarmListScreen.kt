@@ -69,6 +69,7 @@ import dev.upyet.core.ui.components.SectionLabel
 import dev.upyet.core.ui.components.StatusBadge
 import dev.upyet.core.ui.components.UpYetCard
 import dev.upyet.core.ui.currentLocale
+import dev.upyet.core.ui.rememberLocalized
 import dev.upyet.core.ui.theme.Ink
 import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.core.ui.theme.RingingPalette
@@ -96,8 +97,16 @@ fun AlarmListScreen(
         { alarm, enabled -> viewModel.setEnabled(alarm, enabled) },
         { viewModel.delete(it) },
         onSkipNext,
+        TurnOffPromptActions(
+            onSkip = viewModel::skipInsteadOfTurnOff,
+            onTurnOff = viewModel::confirmTurnOff,
+            onDismiss = viewModel::dismissTurnOffPrompt,
+        ),
     )
 }
+
+/** The three answers to [TurnOffPrompt], bundled so the content composable stays readable. */
+data class TurnOffPromptActions(val onSkip: () -> Unit = {}, val onTurnOff: () -> Unit = {}, val onDismiss: () -> Unit = {})
 
 @Composable
 fun AlarmListContent(
@@ -107,7 +116,9 @@ fun AlarmListContent(
     onEnabled: (Alarm, Boolean) -> Unit = { _, _ -> },
     onDelete: (AlarmId) -> Unit = {},
     onSkipNext: (Alarm) -> Unit = {},
+    turnOffActions: TurnOffPromptActions = TurnOffPromptActions(),
 ) {
+    state.turnOffPrompt?.let { prompt -> TurnOffDialog(prompt, turnOffActions) }
     val isEmpty = state.alarms.isEmpty()
     Scaffold(
         floatingActionButton = {
@@ -147,6 +158,7 @@ fun AlarmListContent(
                 items(state.alarms, key = { it.id.value }) { alarm ->
                     AlarmRow(
                         alarm,
+                        state.activeSkips[alarm.id],
                         { onEnabled(alarm, it) },
                         { onEdit(alarm.id.value) },
                         { onDelete(alarm.id) },
@@ -284,7 +296,14 @@ private fun SchedulingBanner(@StringRes message: Int, showReliability: Boolean, 
 }
 
 @Composable
-private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onSkipNext: () -> Unit = {}) {
+private fun AlarmRow(
+    alarm: Alarm,
+    activeSkipDate: LocalDate?,
+    onEnabled: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onSkipNext: () -> Unit = {},
+) {
     var showDelete by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val onSurface = if (alarm.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -323,7 +342,7 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     if (alarm.recurrence != Recurrence.OneTime && alarm.enabled) {
-                        val isSkipActive = activeSkipDate(alarm) != null
+                        val isSkipActive = activeSkipDate != null
                         DropdownMenuItem(
                             text = {
                                 Text(
@@ -378,10 +397,9 @@ private fun AlarmRow(alarm: Alarm, onEnabled: (Boolean) -> Unit, onEdit: () -> U
                 )
             }
         }
-        activeSkipDate(alarm)?.let { skipDate ->
-            val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(currentLocale()).format(skipDate)
+        activeSkipDate?.let { skipDate ->
             StatusBadge(
-                text = stringResource(R.string.alarm_skipping_next, formatted),
+                text = stringResource(R.string.alarm_skipping_next, skipDateText(skipDate)),
                 container = MaterialTheme.colorScheme.secondaryContainer,
                 content = MaterialTheme.colorScheme.onSecondaryContainer,
                 icon = Icons.Default.SkipNext,
@@ -459,8 +477,36 @@ private fun DayPill(day: DayOfWeek, lit: Boolean, size: androidx.compose.ui.unit
     }
 }
 
-/** The skip a row should surface: the stored date, unless it is already in the past and so inert. */
-private fun activeSkipDate(alarm: Alarm): LocalDate? = alarm.skipNextOn?.takeIf { !it.isBefore(LocalDate.now(ZoneId.systemDefault())) }
+/**
+ * Asks whether turning a recurring alarm off meant "skip the next one". The buttons stack because the skip
+ * label carries a date and would not fit beside the others on a narrow screen; skip comes first as the
+ * reversible answer. Dismissing changes nothing, so the switch simply stays on.
+ */
+@Composable
+private fun TurnOffDialog(prompt: TurnOffPrompt, actions: TurnOffPromptActions) {
+    val timeFormatter = rememberLocalized { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(it) }
+    val skipDate = skipDateText(prompt.skipDate)
+    AlertDialog(
+        onDismissRequest = actions.onDismiss,
+        title = { Text(stringResource(R.string.turn_off_prompt_title, timeFormatter.format(prompt.time))) },
+        text = { Text(stringResource(R.string.turn_off_prompt_message)) },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(onClick = actions.onSkip) {
+                    Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text(stringResource(R.string.turn_off_prompt_skip, skipDate))
+                }
+                TextButton(onClick = actions.onTurnOff) { Text(stringResource(R.string.turn_off_prompt_confirm)) }
+                TextButton(onClick = actions.onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        },
+    )
+}
+
+/** One format for a skipped date wherever it appears, so the prompt and the row badge name the same day the same way. */
+@Composable
+private fun skipDateText(date: LocalDate): String =
+    rememberLocalized { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(it) }.format(date)
 
 /** Pulls the overflow glyph back towards the switch; its touch target keeps its full width. */
 private val OVERFLOW_NUDGE = 6.dp

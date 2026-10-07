@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
@@ -18,7 +19,6 @@ import org.junit.runner.RunWith
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -92,7 +92,7 @@ class AlarmListScreenTest {
 
     @Test fun skippingBadgeRendersWhenSkipIsActive() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val skipDate = LocalDate.now(ZoneId.systemDefault())
+        val skipDate = LocalDate.of(2026, 8, 24)
         val alarm = Alarm(
             AlarmId(1),
             LocalTime.of(7, 30),
@@ -108,12 +108,54 @@ class AlarmListScreenTest {
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
         )
-        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        val state = AlarmListUiState(listOf(alarm), activeSkips = mapOf(alarm.id to skipDate))
+        compose.setContent { UpYetTheme { AlarmListContent(state, {}, {}) } }
         val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
             .withLocale(context.resources.configuration.locales[0])
             .format(skipDate)
         val expected = context.getString(R.string.alarm_skipping_next, formatted)
         compose.onNodeWithText(expected).assertIsDisplayed()
+    }
+
+    /** The row trusts the ViewModel's view of the clock: a stored but lapsed skip shows no badge. */
+    @Test fun lapsedSkipShowsNoBadgeAndOffersSkipAgain() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val skipDate = LocalDate.of(2026, 8, 24)
+        val alarm = recurring().copy(skipNextOn = skipDate)
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithText(context.getString(R.string.alarm_skipping_next, mediumDate(skipDate))).assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.more_options)).performClick()
+        compose.onNodeWithText(context.getString(R.string.skip_next_alarm)).assertIsDisplayed()
+    }
+
+    @Test fun turnOffPromptOffersSkipTurnOffAndCancel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val alarm = recurring()
+        val skipDate = LocalDate.of(2026, 8, 25)
+        val state = AlarmListUiState(listOf(alarm), turnOffPrompt = TurnOffPrompt(alarm.id, alarm.time, skipDate))
+        compose.setContent { UpYetTheme { AlarmListContent(state, {}, {}) } }
+        compose.onNodeWithText(context.getString(R.string.turn_off_prompt_title, shortTime(alarm.time))).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.turn_off_prompt_skip, mediumDate(skipDate))).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.turn_off_prompt_confirm)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.cancel)).assertIsDisplayed()
+    }
+
+    @Test fun turnOffPromptRoutesEachAnswer() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val alarm = recurring()
+        val skipDate = LocalDate.of(2026, 8, 25)
+        val answers = mutableListOf<String>()
+        val actions = TurnOffPromptActions(
+            onSkip = { answers += "skip" },
+            onTurnOff = { answers += "off" },
+            onDismiss = { answers += "cancel" },
+        )
+        val state = AlarmListUiState(listOf(alarm), turnOffPrompt = TurnOffPrompt(alarm.id, alarm.time, skipDate))
+        compose.setContent { UpYetTheme { AlarmListContent(state, {}, {}, turnOffActions = actions) } }
+        compose.onNodeWithText(context.getString(R.string.turn_off_prompt_skip, mediumDate(skipDate))).performClick()
+        compose.onNodeWithText(context.getString(R.string.turn_off_prompt_confirm)).performClick()
+        compose.onNodeWithText(context.getString(R.string.cancel)).performClick()
+        assertThat(answers).containsExactly("skip", "off", "cancel").inOrder()
     }
 
     @Test fun vibrateOnlyAlarmShowsVibrationOnlyIndicator() {
@@ -176,6 +218,25 @@ class AlarmListScreenTest {
         compose.onNodeWithContentDescription(context.getString(R.string.alarm_vibrate_only)).assertDoesNotExist()
         compose.onNodeWithContentDescription(context.getString(R.string.alarm_silent)).assertDoesNotExist()
     }
+
+    private fun recurring() = Alarm(
+        AlarmId(1),
+        LocalTime.of(7, 30),
+        true,
+        "Wake up",
+        Recurrence.Daily,
+        null,
+        true,
+        true,
+        9,
+        false,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
+
+    private fun mediumDate(date: LocalDate): String = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        .withLocale(InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0])
+        .format(date)
 
     /**
      * The expected time is formatted, never written out. A literal "7:30 AM" passes only on the exact

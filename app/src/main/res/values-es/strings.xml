@@ -146,6 +146,10 @@
     <string name="skip_next_alarm">Saltar la siguiente</string>
     <string name="cancel_skip_next_alarm">Cancelar el salto</string>
     <string name="alarm_skipping_next">Se salta el %1$s</string>
+    <string name="turn_off_prompt_title">¿Apagar la alarma de las %1$s?</string>
+    <string name="turn_off_prompt_message">Saltar mantiene las alarmas siguientes. Apagar la detiene hasta que vuelvas a encenderla.</string>
+    <string name="turn_off_prompt_skip">Saltar solo el %1$s</string>
+    <string name="turn_off_prompt_confirm">Apagar</string>
 
     <!-- Alarm editor -->
     <string name="repeat_once">Una vez</string>

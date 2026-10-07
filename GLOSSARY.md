@@ -34,6 +34,19 @@ The silent front-camera video recorded while the ringing screen is visible, plus
 is local-only and never blocks dismissal.
 _Avoid_: Recording, footage, proof
 
+**Skip next**:
+A one-shot suppression of a recurring alarm's next occurrence, after which the alarm resumes on its own.
+A skip lapses the moment the occurrence it suppressed would have rung, not at the end of that day: from
+then on the alarm is no longer skipped, and a new skip targets the occurrence after. One-time alarms
+cannot be skipped; for them skipping and turning off are the same act.
+_Avoid_: Snooze (a snooze delays an occurrence that already rang), pause
+
+**Turn off**:
+Making an alarm stop producing occurrences until the user turns it back on. Indefinite, unlike a skip,
+which is why turning a recurring alarm off asks whether the user meant to skip only the next occurrence.
+Turning off discards any skip and any pending snooze: an alarm turned back on rings at its next occurrence.
+_Avoid_: Disable (fine in code, not in the UI), delete
+
 ### Silence
 
 Three distinct concepts share the word "silent" in everyday speech. They are kept apart here because two
@@ -59,10 +72,6 @@ _Avoid_: Silent (reserved for the alarm property above), muted alarm
 A device-level condition that could stop an alarm from working — exact-alarm access, notification
 permission, a muted alarm stream — surfaced with a deep link to the system settings screen that fixes it.
 Reliability checks describe the device, never an individual alarm.
-
-**Skip next**:
-A one-shot suppression of a recurring alarm's next occurrence, after which the alarm resumes on its own.
-Distinct from disabling an alarm, which is indefinite and requires the user to remember to undo it.
 
 ### Sharing
 

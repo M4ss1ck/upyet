@@ -142,6 +142,10 @@
     <string name="skip_next_alarm">Skip next</string>
     <string name="cancel_skip_next_alarm">Cancel skip</string>
     <string name="alarm_skipping_next">Skipping %1$s</string>
+    <string name="turn_off_prompt_title">Turn off %1$s?</string>
+    <string name="turn_off_prompt_message">Skipping keeps every later alarm. Turning off stops it until you turn it back on.</string>
+    <string name="turn_off_prompt_skip">Skip %1$s only</string>
+    <string name="turn_off_prompt_confirm">Turn off</string>
 
     <!-- Alarm editor -->
     <string name="repeat_once">Once</string>

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Turning a recurring alarm off with its switch now asks first: skip only the next occurrence (named by
+  date), turn it off, or cancel. Turning off is indefinite and easy to forget to undo, and most of the time
+  the user only wanted tomorrow quiet. The switch stays on until an answer is chosen; dismissing changes
+  nothing. One-time alarms and alarms already skipping turn off without asking, since for them the two
+  answers are the same.
+
+### Changed
+- Turning an alarm off now discards its skip, and choosing "skip" from the prompt cancels a pending snooze.
+  An alarm turned back on rings at its next occurrence rather than resurrecting a stale skip.
+- `CONTEXT.md` is now `GLOSSARY.md`, with **Skip next** and **Turn off** defined in it.
+
+### Fixed
+- A skipped alarm kept its "Skipping" badge after the skipped time passed, until midnight. Worse, during
+  that window "Skip next" silently did nothing - the stale skip counted as active - so the following day's
+  alarm rang anyway. A skip now lapses at the instant the suppressed occurrence would have rung, decided in
+  one place (`SkipNext`) for the list, the skip action and the upcoming-alarm notification.
+
 ## [0.1.7] - 2026-08-27
 
 ### Added
