@@ -2,10 +2,8 @@ package dev.upyet.alarm.scheduling
 
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmRepository
-import dev.upyet.alarm.domain.NextOccurrenceCalculator
-import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SkipNext
 import dev.upyet.core.time.TimeProvider
-import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,23 +14,19 @@ class SkipNextOccurrence @Inject constructor(
     private val rescheduler: AlarmRescheduler,
 ) {
     suspend fun skip(alarm: Alarm): SchedulingResult? {
-        if (!alarm.enabled || alarm.recurrence == Recurrence.OneTime) return null
-        val today = timeProvider.now().atZone(timeProvider.zone()).toLocalDate()
-        if (alarm.skipNextOn != null && !alarm.skipNextOn.isBefore(today)) return SchedulingResult.Scheduled
-        val next = NextOccurrenceCalculator.next(alarm.time, alarm.recurrence, timeProvider.zone(), timeProvider.now())
-            ?: return null
-        val skipOn: LocalDate = next.atZone(timeProvider.zone()).toLocalDate()
+        if (!SkipNext.canSkip(alarm)) return null
+        val zone = timeProvider.zone()
+        val now = timeProvider.now()
+        if (SkipNext.activeDate(alarm, zone, now) != null) return SchedulingResult.Scheduled
+        val skipOn = SkipNext.target(alarm, zone, now) ?: return null
         repository.setSkipNextOn(alarm.id, skipOn)
-        val updated = alarm.copy(skipNextOn = skipOn)
-        return rescheduler.scheduleNext(updated)
+        return rescheduler.scheduleNext(alarm.copy(skipNextOn = skipOn))
     }
 
     suspend fun unskip(alarm: Alarm): SchedulingResult? {
-        if (!alarm.enabled || alarm.recurrence == Recurrence.OneTime) return null
-        val today = timeProvider.now().atZone(timeProvider.zone()).toLocalDate()
-        if (alarm.skipNextOn == null || alarm.skipNextOn.isBefore(today)) return SchedulingResult.Scheduled
+        if (!SkipNext.canSkip(alarm)) return null
+        if (SkipNext.activeDate(alarm, timeProvider.zone(), timeProvider.now()) == null) return SchedulingResult.Scheduled
         repository.setSkipNextOn(alarm.id, null)
-        val updated = alarm.copy(skipNextOn = null)
-        return rescheduler.scheduleNext(updated)
+        return rescheduler.scheduleNext(alarm.copy(skipNextOn = null))
     }
 }

@@ -62,6 +62,33 @@ class SkipNextOccurrenceTest {
         assertThat(repository.stored.single().skipNextOn).isNull()
     }
 
+    /**
+     * Regression: a skip for today whose 07:00 occurrence already passed used to count as active until
+     * midnight, so skipping again silently did nothing and tomorrow's alarm rang anyway.
+     */
+    @Test
+    fun skipAfterTheSkippedOccurrencePassedTargetsTheFollowingDay() = runTest {
+        val alarm = dailyAlarm(enabled = true).copy(time = LocalTime.of(7, 0), skipNextOn = LocalDate.of(2026, 8, 24))
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val skip = skipNextOccurrence(repository)
+
+        val result = skip.skip(alarm)
+
+        assertThat(result).isEqualTo(SchedulingResult.Scheduled)
+        assertThat(repository.stored.single().skipNextOn).isEqualTo(LocalDate.of(2026, 8, 25))
+    }
+
+    @Test
+    fun unskipOfALapsedSkipChangesNothing() = runTest {
+        val lapsed = LocalDate.of(2026, 8, 24)
+        val alarm = dailyAlarm(enabled = true).copy(time = LocalTime.of(7, 0), skipNextOn = lapsed)
+        val repository = FakeAlarmRepository(listOf(alarm))
+        val skip = skipNextOccurrence(repository)
+
+        assertThat(skip.unskip(alarm)).isEqualTo(SchedulingResult.Scheduled)
+        assertThat(repository.stored.single().skipNextOn).isEqualTo(lapsed)
+    }
+
     @Test
     fun oneTimeAlarmReturnsNull() = runTest {
         val alarm = oneTimeAlarm(enabled = true)
