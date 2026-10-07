@@ -90,7 +90,13 @@ android {
 
     kotlin {
         compilerOptions {
-            allWarningsAsErrors = false
+            // Zero-warning policy: a compiler warning fails the build, so new ones are fixed when they appear
+            // instead of piling up until a release. Fix the cause; do not add blanket suppressions.
+            allWarningsAsErrors = true
+            // Opts into the annotation-target default Kotlin is moving to (KT-73255): an annotation on a
+            // constructor property, such as a Hilt qualifier or @StringRes, applies to the parameter and the
+            // backing field. Without it every such site warns that the default is about to change.
+            freeCompilerArgs.add("-Xannotation-default-target=param-property")
         }
     }
 
@@ -99,9 +105,12 @@ android {
     }
 
     lint {
-        warningsAsErrors = false
+        // Zero-warning policy, same as the compiler. lint.xml lists the few checks that are informational
+        // instead, because their result depends on today's date or on Maven, not on this code.
+        warningsAsErrors = true
         abortOnError = true
         checkDependencies = true
+        lintConfig = file("lint.xml")
     }
 
     packaging {
@@ -125,7 +134,7 @@ androidComponents {
 
 /*
  * Room's MigrationTestHelper parses the exported schema JSON with kotlinx-serialization, and
- * room-migration 2.8.4 is compiled against serialization 1.8.1. androidx.savedstate 1.4.0, pulled in
+ * room-migration 2.8.5 is compiled against serialization 1.8.1. androidx.savedstate 1.4.0, pulled in
  * through lifecycle and navigation, requires serialization 1.7.3 *strictly*, and that strict constraint
  * silently downgraded json to 1.7.3 - so Room's generated serializers met a GeneratedSerializer interface
  * that no longer matched and every MigrationTestHelper call died with AbstractMethodError.
@@ -189,7 +198,7 @@ dependencies {
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

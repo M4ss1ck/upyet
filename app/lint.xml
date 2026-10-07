@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Lint runs with warningsAsErrors, so every warning fails the build. The checks below are kept visible as
+  informational instead of disabled: they report on what was published upstream since the last edit, not
+  on this code, so as gates they would turn a green commit red overnight with no change in the repository.
+
+  Do not add anything to this file to make a build green. Fix the cause of the warning instead.
+-->
+<lint>
+  <!--
+    "A newer version of X is available." Dependencies are pinned on purpose (AGENTS.md section 16): patch
+    releases are taken when available, minor and major releases only for a needed feature or a security fix.
+  -->
+  <issue id="NewerVersionAvailable" severity="informational" />
+  <issue id="GradleDependency" severity="informational" />
+  <issue id="AndroidGradlePluginVersion" severity="informational" />
+  <!-- targetSdk 36 is a product requirement (AGENTS.md section 3); raising it is its own tested change. -->
+  <issue id="OldTargetApi" severity="informational" />
+</lint>

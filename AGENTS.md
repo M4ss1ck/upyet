@@ -71,11 +71,11 @@ The camera runs only during our own visible ringing experience.
 
 | Concern | Choice |
 |---|---|
-| Build | AGP 9.3.2 (built-in Kotlin), Gradle 9.7.1, Kotlin 2.3.21, KSP 2.3.11 |
+| Build | AGP 9.3.3 (built-in Kotlin), Gradle 9.7.1, Kotlin 2.3.21, KSP 2.3.12 |
 | UI | Jetpack Compose (BOM 2026.08.00), Material 3, Navigation Compose |
 | DI | Hilt 2.60.1 |
-| Persistence | Room 2.8.4 (metadata), DataStore Preferences 1.2.1 (settings) |
-| Camera | CameraX 1.6.1 (`camera-video`, `camera-compose`) |
+| Persistence | Room 2.8.5 (metadata), DataStore Preferences 1.2.1 (settings) |
+| Camera | CameraX 1.6.2 (`camera-video`, `camera-compose`) |
 | Playback of evidence | Media3 1.10.1 (`media3-exoplayer`, `media3-ui`, `media3-ui-compose`) |
 | Time | `java.time` only |
 | Format/lint | Spotless + ktlint 1.8.0 (Kotlin official style = ktlint `intellij_idea`, 140 cols), Android Lint |
@@ -83,8 +83,8 @@ The camera runs only during our own visible ringing experience.
 Notes on non-obvious version constraints:
 
 * AGP 9 provides **built-in Kotlin**; the `org.jetbrains.kotlin.android` plugin must not
-  be applied. AGP 9.3.2 bundles KGP 2.2.10, but KSP 2.3.x requires KGP 2.3.x, so the root
-  `buildscript` classpath pins KGP 2.3.21 + KSP 2.3.11. Older KSP releases register
+  be applied. AGP 9.3.3 bundles KGP 2.2.10, but KSP 2.3.x requires KGP 2.3.x, so the root
+  `buildscript` classpath pins KGP 2.3.21 + KSP 2.3.12. Older KSP releases register
   generated sources through `kotlin.sourceSets`, which built-in Kotlin rejects.
 * No alpha/beta/RC dependency is used anywhere. If one ever becomes unavoidable, document
   the capability that has no stable implementation here.
@@ -278,11 +278,12 @@ to schedule alarms any other way.
 
 ```bash
 ./gradlew spotlessApply     # format
-./gradlew spotlessCheck
-./gradlew test
-./gradlew lint
-./gradlew assembleDebug
+./gradlew spotlessCheck compileDebugAndroidTestKotlin test lint assembleDebug
 ```
+
+The second line is exactly what CI runs (`.github/workflows/ci.yml`) on every pull request and push to
+`main`. `compileDebugAndroidTestKotlin` is there because nothing else compiles the instrumented tests
+without a device.
 
 Instrumented tests when a device/emulator is available:
 `./gradlew connectedDebugAndroidTest`.
@@ -292,16 +293,21 @@ Release builds go through `./scripts/build-android-release.sh`. Signing material
 `UPYET_ANDROID_KEY_ALIAS` and `UPYET_ANDROID_KEYSTORE_PASSWORD` environment variables. Never commit a
 keystore, a password, or a signing config that embeds either.
 
-### Known remaining lint warnings (deliberate)
+### Zero-warning policy
 
-`./gradlew lint` reports zero errors. Eighteen warnings remain and each is intentional:
-`NewerVersionAvailable` / `GradleDependency` (the version catalog is pinned on purpose — four of these
-are the `kotlinx-serialization` entries that exist only to pin the androidTest classpath to the version
-Room's `MigrationTestHelper` needs, and they move when Room does, not when serialization does),
-`OldTargetApi` (targetSdk 36 is the product requirement), `UnusedAttribute` for
-`showWhenLocked`/`turnScreenOn` (the equivalent APIs are called at runtime for API 26), and
-`ObsoleteSdkInt` for the `mipmap-anydpi-v26` adaptive icon. Do not add a lint baseline and do not silence
-these; if a new warning appears, fix its cause.
+The build has no warnings, and the build config keeps it that way: Kotlin compiles with
+`allWarningsAsErrors` and lint runs with `warningsAsErrors`, so a new warning fails the build locally and
+in CI. Fix the cause. Do not add a lint baseline, a blanket `@Suppress`, a file- or module-level opt-in,
+or an entry in `app/lint.xml` to get green. A narrow `@Suppress("DEPRECATION")` is acceptable only on a
+call behind an API-level check whose replacement does not exist on the older releases, with a comment
+saying so (`AlarmVibrator`, `RingingActivity`).
+
+`app/lint.xml` makes four checks informational: `NewerVersionAvailable`, `GradleDependency` and
+`AndroidGradlePluginVersion` (they report what was published upstream, so as gates they would break a
+green commit overnight) and `OldTargetApi` (targetSdk 36 is the product requirement). They still appear in
+every lint report. Dependency policy: take patch releases when they appear; take minor and major releases
+only for a needed feature or a security fix. The `kotlinx-serialization` entries move when Room's
+`MigrationTestHelper` needs them to, not when serialization releases.
 
 ### Versioning
 

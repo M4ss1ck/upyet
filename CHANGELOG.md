@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turning an alarm off now discards its skip, and choosing "skip" from the prompt cancels a pending snooze.
   An alarm turned back on rings at its next occurrence rather than resurrecting a stale skip.
 - `CONTEXT.md` is now `GLOSSARY.md`, with **Skip next** and **Turn off** defined in it.
+- Alarm vibration on Android 13+ is requested with `VibrationAttributes` (`USAGE_ALARM`) instead of the
+  deprecated `AudioAttributes` overload. Same vibration: the platform converted to exactly this before.
+- The build has zero compiler and lint warnings and now fails on any new one. A CI workflow runs
+  `spotlessCheck compileDebugAndroidTestKotlin test lint assembleDebug` on every pull request.
+- Dependency patch releases: AGP 9.3.3, KSP 2.3.12, Activity 1.12.4, Room 2.8.5, CameraX 1.6.2, Spotless
+  8.10.3, Truth 1.4.5, Robolectric 4.16.1. `hiltViewModel` now comes from `hilt-lifecycle-viewmodel-compose`,
+  replacing `hilt-navigation-compose`, whose copy is deprecated.
 
 ### Fixed
 - A skipped alarm kept its "Skipping" badge after the skipped time passed, until midnight. Worse, during

@@ -23,8 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Vibration
@@ -66,7 +66,8 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.content.IntentCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.R
 import dev.upyet.alarm.domain.Recurrence
@@ -177,7 +178,9 @@ private fun AlarmEditorForm(
     val ringtoneLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
-                val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                val uri = result.data?.let {
+                    IntentCompat.getParcelableExtra(it, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+                }
                 onUpdate { it.copy(soundUri = uri?.toString()) }
             }
         }
@@ -208,7 +211,7 @@ private fun AlarmEditorForm(
             onValueChange = { value -> onUpdate { it.copy(label = value) } },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.alarm_label)) },
-            leadingIcon = { Icon(Icons.Filled.Label, contentDescription = null) },
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
         )
