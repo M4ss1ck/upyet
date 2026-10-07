@@ -19,6 +19,7 @@ import dev.upyet.evidence.domain.buildOccurrenceChains
 import dev.upyet.evidence.domain.shareableClips
 import dev.upyet.settings.data.SettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -56,6 +57,7 @@ class OccurrenceDetailViewModel @Inject constructor(
 
     private val id = OccurrenceId(savedStateHandle.get<Long>("id") ?: returnInvalidId())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val baseItem: StateFlow<OccurrenceDetail?> = combine(
         repository.observeOccurrences(),
         alarmRepository.observeAlarms(),

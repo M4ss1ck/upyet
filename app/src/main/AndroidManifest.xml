@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
@@ -40,7 +41,8 @@
             android:taskAffinity=""
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:theme="@style/Theme.UpYet.Ringing" />
+            android:theme="@style/Theme.UpYet.Ringing"
+            tools:targetApi="27" />
         <service
             android:name=".alarm.playback.AlarmPlaybackService"
             android:exported="false"

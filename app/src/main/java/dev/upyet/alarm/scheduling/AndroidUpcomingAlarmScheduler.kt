@@ -72,7 +72,6 @@ class AndroidUpcomingAlarmScheduler @Inject constructor(
     }
 
     private fun upcomingPendingIntent(upcoming: UpcomingAlarm): PendingIntent {
-        val context = context!!
         val intent = Intent(context, UpcomingAlarmReceiver::class.java).apply {
             action = UpcomingAlarmReceiver.ACTION_UPCOMING_ALARM
             putExtra(UpcomingAlarmReceiver.EXTRA_ALARM_ID, upcoming.alarmId.value)

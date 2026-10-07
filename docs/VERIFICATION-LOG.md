@@ -35,6 +35,26 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-10-07 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.1.7
+
+Lane: automated   Build: 0.1.7 (107)   Package: `dev.upyet.debug`
+
+Branch `chore-zero-warnings`: zero-warning build, dependency patch bumps (CameraX 1.6.2, Room 2.8.5,
+Activity 1.12.4, AGP 9.3.3), Compose test rule v2, `VibrationAttributes` on API 33+. Emulator run, so a
+regression result only. Started with `-camera-front emulated`.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| instrumented suite | PASS | 65/65 `connectedDebugAndroidTest`, every Compose UI test on the v2 `createComposeRule` (`StandardTestDispatcher`) |
+| core-path | PASS | `CorePathFlowTest`: alarm woke the screen, `RingingActivity` focused, CameraX 1.6.2 reported Start, segment finalized, dismiss worked. Keyguard claim not exercised (no secure lock screen on this AVD) |
+| vibration usage | PASS | `dumpsys vibrator_manager` for the core-path ring: `usage: ALARM`, waveform 0/700/500 ms repeating, ended `cancelled_by_user` at dismiss. The API 33+ `VibrationAttributes` path |
+
+### Findings
+- **First run failed `core-path` for want of a front camera, not because of the change.** The AVD defaults
+  to `hw.camera.front=none`; CameraX logged `CameraIdListIncorrectException` and the recording indicator
+  never appeared. Rerun with `-camera-front emulated`: green. The prerequisite is the one the 2026-08-26
+  entry already records.
+
 ## 2026-08-27 (later) — emulator (`maibuk_test` AVD), Android 14 (API 34), debug 0.1.6
 
 Lane: automated   Build: 0.1.6 (106)   Package: `dev.upyet.debug`

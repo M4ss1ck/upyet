@@ -16,6 +16,7 @@ import dev.upyet.evidence.domain.WakeUpStats
 import dev.upyet.evidence.domain.buildOccurrenceChains
 import dev.upyet.evidence.domain.wakeUpStats
 import dev.upyet.settings.data.SettingsRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +61,7 @@ class HistoryViewModel @Inject constructor(
     /** Clips already asked for. Touched only from the main dispatcher, where the requests originate. */
     private val requested = mutableSetOf<String>()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val items = combine(repository.observeOccurrences(), alarmRepository.observeAlarms()) { occurrences, alarms ->
         occurrences to alarms
     }.flatMapLatest { (occurrences, alarms) ->

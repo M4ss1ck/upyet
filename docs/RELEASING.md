@@ -18,7 +18,7 @@ Run the validation commands from `AGENTS.md` §18 and get them all green:
 
 ```bash
 ./gradlew spotlessApply
-./gradlew spotlessCheck test lint assembleDebug
+./gradlew spotlessCheck compileDebugAndroidTestKotlin test lint assembleDebug
 ```
 
 Then, on a device or emulator:
