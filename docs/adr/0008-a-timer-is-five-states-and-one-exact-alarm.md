@@ -1,9 +1,15 @@
 # A timer is five states and one exact alarm
 
-`AGENTS.md` §1 defines UpYet as an alarm clock, and `GLOSSARY.md` already draws the line: a timer rings like
-an alarm but never records evidence and never produces an **Occurrence**. Issue #10 asked what that means
-concretely. This ADR answers with the vocabulary, the state machine, the ringing surface, the persistence
-split and the one exact alarm a timer needs. It changes nothing on the alarm path.
+**Status: partly superseded by ADR 0010 (evidence).** A timer can record evidence and leave an
+**Occurrence** in History when its **Timer evidence** is on. Everything below about states, anchors,
+ringing and scheduling stands; the four places the reversal touches carry a note.
+
+`AGENTS.md` §1 defines UpYet as a replacement for the phone's Clock app, and `GLOSSARY.md` already drew
+the line: a timer rings like an alarm but never records evidence and never produces an **Occurrence**.
+Issue #10 asked what that means concretely. This ADR answers with the vocabulary, the state machine, the
+ringing surface, the persistence split and the one exact alarm a timer needs. It changes nothing on the
+alarm path. *(Amended by ADR 0010: a timer with **Timer evidence** on does record and does leave an
+occurrence, and §1 now says so; the rest of this ADR does not depend on the premise that it never does.)*
 
 **Five states, named after what the user sees.** A timer is `Idle`, `Running`, `Paused`, `Ringing` or
 `Missed`, mapping onto AOSP DeskClock's `RESET`, `RUNNING`, `PAUSED`, `EXPIRED` and `MISSED`. We keep our
@@ -32,7 +38,9 @@ foreground service) and `TimerRingingActivity` mirror `AlarmPlaybackService` and
 only `AlarmSoundPlayer` and `AlarmVibrator`. Reusing the alarm service would put timers inside the object
 that owns occurrences, snooze budgets, evidence and the single ringing session, and alarm reliability
 outranks any code that reuse would save. Timer ringing never records evidence, never creates an occurrence
-and never appears in History.
+and never appears in History. *(Amended by ADR 0010: with **Timer evidence** on, a timer ring does record
+and does leave one occurrence per showing of the ringing screen. The reason for keeping the services apart
+is unchanged.)*
 
 **Several timers can ring at once, with one sound.** The ringing screen lists every ringing timer with
 **Stop** and **+1 min**, and adds **Stop all** when two or more are ringing. One sound and one wake lock
@@ -50,9 +58,16 @@ they only recompute remaining time from the elapsed delta and ignore a negative 
 
 **Room is the truth; the mirror is what rings before first unlock.** Room owns the list, labels and editing.
 A device-protected mirror, encoded like `DirectBootAlarmStore`, carries id, state, total length, remaining
-at its anchor, wall-clock anchor, end instant, label and ringtone URI. Before first unlock the mirror is
-authoritative and Room is untouched; `USER_UNLOCKED` reconciles mirror into Room. Timers are not history, so
-a ring that only ever existed in the mirror loses nothing.
+at its anchor, wall-clock anchor, end instant, label, ringtone URI and the per-timer **Timer evidence**
+flag. Before first unlock the mirror is authoritative and Room is untouched; `USER_UNLOCKED` reconciles
+mirror into Room. Timers are not history, so a ring that only ever existed in the mirror loses nothing.
+*(Amended by ADR 0010: a timer ring is history when its **Timer evidence** is on, so a ring that happened
+before first unlock persists `DIRECT_BOOT_UNAVAILABLE` through the alarm path's `PendingOccurrenceStore`
+rather than vanishing, carrying the timer attribution and an explicit alarm / timer source discriminator,
+reconciled into Room on `USER_UNLOCKED` by dispatching on that source so a timer record never triggers an
+alarm-only effect such as retiring a one-time alarm; it still loses no video, because none could be
+recorded. The evidence flag is in the mirror for the same reason: before first unlock nothing else can tell
+the ringing screen whether that timer was recording-on.)*
 
 **The timer mirror carries the label, and the alarm mirror does not.** `AGENTS.md` §11 already permits a
 label in the minimal mirror; `docs/ARCHITECTURE.md` said labels are not mirrored, which was only ever true
@@ -90,13 +105,18 @@ because starting from 60 s is a different action wearing the same name.
 - **`+1 min` on Idle starts a 60 s timer.** Rejected: silently changes what the control means instead of
   offering a start button.
 - **Delete a `SET_TIMER` timer once it fires.** Rejected: unlike a **Voice alarm** a timer has no occurrence
-  to preserve, but it does have a list worth keeping.
+  to preserve, but it does have a list worth keeping. *(Amended by ADR 0010: a timer ring can now leave an
+  occurrence with evidence attached, so deleting the timer after it fires would discard that too. The
+  rejection stands, and its evidence argument now points the same way as its list argument.)*
 
 ## Consequences
 
-`AGENTS.md` §6 still says only `setAlarmClock()` schedules a real alarm occurrence, and §20 still forbids
-"timers" as a scheduling mechanism. The carve-out that lets timers use `setExactAndAllowWhileIdle` is
-"How should AGENTS.md and the product definition change?" (issue #11) to write; until it lands, this ADR describes a design no code may implement.
+`AGENTS.md` §6 used to say only `setAlarmClock()` schedules a real alarm occurrence, and §20 forbade
+"timers" as a scheduling mechanism. The carve-out that lets a timer use `setExactAndAllowWhileIdle` is
+`0009-timers-are-the-one-exact-alarm-that-isnt-setalarmclock.md`, and the `AGENTS.md` §6a and §20 wording
+that admits it landed with issue #11. §20's forbidden "timers" now names in-process timers only
+(`Handler`, `java.util.Timer`, coroutine `delay`), so the platform call a timer needs is no longer caught
+by it.
 
 None of this exists in code yet. Two claims are reasoned but unverified and need a device: that a timer's
 full-screen intent still launches on Android 14+, where the permission is restricted to alarm and calling

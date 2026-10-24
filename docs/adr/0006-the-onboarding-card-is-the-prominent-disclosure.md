@@ -29,3 +29,17 @@ two must not drift.
 Because the card is only shown while a permission is missing, a user who granted camera access through
 system settings without ever seeing it is possible in principle. That is acceptable: Play's requirement
 is about the app's own request flow, and the app's own flow always shows it first.
+
+## Amendment: 2026-10-24
+
+ADR 0010 lets a timer record evidence when its **Timer evidence** is on, so the disclosure has to say that
+too. The card must gain one sentence: "Timers can record too, if you turn it on." Everything else above
+stands unchanged: still the same card, still before the camera permission is requested, still describing
+what is recorded, when, and that nothing leaves the device, and still a distinct affirmative tap. The card
+must also stand in front of the second entry point the new toggle creates: turning Timer evidence on, in the
+Settings Timers section or on a timer, must show the card first while the camera permission is not granted,
+because otherwise a user who goes straight to the Timers section meets the system camera dialog without ever
+seeing the disclosure. That is the card's existing gate, a missing permission and not a stored consent flag,
+so the two places behave the same way. The same sentence has to reach the card's copy quoted in `docs/STORE.md`,
+since the two must not drift; that copy is owned outside this change and is outstanding work, not a claim that
+it already matches.
