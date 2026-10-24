@@ -47,6 +47,12 @@ which is why turning a recurring alarm off asks whether the user meant to skip o
 Turning off discards any skip and any pending snooze: an alarm turned back on rings at its next occurrence.
 _Avoid_: Disable (fine in code, not in the UI), delete
 
+**Voice alarm**:
+A one-time alarm that another app or an assistant created without opening its editor, and that is deleted
+once its occurrence is dismissed. Deleting it keeps that occurrence and its evidence in History. An alarm
+the user made, or a voice alarm the user later edits, is never a voice alarm: it stays on the list.
+_Avoid_: Temporary alarm, quick alarm
+
 ### Clock tools
 
 The three tools that, with alarms, make UpYet a full replacement for the phone's own Clock app. None of
