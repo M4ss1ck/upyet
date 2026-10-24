@@ -29,3 +29,11 @@ two must not drift.
 Because the card is only shown while a permission is missing, a user who granted camera access through
 system settings without ever seeing it is possible in principle. That is acceptable: Play's requirement
 is about the app's own request flow, and the app's own flow always shows it first.
+
+## Amendment: 2026-10-24
+
+ADR 0010 lets a timer record evidence when its **Timer evidence** is on, so the disclosure has to say that
+too. The card gains one sentence: "Timers can record too, if you turn it on." Everything else above stands
+unchanged: still the same card, still before the camera permission is requested, still describing what is
+recorded, when, and that nothing leaves the device, and still a distinct affirmative tap. The same sentence
+has to reach the card's copy quoted in `docs/STORE.md`, since the two must not drift.

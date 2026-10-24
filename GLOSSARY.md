@@ -15,19 +15,23 @@ not an event; it produces occurrences.
 _Avoid_: Reminder, timer, event
 
 **Occurrence**:
-One firing of an alarm at one wall-clock instant, and the thing history records. A snooze produces a new
-occurrence chained to the one it came from.
+One ringing of an alarm, or one recorded ringing of a timer, and the thing history records. An occurrence
+has a source, alarm or timer: alarm occurrences keep snooze chains, wake-ups and stats, while timer
+occurrences never snooze. A timer ringing with **Timer evidence** off leaves no occurrence. A
+snooze produces a new alarm occurrence chained to the one it came from.
 _Avoid_: Instance, trigger, ring
 
 **Wake-up**:
-One occurrence plus every snooze occurrence chained to it — the whole story of one alarm going off, from
-the first ring to the dismissal, timeout or interruption that ended it. Someone who snoozed four times had
-one wake-up, not five. History rows, sharing and stats all count wake-ups, never individual occurrences.
+One alarm occurrence plus every snooze occurrence chained to it: the whole story of one alarm going off,
+from the first ring to the dismissal, timeout or interruption that ended it. Someone who snoozed four
+times had one wake-up, not five. History rows, sharing and stats all count wake-ups, never individual
+occurrences, and only alarms form them: a timer occurrence is never part of a wake-up.
 _Avoid_: Session, event, group
 
 **Ringing**:
-The state between an occurrence firing and the user dismissing it: wake lock held, notification posted,
-full-screen intent launched, and whatever sound and vibration the alarm is configured for.
+The state between an alarm occurrence firing and the user dismissing it: wake lock held, notification
+posted, full-screen intent launched, and whatever sound and vibration the alarm is configured for. A timer
+ringing is described separately below, because it snoozes nothing and ends in Stop or **+1 min**.
 
 **Evidence**:
 The silent front-camera video recorded while the ringing screen is visible, plus its metadata. Evidence
@@ -55,8 +59,13 @@ _Avoid_: Temporary alarm, quick alarm
 
 ### Clock tools
 
-The three tools that, with alarms, make UpYet a full replacement for the phone's own Clock app. None of
-them records evidence: evidence answers "did I wake up?", and none of them is a wake-up.
+UpYet is a full replacement for the phone's own Clock app: alarms, plus the three tools below.
+
+**Clock tool**:
+The World clock, the Timer or the Stopwatch: any UpYet feature other than alarms. The umbrella exists
+because rules about ringing, notifications and evidence now mostly cover alarms and clock tools together,
+and would otherwise turn into a list of three.
+_Avoid_: Utility, widget, feature
 
 **World clock**:
 A user-chosen list of places, each showing its current local time and its offset from the user's own.
@@ -64,8 +73,14 @@ _Avoid_: Global time, time zones (a zone is what a place resolves to, not the fe
 
 **Timer**:
 A countdown from a chosen duration that rings when it reaches zero. A timer rings through the same
-reliable path as an alarm but never records evidence and never produces an occurrence.
+reliable path as an alarm, and its ring can record evidence and leave an **Occurrence** in history, but
+only when its **Timer evidence** is on.
 _Avoid_: Countdown, alarm (an alarm is a wall-clock rule; a timer is a duration)
+
+**Timer evidence**:
+The per-timer switch that decides whether that timer records while it rings. It takes the global "Record
+when a timer rings" switch at creation, and is the reason a timer can appear in History at all.
+_Avoid_: Recording, camera toggle
 
 **Timer run state**:
 One of the five states a timer is in: `Idle`, `Running`, `Paused`, `Ringing` or `Missed`. Idle is a timer at
@@ -76,9 +91,10 @@ _Avoid_: Expired, Reset, status
 
 **Timer ringing**:
 A timer that has reached zero and is sounding, the state between reaching zero and being stopped or given
-**+1 min**. Several timers can be ringing at once, sharing one sound and one wake lock. It borrows the
-alarm's sound and vibration machinery but is not **Ringing**: nothing is recorded, no occurrence is made,
-and it never appears in History.
+**+1 min**. Several timers can be ringing at once, sharing one sound, one wake lock and one ringing
+screen. It borrows the alarm's sound and vibration machinery, and it records like an alarm whenever at
+least one ringing timer has **Timer evidence** on, but it is not an alarm **Ringing**: nothing is snoozed,
+nothing is dismissed and no wake-up forms.
 _Avoid_: Expired, alarm ringing
 
 **Missed timer**:
@@ -91,7 +107,7 @@ _Avoid_: Late timer, expired timer
 The control that gives a timer another minute. On a Running or Paused timer it adds 60 seconds to the
 remaining time; on a ringing or missed timer it stops that timer and restarts it from 60 seconds. Idle
 timers do not offer it.
-_Avoid_: Snooze (a snooze belongs to an Occurrence of an alarm), extend
+_Avoid_: Snooze (a snooze belongs to an alarm occurrence), extend
 
 **Stopwatch**:
 A count-up from the moment the user starts it, with laps. It never rings.
