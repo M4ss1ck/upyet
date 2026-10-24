@@ -42,7 +42,9 @@ ADR 0010 lets a timer record evidence when its **Timer evidence** is on, so `DIS
 always end a ring silently. It now follows `DISMISS_ALARM`: when the intent matches a ringing timer whose
 Timer evidence is on, UpYet brings `TimerRingingActivity` to the front (the device stays locked) and the
 timer keeps ringing, so only the screen's Stop or **+1 min** ends it and the recording happens as it would
-have without the intent. A ringing timer with Timer evidence off stops directly, because there is no
+have without the intent. It is brought forward the same way `DISMISS_ALARM` brings `RingingActivity` forward,
+through the ringing notification's full-screen intent or its content intent, and never by a background
+`startActivity()`. A ringing timer with Timer evidence off stops directly, because there is no
 evidence to lose, and a non-ringing timer is unaffected: it is still stopped or deleted as the contract
 says. Everything else above stands unchanged, including the refusal to snooze without the ringing screen.
 

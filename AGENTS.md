@@ -85,10 +85,13 @@ than Alarms.
     takes the global value (ADR 0010).
 13. With mixed toggles, recording runs while at least one recording-on timer is ringing and
     stops when the last of them is stopped or given +1 min, even if other timers still ring.
-    A +1 min ends that timer's participation in the showing exactly like Stop, and when it
-    rings again it is a new showing and a new occurrence. The occurrence lists only the
-    recording-on timers. A showing in which every ringing timer has recording off produces
-    no occurrence and nothing in History (ADR 0010).
+    A +1 min ends that timer's participation in the showing exactly like Stop. The occurrence,
+    unlike the recording, spans the whole showing: it closes when the showing ends and never
+    while a recording-on timer is still ringing, so a timer that rings again while the showing
+    continues rejoins the same occurrence, and only a ring after the showing ended is a new
+    showing and a new occurrence. The occurrence lists only the recording-on timers. A showing
+    in which every ringing timer has recording off produces no occurrence and nothing in
+    History, unless a recording-on timer joins it while it is still up (ADR 0010).
 14. Timer evidence obeys the alarm evidence rules unchanged: deleting a timer occurrence
     deletes its files, deleting a timer keeps its past evidence, a missed timer records
     nothing because it never rings, and a recording-on ring before first unlock persists
@@ -305,17 +308,20 @@ keyguard bypass.
   requests it at that moment; there is no timer-specific permission and no new permission at
   all. The prominent disclosure (ADR 0006) must say that timers can record too, when the user
   turns that on, and the card must gate the timer toggle as well: turning Timer evidence on,
-  in the Settings Timers section or per timer, shows that card first when it has not been
-  acknowledged yet, so the system camera dialog is never the first thing the user sees.
+  in the Settings Timers section or per timer, while the camera permission is not granted,
+  shows that card first, so the system camera dialog is never the first thing the user sees.
 * A `DISMISS_TIMER` intent never ends a recording ring. When it matches a ringing timer whose
-  Timer evidence is on, `TimerRingingActivity` comes to the front (the device stays locked)
-  and the timer keeps ringing, exactly as `DISMISS_ALARM` behaves for a ringing alarm. A
-  ringing timer with Timer evidence off stops directly; a non-ringing timer is unchanged
-  (ADR 0007, amendment of 2026-10-24).
-* Timestamps recorded per occurrence: `scheduledFor`, `alarmTriggeredAt`, `activityVisibleAt`,
+  Timer evidence is on, `TimerRingingActivity` is brought forward (the device stays locked)
+  and the timer keeps ringing, exactly as `DISMISS_ALARM` brings `RingingActivity` forward
+  for a ringing alarm: through the existing ringing notification's full-screen intent, or its
+  content intent when the platform shows the heads-up instead, never a background
+  `startActivity()` (ADR 0007, amendment of 2026-10-24). A ringing timer with Timer evidence
+  off stops directly; a non-ringing timer is unchanged.
+* Timestamps recorded per occurrence: `scheduledFor`, `triggeredAt`, `activityVisibleAt`,
   and per segment `recordingRequestedAt`, `recordingStartedAt?`, `recordingEndedAt?`,
-  `recordingFinalizedAt?`, plus `dismissedAt?` on the occurrence. `recordingStartedAt` comes
-  from `VideoRecordEvent.Start`, never from activity creation.
+  `recordingFinalizedAt?`, plus `dismissedAt?` on the occurrence. `triggeredAt` is the code's
+  neutral name for the moment the ring started, alarm or timer, and `recordingStartedAt`
+  comes from `VideoRecordEvent.Start`, never from activity creation.
 * One occurrence may own multiple `EvidenceSegment`s (interruption → resume = new segment).
   Never concatenate video during capture; history plays segments sequentially.
 * Every expected failure (permission denied/revoked, camera unavailable or in use, init
@@ -325,10 +331,12 @@ keyguard bypass.
   component and records the same per-occurrence and per-segment timestamps, and
   `recordingStartedAt` still comes only from `VideoRecordEvent.Start`. A timer occurrence
   ends at a stop or a +1 min rather than a dismissal, so it ends with the same user-ended
-  field an alarm dismissal uses, `dismissedAt?`, recorded when the last recording-on timer
-  is stopped or given +1 min and meaning "the user ended this ring". A +1 min takes that
-  timer out of the showing exactly like Stop, and when it rings again it is a new showing
-  and a new occurrence. A missed timer never records because it never rings.
+  field an alarm dismissal uses, `dismissedAt?`, recorded when the showing ends and meaning
+  "the user ended this ring". Recording still stops with the last recording-on timer, but the
+  occurrence stays open while any timer rings: a +1 min takes that timer out of the showing
+  exactly like Stop, a timer that rings again while the showing continues rejoins that same
+  occurrence, and only after the showing has ended is a ring a new showing and a new
+  occurrence. A missed timer never records because it never rings.
 * A timer occurrence carries `source = TIMER` plus a snapshot of the recording-on timers it
   covered: their id and their label, stored as text, never a foreign key, because deleting a
   timer keeps its past evidence. The source and that snapshot land in the same
@@ -351,8 +359,14 @@ keyguard bypass.
 * A recording-on timer that rings before first unlock writes its pending occurrence, with
   its timer attribution and the `DIRECT_BOOT_UNAVAILABLE` status, through the same
   device-protected `PendingOccurrenceStore` the alarm path uses
-  (`app/src/main/java/dev/upyet/core/directboot/`). `USER_UNLOCKED` reconciles it into Room
-  the same way it reconciles the timer mirror (ADR 0010).
+  (`app/src/main/java/dev/upyet/core/directboot/`). That record carries an explicit alarm /
+  timer source discriminator, and `USER_UNLOCKED` reconciles it into Room the same way it
+  reconciles the timer mirror, dispatching on that source: a timer record is never applied as
+  an alarm record and never triggers an alarm-only effect such as retiring a one-time alarm
+  with the timer's id (ADR 0010). The encoding stays backward compatible: a record written
+  before the discriminator existed decodes as an alarm record, so an upgrade never drops an
+  in-flight alarm. A timer occurrence ended from the ringing screen has its own `STOPPED`
+  outcome, never an alarm outcome.
 * Any code reachable before first unlock must check `UserManager.isUserUnlocked()` before
   touching Room/DataStore. Hilt dependencies used on that path must not eagerly build Room.
 * Before first unlock, evidence is best-effort; when it cannot run, persist
@@ -425,7 +439,8 @@ only.
   its transition table (ADR 0008), remaining-time math from both anchors including a
   negative elapsed delta, timer scheduling identity and stale-delivery rejection, timer
   intent handling (`SET_TIMER`, `DISMISS_TIMER`; ADR 0007), occurrence source and timer
-  evidence toggle resolution.
+  evidence toggle resolution, and pending-occurrence reconciliation dispatching on the
+  record's source.
 * **Instrumented**: Room creation + migrations (including the occurrence-source and
   timer-attribution migration), DAOs/repositories, Compose screens for list, editor, history,
   ringing controls, permission-state UI, navigation, the disclosure card gating the timer

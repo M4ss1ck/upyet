@@ -16,9 +16,11 @@ ask, which is precisely why the global switch exists.
 nothing else. The decision belongs to before the ring, not during it.
 
 **A remote intent cannot end a recording ring.** `DISMISS_TIMER` behaves like `DISMISS_ALARM`: when it
-matches a ringing timer with Timer evidence on, `TimerRingingActivity` comes to the front and the timer
-keeps ringing, so the recording still happens. A recording-off ringing timer stops directly, and a
-non-ringing timer is unaffected (ADR 0007, amendment of 2026-10-24).
+matches a ringing timer with Timer evidence on, `TimerRingingActivity` is brought forward, the same way
+`DISMISS_ALARM` brings `RingingActivity` forward, through the ringing notification's full-screen intent or its
+content intent and never a background `startActivity()`, and the timer keeps ringing, so the recording still
+happens. A recording-off ringing timer stops directly, and a non-ringing timer is unaffected (ADR 0007,
+amendment of 2026-10-24).
 
 **An occurrence has a source: alarm or timer.** An occurrence stays what it was, one ringing and the thing
 History records, and now carries whether it came from an alarm or a timer. An alarm ring always leaves one.
@@ -37,31 +39,40 @@ evidence** on.
 
 **With mixed toggles, recording ends with the last recording timer.** Recording runs while at least one
 recording-on timer is ringing and stops when the last of them is stopped or given **+1 min**, even if other
-timers still ring. A +1 min takes that timer out of the showing exactly like Stop, and when it rings again it
-is a new showing and a new occurrence. A showing in which every ringing timer has recording off produces no
-occurrence and nothing in History. Missed timers never record, because they never ring.
+timers still ring. A +1 min takes that timer out of the showing exactly like Stop. The occurrence, unlike the
+recording, spans the showing: it closes when the showing ends and never while a recording-on timer is still
+ringing, so a timer that rings again while the showing continues rejoins the same occurrence, and a ring after
+the showing has ended is a new showing and a new occurrence. A showing in which every ringing timer has
+recording off produces no occurrence and nothing in History, unless a recording-on timer joins it while it is
+still up. Missed timers never record, because they never ring.
 
 **Retention, deletion and failure behave exactly as they do for alarms.** Deleting a timer occurrence
 deletes its files; deleting a timer keeps its past evidence. Before first unlock a recording-on ring
 persists `DIRECT_BOOT_UNAVAILABLE` and still rings: the device-protected timer mirror carries the per-timer
 **Timer evidence** flag, because nothing else can tell the pre-unlock ringing screen which timers were
 recording-on, and the pending occurrence goes through the alarm path's `PendingOccurrenceStore` carrying the
-timer attribution, reconciled into Room on `USER_UNLOCKED` (ADR 0008). Stop and **+1 min** work regardless of
-camera state, under the same "evidence never blocks dismissal" rule as the alarm path.
+timer attribution. That record also carries an explicit alarm / timer source discriminator, because the store
+and its `USER_UNLOCKED` reconciler serve both paths: reconciliation dispatches on the source and never applies
+an alarm-only effect, such as retiring a one-time alarm, to a timer record (ADR 0008). A record written
+before the discriminator existed decodes as an alarm record, so the upgrade never drops an in-flight alarm,
+and a timer occurrence ended from the ringing screen gets its own `STOPPED` outcome. Stop and **+1 min** work
+regardless of camera state, under the same "evidence never blocks dismissal" rule as the alarm path.
 
 **No new permission, and one more sentence of disclosure.** Turning timer evidence on uses the camera
 permission the app already asks for, or requests it at that moment; `RECORD_AUDIO` stays unrequested. The
 prominent disclosure of ADR 0006 must gain one sentence, "Timers can record too, if you turn it on", because
 a disclosure that describes only alarms would no longer be describing what the camera is for. That card must
-also gate the new entry point: turning Timer evidence on, in Settings or on a timer, shows it first when it
-has not been acknowledged yet, so the system camera dialog is never the user's first sight of the request.
+also gate the new entry point: turning Timer evidence on, in Settings or on a timer, shows it first while the
+camera permission is not granted, so the system camera dialog is never the user's first sight of the request.
+The gate is the permission the card already keys on, not a separate stored consent flag.
 
 **The source and the timer attribution are one non-destructive Room migration.** An occurrence's source is
 a new column defaulted to alarm, so every row that already exists stays valid and readable with no data
 rewritten. A timer occurrence also needs to say which timers it covered, so the same migration adds a
 snapshot of their id and label as text, never a foreign key, because deleting a timer keeps its past
 evidence. It ends with the field an alarm dismissal already uses, `dismissedAt`, which for a timer records
-the stop or the +1 min that ended the ring; the field means "the user ended this", not "dismissed".
+the stop or the +1 min that ended the showing, since the occurrence spans the showing and not just the
+recording; the field means "the user ended this", not "dismissed".
 
 ## Considered options
 

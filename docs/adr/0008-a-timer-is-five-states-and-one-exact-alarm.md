@@ -63,9 +63,11 @@ flag. Before first unlock the mirror is authoritative and Room is untouched; `US
 mirror into Room. Timers are not history, so a ring that only ever existed in the mirror loses nothing.
 *(Amended by ADR 0010: a timer ring is history when its **Timer evidence** is on, so a ring that happened
 before first unlock persists `DIRECT_BOOT_UNAVAILABLE` through the alarm path's `PendingOccurrenceStore`
-rather than vanishing, carrying the timer attribution and reconciled into Room on `USER_UNLOCKED`; it still
-loses no video, because none could be recorded. The evidence flag is in the mirror for the same reason:
-before first unlock nothing else can tell the ringing screen whether that timer was recording-on.)*
+rather than vanishing, carrying the timer attribution and an explicit alarm / timer source discriminator,
+reconciled into Room on `USER_UNLOCKED` by dispatching on that source so a timer record never triggers an
+alarm-only effect such as retiring a one-time alarm; it still loses no video, because none could be
+recorded. The evidence flag is in the mirror for the same reason: before first unlock nothing else can tell
+the ringing screen whether that timer was recording-on.)*
 
 **The timer mirror carries the label, and the alarm mirror does not.** `AGENTS.md` §11 already permits a
 label in the minimal mirror; `docs/ARCHITECTURE.md` said labels are not mirrored, which was only ever true
