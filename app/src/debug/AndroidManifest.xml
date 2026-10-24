@@ -2,6 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <!--
+            A second launcher entry, "UpYet prototypes": the throwaway UI prototypes for design issues
+            are reachable directly instead of hiding behind a debug flag in the real app. Both the
+            activity and its whole package live in the debug source set, so a release build has
+            neither the entry nor the screens behind it.
+        -->
+        <activity
+            android:name=".prototype.PrototypeActivity"
+            android:exported="true"
+            android:label="UpYet prototypes">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!--
             Exported so `adb shell am broadcast` can actually reach it: driving a verification pass from a
             shell is the only reason this receiver exists, and a non-exported receiver silently drops
             broadcasts that come from the shell uid. Guarded by DUMP, which the shell and system hold and
