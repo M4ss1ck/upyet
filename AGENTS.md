@@ -70,8 +70,8 @@ than Alarms.
 9. Deleting an occurrence deletes its evidence files. Deleting an alarm does not
    silently delete past evidence.
 10. If scheduling fails, the UI must not claim the alarm is active.
-11. An occurrence has a source: alarm or timer. An occurrence is one ringing of an alarm
-    or a timer, the thing History records. Alarm occurrences keep everything: snooze
+11. An occurrence has a source: alarm or timer. An occurrence is one recorded ringing of an
+    alarm or a timer, the thing History records. Alarm occurrences keep everything: snooze
     chains, wake-ups, stats. A timer occurrence never snoozes and never forms a wake-up,
     and wake-up stats stay alarm-only. History shows both sources in one list, timer
     entries carry a "Timer" badge, and there is no extra filter. Several timers ringing
@@ -84,9 +84,11 @@ than Alarms.
     global switch never changes an existing timer; a timer created by a `SET_TIMER` intent
     takes the global value (ADR 0010).
 13. With mixed toggles, recording runs while at least one recording-on timer is ringing and
-    stops when the last of them is stopped, even if other timers still ring. The occurrence
-    lists only the recording-on timers. A showing in which every ringing timer has
-    recording off produces no occurrence and nothing in History (ADR 0010).
+    stops when the last of them is stopped or given +1 min, even if other timers still ring.
+    A +1 min ends that timer's participation in the showing exactly like Stop, and when it
+    rings again it is a new showing and a new occurrence. The occurrence lists only the
+    recording-on timers. A showing in which every ringing timer has recording off produces
+    no occurrence and nothing in History (ADR 0010).
 14. Timer evidence obeys the alarm evidence rules unchanged: deleting a timer occurrence
     deletes its files, deleting a timer keeps its past evidence, a missed timer records
     nothing because it never rings, and a recording-on ring before first unlock persists
@@ -151,7 +153,8 @@ Component responsibilities:
 
 ## 5a. Timer architecture
 
-Timers borrow the alarm's reliability path, never its objects. The state machine, the
+Timers borrow the alarm's reliability path, never its stateful objects: the only classes the
+two paths share are `AlarmSoundPlayer` and `AlarmVibrator`. The state machine, the
 ringing surface and the persistence split are ADR 0008; the scheduling carve-out is
 ADR 0009; the evidence rules are ADR 0010.
 
@@ -300,8 +303,15 @@ keyguard bypass.
   in the UI (indicator + elapsed timer, not color-only).
 * One camera permission serves both ringing screens. Turning timer evidence on uses it, or
   requests it at that moment; there is no timer-specific permission and no new permission at
-  all. The prominent disclosure (ADR 0006) says that timers can record too, when the user
-  turns that on.
+  all. The prominent disclosure (ADR 0006) must say that timers can record too, when the user
+  turns that on, and the card must gate the timer toggle as well: turning Timer evidence on,
+  in the Settings Timers section or per timer, shows that card first when it has not been
+  acknowledged yet, so the system camera dialog is never the first thing the user sees.
+* A `DISMISS_TIMER` intent never ends a recording ring. When it matches a ringing timer whose
+  Timer evidence is on, `TimerRingingActivity` comes to the front (the device stays locked)
+  and the timer keeps ringing, exactly as `DISMISS_ALARM` behaves for a ringing alarm. A
+  ringing timer with Timer evidence off stops directly; a non-ringing timer is unchanged
+  (ADR 0007, amendment of 2026-10-24).
 * Timestamps recorded per occurrence: `scheduledFor`, `alarmTriggeredAt`, `activityVisibleAt`,
   and per segment `recordingRequestedAt`, `recordingStartedAt?`, `recordingEndedAt?`,
   `recordingFinalizedAt?`, plus `dismissedAt?` on the occurrence. `recordingStartedAt` comes
@@ -314,8 +324,15 @@ keyguard bypass.
 * The same rules govern a timer occurrence: the timer ringing screen drives the same
   component and records the same per-occurrence and per-segment timestamps, and
   `recordingStartedAt` still comes only from `VideoRecordEvent.Start`. A timer occurrence
-  ends at a stop or a +1 min rather than a dismissal, and a missed timer never records
-  because it never rings.
+  ends at a stop or a +1 min rather than a dismissal, so it ends with the same user-ended
+  field an alarm dismissal uses, `dismissedAt?`, recorded when the last recording-on timer
+  is stopped or given +1 min and meaning "the user ended this ring". A +1 min takes that
+  timer out of the showing exactly like Stop, and when it rings again it is a new showing
+  and a new occurrence. A missed timer never records because it never rings.
+* A timer occurrence carries `source = TIMER` plus a snapshot of the recording-on timers it
+  covered: their id and their label, stored as text, never a foreign key, because deleting a
+  timer keeps its past evidence. The source and that snapshot land in the same
+  non-destructive migration (ADR 0010).
 
 ## 11. Direct Boot constraints
 
@@ -325,10 +342,17 @@ keyguard bypass.
 * A **minimal** alarm-critical mirror (id, trigger time, label, vibration, snooze minutes,
   sound URI) lives in device-protected storage; it holds nothing else about the user.
 * A separate **minimal** timer mirror (id, state, total length, remaining at its anchor,
-  wall-clock anchor, end instant, label, ringtone URI) lives in device-protected storage
-  (ADR 0008). It carries the timer label, because before first unlock the ringing screen has
-  no other way to tell one ringing timer from another. Alarm labels are not mirrored, and
-  that does not change.
+  wall-clock anchor, end instant, label, ringtone URI, and the per-timer Timer evidence
+  flag) lives in device-protected storage (ADR 0008, ADR 0010). It carries the timer label,
+  because before first unlock the ringing screen has no other way to tell one ringing timer
+  from another, and it carries the evidence flag, because the pre-unlock path cannot ask
+  Room which timers are recording-on. Alarm labels are not mirrored, and that does not
+  change.
+* A recording-on timer that rings before first unlock writes its pending occurrence, with
+  its timer attribution and the `DIRECT_BOOT_UNAVAILABLE` status, through the same
+  device-protected `PendingOccurrenceStore` the alarm path uses
+  (`app/src/main/java/dev/upyet/core/directboot/`). `USER_UNLOCKED` reconciles it into Room
+  the same way it reconciles the timer mirror (ADR 0010).
 * Any code reachable before first unlock must check `UserManager.isUserUnlocked()` before
   touching Room/DataStore. Hilt dependencies used on that path must not eagerly build Room.
 * Before first unlock, evidence is best-effort; when it cannot run, persist
@@ -402,10 +426,11 @@ only.
   negative elapsed delta, timer scheduling identity and stale-delivery rejection, timer
   intent handling (`SET_TIMER`, `DISMISS_TIMER`; ADR 0007), occurrence source and timer
   evidence toggle resolution.
-* **Instrumented**: Room creation + migrations (including the occurrence-source migration),
-  DAOs/repositories, Compose screens for list, editor, history, ringing controls,
-  permission-state UI, navigation, the timer screens (list, editor, ringing), the Settings
-  Timers section, and timer history entries with the Timer badge.
+* **Instrumented**: Room creation + migrations (including the occurrence-source and
+  timer-attribution migration), DAOs/repositories, Compose screens for list, editor, history,
+  ringing controls, permission-state UI, navigation, the disclosure card gating the timer
+  evidence toggle, the timer screens (list, editor, ringing), the Settings Timers section,
+  and timer history entries with the Timer badge.
 * **Device/emulator**: the end-to-end matrix in `docs/TESTING.md`, including Doze, process
   kill, reboot with and without unlock, and camera failure modes.
 * New behavior ships with tests. Never delete or `@Ignore` a failing test to go green.
@@ -422,9 +447,11 @@ launch**. Its live callers are `BootReceiver`, `UserUnlockedReceiver` and `Alarm
 force stop an alarm stays cancelled until one of those fires. Wiring it is outstanding work, not a licence
 to schedule alarms any other way.
 
-The timer re-arm (§6a, one exact alarm for the earliest-ending timer) also runs here, for the same reason: a
-force stop clears it exactly as it clears alarms, and the platform announces nothing. It is idempotent, it
-may not become a background worker, and it may not block the first frame.
+The timer re-arm (§6a, one exact alarm for the earliest-ending timer) is specified to run here too, for the
+same reason: a force stop clears it exactly as it clears alarms, and the platform announces nothing. Like
+`AlarmRescheduler.rescheduleAll()`, it is **not currently wired**: no timer scheduler exists in code yet, so
+there is nothing to call. When it lands it is idempotent, it may not become a background worker, and it may
+not block the first frame.
 
 ## 18. Required validation commands
 

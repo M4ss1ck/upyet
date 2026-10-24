@@ -1,7 +1,8 @@
 # UpYet
 
-An Android replacement alarm clock whose distinguishing feature is video evidence of the user dismissing
-the alarm. This file is the shared vocabulary: the words the code, the docs and the agents working here
+UpYet is a full replacement for the phone's own Clock app: alarms, world clock, timer and stopwatch,
+whose distinguishing feature is video evidence of the user dismissing the alarm. This file is the shared
+vocabulary: the words the code, the docs and the agents working here
 all use for the same thing. It is a glossary, not a spec — architecture lives in `AGENTS.md` and
 `docs/ARCHITECTURE.md`, and decisions live in `docs/adr/`.
 

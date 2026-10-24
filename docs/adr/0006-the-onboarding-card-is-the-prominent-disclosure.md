@@ -33,7 +33,12 @@ is about the app's own request flow, and the app's own flow always shows it firs
 ## Amendment: 2026-10-24
 
 ADR 0010 lets a timer record evidence when its **Timer evidence** is on, so the disclosure has to say that
-too. The card gains one sentence: "Timers can record too, if you turn it on." Everything else above stands
-unchanged: still the same card, still before the camera permission is requested, still describing what is
-recorded, when, and that nothing leaves the device, and still a distinct affirmative tap. The same sentence
-has to reach the card's copy quoted in `docs/STORE.md`, since the two must not drift.
+too. The card must gain one sentence: "Timers can record too, if you turn it on." Everything else above
+stands unchanged: still the same card, still before the camera permission is requested, still describing
+what is recorded, when, and that nothing leaves the device, and still a distinct affirmative tap. The card
+must also stand in front of the second entry point the new toggle creates: turning Timer evidence on, in the
+Settings Timers section or on a timer, must show the card first when it has not been acknowledged, because
+otherwise a user who goes straight to the Timers section meets the system camera dialog without ever seeing
+the disclosure. The same sentence has to reach the card's copy quoted in `docs/STORE.md`, since the two must
+not drift; that copy is owned outside this change and is outstanding work, not a claim that it already
+matches.

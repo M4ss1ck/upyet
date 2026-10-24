@@ -20,7 +20,8 @@ AOSP DeskClock does both silently from an invisible lock-screen activity; we cho
 `com.android.alarm.permission.SET_ALARM` is a normal-level permission any app holds, so the platform gives
 us no way to tell a trusted assistant from any other installed app.
 
-Timer intents are honoured as specified, including `DISMISS_TIMER`: a timer has no evidence to protect.
+The older premise, that a timer has no evidence to protect, is superseded for a recording-on timer (see the
+2026-10-24 amendment below). Otherwise timer intents, including `DISMISS_TIMER`, are honoured as specified.
 
 ## Considered options
 
@@ -34,3 +35,17 @@ Timer intents are honoured as specified, including `DISMISS_TIMER`: a timer has 
 Assistant behaviour on the lock screen (for example a spoken "silence" arriving as `DISMISS_ALARM`) has
 not been observed on a device yet. If it sends something this contract does not cover, this ADR is
 revisited, not quietly bent.
+
+## Amendment: 2026-10-24
+
+ADR 0010 lets a timer record evidence when its **Timer evidence** is on, so `DISMISS_TIMER` can no longer
+always end a ring silently. It now follows `DISMISS_ALARM`: when the intent matches a ringing timer whose
+Timer evidence is on, UpYet brings `TimerRingingActivity` to the front (the device stays locked) and the
+timer keeps ringing, so only the screen's Stop or **+1 min** ends it and the recording happens as it would
+have without the intent. A ringing timer with Timer evidence off stops directly, because there is no
+evidence to lose, and a non-ringing timer is unaffected: it is still stopped or deleted as the contract
+says. Everything else above stands unchanged, including the refusal to snooze without the ringing screen.
+
+The rule is carried into `AGENTS.md` §10 so it is testable, and ADR 0010 cites this amendment. This makes a
+third place where UpYet deliberately breaks the contract, after the two above, and for the same reason: to
+protect the evidence.

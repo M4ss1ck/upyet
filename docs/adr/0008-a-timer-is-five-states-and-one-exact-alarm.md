@@ -2,12 +2,14 @@
 
 **Status: partly superseded by ADR 0010 (evidence).** A timer can record evidence and leave an
 **Occurrence** in History when its **Timer evidence** is on. Everything below about states, anchors,
-ringing and scheduling stands; the two places the reversal touches carry a note.
+ringing and scheduling stands; the four places the reversal touches carry a note.
 
-`AGENTS.md` §1 defines UpYet as an alarm clock, and `GLOSSARY.md` already draws the line: a timer rings like
-an alarm but never records evidence and never produces an **Occurrence**. Issue #10 asked what that means
-concretely. This ADR answers with the vocabulary, the state machine, the ringing surface, the persistence
-split and the one exact alarm a timer needs. It changes nothing on the alarm path.
+`AGENTS.md` §1 defines UpYet as a replacement for the phone's Clock app, and `GLOSSARY.md` already drew
+the line: a timer rings like an alarm but never records evidence and never produces an **Occurrence**.
+Issue #10 asked what that means concretely. This ADR answers with the vocabulary, the state machine, the
+ringing surface, the persistence split and the one exact alarm a timer needs. It changes nothing on the
+alarm path. *(Amended by ADR 0010: a timer with **Timer evidence** on does record and does leave an
+occurrence, and §1 now says so; the rest of this ADR does not depend on the premise that it never does.)*
 
 **Five states, named after what the user sees.** A timer is `Idle`, `Running`, `Paused`, `Ringing` or
 `Missed`, mapping onto AOSP DeskClock's `RESET`, `RUNNING`, `PAUSED`, `EXPIRED` and `MISSED`. We keep our
@@ -56,11 +58,14 @@ they only recompute remaining time from the elapsed delta and ignore a negative 
 
 **Room is the truth; the mirror is what rings before first unlock.** Room owns the list, labels and editing.
 A device-protected mirror, encoded like `DirectBootAlarmStore`, carries id, state, total length, remaining
-at its anchor, wall-clock anchor, end instant, label and ringtone URI. Before first unlock the mirror is
-authoritative and Room is untouched; `USER_UNLOCKED` reconciles mirror into Room. Timers are not history, so
-a ring that only ever existed in the mirror loses nothing. *(Amended by ADR 0010: a timer ring is history
-when its **Timer evidence** is on, so a ring that happened before first unlock persists
-`DIRECT_BOOT_UNAVAILABLE` rather than vanishing; it still loses no video, because none could be recorded.)*
+at its anchor, wall-clock anchor, end instant, label, ringtone URI and the per-timer **Timer evidence**
+flag. Before first unlock the mirror is authoritative and Room is untouched; `USER_UNLOCKED` reconciles
+mirror into Room. Timers are not history, so a ring that only ever existed in the mirror loses nothing.
+*(Amended by ADR 0010: a timer ring is history when its **Timer evidence** is on, so a ring that happened
+before first unlock persists `DIRECT_BOOT_UNAVAILABLE` through the alarm path's `PendingOccurrenceStore`
+rather than vanishing, carrying the timer attribution and reconciled into Room on `USER_UNLOCKED`; it still
+loses no video, because none could be recorded. The evidence flag is in the mirror for the same reason:
+before first unlock nothing else can tell the ringing screen whether that timer was recording-on.)*
 
 **The timer mirror carries the label, and the alarm mirror does not.** `AGENTS.md` §11 already permits a
 label in the minimal mirror; `docs/ARCHITECTURE.md` said labels are not mirrored, which was only ever true
