@@ -47,6 +47,24 @@ which is why turning a recurring alarm off asks whether the user meant to skip o
 Turning off discards any skip and any pending snooze: an alarm turned back on rings at its next occurrence.
 _Avoid_: Disable (fine in code, not in the UI), delete
 
+### Clock tools
+
+The three tools that, with alarms, make UpYet a full replacement for the phone's own Clock app. None of
+them records evidence: evidence answers "did I wake up?", and none of them is a wake-up.
+
+**World clock**:
+A user-chosen list of places, each showing its current local time and its offset from the user's own.
+_Avoid_: Global time, time zones (a zone is what a place resolves to, not the feature)
+
+**Timer**:
+A countdown from a chosen duration that rings when it reaches zero. A timer rings through the same
+reliable path as an alarm but never records evidence and never produces an occurrence.
+_Avoid_: Countdown, alarm (an alarm is a wall-clock rule; a timer is a duration)
+
+**Stopwatch**:
+A count-up from the moment the user starts it, with laps. It never rings.
+_Avoid_: Chronometer, timer
+
 ### Silence
 
 Three distinct concepts share the word "silent" in everyday speech. They are kept apart here because two
