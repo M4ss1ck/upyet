@@ -67,6 +67,32 @@ A countdown from a chosen duration that rings when it reaches zero. A timer ring
 reliable path as an alarm but never records evidence and never produces an occurrence.
 _Avoid_: Countdown, alarm (an alarm is a wall-clock rule; a timer is a duration)
 
+**Timer run state**:
+One of the five states a timer is in: `Idle`, `Running`, `Paused`, `Ringing` or `Missed`. Idle is a timer at
+its full length, waiting to be started; Running and Paused hold the time left. A timer is never described as
+*expired* or *reset*: those are DeskClock's names for two of these states, and here they read as an error
+and as an action.
+_Avoid_: Expired, Reset, status
+
+**Timer ringing**:
+A timer that has reached zero and is sounding, the state between reaching zero and being stopped or given
+**+1 min**. Several timers can be ringing at once, sharing one sound and one wake lock. It borrows the
+alarm's sound and vibration machinery but is not **Ringing**: nothing is recorded, no occurrence is made,
+and it never appears in History.
+_Avoid_: Expired, alarm ringing
+
+**Missed timer**:
+A timer that was Running and was found more than a minute past its end the next time the app looked, after a
+reboot, an unlock or a launch, meaning it ended while the phone could not ring it. A missed timer never rings
+late; it waits silently under a low-importance notification until the user resets or deletes it.
+_Avoid_: Late timer, expired timer
+
+**+1 min**:
+The control that gives a timer another minute. On a Running or Paused timer it adds 60 seconds to the
+remaining time; on a ringing or missed timer it stops that timer and restarts it from 60 seconds. Idle
+timers do not offer it.
+_Avoid_: Snooze (a snooze belongs to an Occurrence of an alarm), extend
+
 **Stopwatch**:
 A count-up from the moment the user starts it, with laps. It never rings.
 _Avoid_: Chronometer, timer
