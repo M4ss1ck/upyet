@@ -1,4 +1,4 @@
-# AGENTS.md — UpYet
+# AGENTS.md - UpYet
 
 Authoritative engineering contract for every coding agent working in this repository.
 Read this file before changing anything. If a request conflicts with the invariants
@@ -11,14 +11,18 @@ ALARM RELIABILITY IS MORE IMPORTANT THAN EVIDENCE RECORDING.
 The alarm must never depend on the camera, Compose UI, Room database,
 or credential-protected storage being available.
 
-Use AlarmManager.setAlarmClock() for real alarm occurrences.
+Use AlarmManager.setAlarmClock() for alarm occurrences. Timers use
+setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP); nothing else
+schedules exact alarms.
 
-Do not implement alarm scheduling with WorkManager, timers,
-coroutine delays, setRepeating(), or ordinary notifications.
+Do not implement alarm scheduling with WorkManager, in-process timers
+(`Handler`, `java.util.Timer`, coroutine `delay`), setRepeating(), or
+ordinary notifications.
 
 AlarmPlaybackService owns ringing.
 RingingActivity owns interaction.
-CameraX owns evidence while RingingActivity is visible.
+CameraX owns evidence while a ringing screen (RingingActivity or
+TimerRingingActivity) is visible.
 
 Never silently record from the background.
 
@@ -32,14 +36,20 @@ before verifying the user is unlocked.
 
 ## 1. Product definition
 
-UpYet is a replacement alarm-clock application for Android. Its distinguishing
-feature is **video evidence of the user dismissing the alarm**: while our own ringing
-screen is visible, the front camera records silent video, and the resulting occurrence
-answers one question later — *"Did I actually wake up and dismiss that alarm?"*
+UpYet is a replacement for the phone's Clock app: Alarms, World clock, Timer and
+Stopwatch. Its distinguishing feature is **video evidence of the user dismissing the
+alarm**: while our own ringing screen is visible, the front camera records silent video,
+and the resulting occurrence answers one question later: *"Did I actually wake up and
+dismiss that alarm?"*
 
 UpYet is **not** a companion for the system Clock app, a system-wide unlock recorder,
-an intruder-selfie app, a background surveillance tool, or a generic reminder app.
-The camera runs only during our own visible ringing experience.
+an intruder-selfie app, a background surveillance tool, or a generic reminder app: a timer
+counts a duration, it reminds of nothing. The camera runs only during our own visible
+ringing experience. The stopwatch and world clock never use the camera. A timer records
+only when its evidence toggle is on; the toggle is off by default.
+
+A **Clock tool** is the World clock, the Timer or the Stopwatch: any UpYet feature other
+than Alarms.
 
 ## 2. Product invariants
 
@@ -50,7 +60,8 @@ The camera runs only during our own visible ringing experience.
    service and never by an Activity.
 3. The alarm is always dismissible. Any camera, storage, database, or UI failure is a
    recorded state, never a blocker and never a crash.
-4. Recording happens only while `RingingActivity` is actually visible/resumed.
+4. Recording happens only while a ringing screen (`RingingActivity` or
+   `TimerRingingActivity`) is actually visible/resumed.
 5. `recordingStartedAt` is set only when CameraX reports the recording actually started.
 6. Recurrence is local-time based. Never `previous + 24h`.
 7. Scheduling and cancellation are idempotent and use deterministic PendingIntent identity.
@@ -59,6 +70,27 @@ The camera runs only during our own visible ringing experience.
 9. Deleting an occurrence deletes its evidence files. Deleting an alarm does not
    silently delete past evidence.
 10. If scheduling fails, the UI must not claim the alarm is active.
+11. An occurrence has a source: alarm or timer. An occurrence is one ringing of an alarm
+    or a timer, the thing History records. Alarm occurrences keep everything: snooze
+    chains, wake-ups, stats. A timer occurrence never snoozes and never forms a wake-up,
+    and wake-up stats stay alarm-only. History shows both sources in one list, timer
+    entries carry a "Timer" badge, and there is no extra filter. Several timers ringing
+    together share one showing of the timer ringing screen: that showing produces exactly
+    one timer occurrence and one set of evidence segments, and a timer that starts ringing
+    while the screen is showing joins it (ADR 0010).
+12. Timer evidence is two switches: a global "Record when a timer rings", off by default,
+    and a per-timer toggle that defaults to the global value at creation. Both are editable
+    while the timer is Idle, Running or Paused, never while it is Ringing. Changing the
+    global switch never changes an existing timer; a timer created by a `SET_TIMER` intent
+    takes the global value (ADR 0010).
+13. With mixed toggles, recording runs while at least one recording-on timer is ringing and
+    stops when the last of them is stopped, even if other timers still ring. The occurrence
+    lists only the recording-on timers. A showing in which every ringing timer has
+    recording off produces no occurrence and nothing in History (ADR 0010).
+14. Timer evidence obeys the alarm evidence rules unchanged: deleting a timer occurrence
+    deletes its files, deleting a timer keeps its past evidence, a missed timer records
+    nothing because it never rings, and a recording-on ring before first unlock persists
+    `DIRECT_BOOT_UNAVAILABLE`. Stop and +1 min always work regardless of camera state.
 
 ## 3. Supported platform
 
@@ -107,15 +139,56 @@ Alarm (domain) → AlarmRepository → AlarmScheduler → AlarmManager.setAlarmC
 
 Component responsibilities:
 
-* `AlarmScheduler` — computes the next occurrence and programs exactly one exact alarm
+* `AlarmScheduler`: computes the next occurrence and programs exactly one exact alarm
   per upcoming occurrence. Idempotent. Reports failure explicitly.
-* `AlarmReceiver` — Direct-Boot aware `BroadcastReceiver`; does no long work; starts
+* `AlarmReceiver`: Direct-Boot aware `BroadcastReceiver`; does no long work; starts
   `AlarmPlaybackService` and hands off; must not touch credential-protected Room before
   `UserManager.isUserUnlocked()` is verified.
-* `AlarmPlaybackService` — foreground service (`mediaPlayback`) owning ringtone,
+* `AlarmPlaybackService`: foreground service (`mediaPlayback`) owning ringtone,
   vibration, wake lock, notification and ringing state.
-* `RingingActivity` — `showWhenLocked` + `turnScreenOn`; owns user interaction and the
+* `RingingActivity`: `showWhenLocked` + `turnScreenOn`; owns user interaction and the
   CameraX evidence lifecycle.
+
+## 5a. Timer architecture
+
+Timers borrow the alarm's reliability path, never its objects. The state machine, the
+ringing surface and the persistence split are ADR 0008; the scheduling carve-out is
+ADR 0009; the evidence rules are ADR 0010.
+
+```text
+Timer (domain) → TimerRepository → TimerScheduler
+        → AlarmManager.setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)
+                                (one alarm, for the earliest-ending timer)
+        → TimerReceiver → TimerPlaybackService (mediaPlayback FGS)
+                        → full-screen-intent notification → TimerRingingActivity
+                                                          → shared evidence component
+                                                          → Stop / +1 min / Stop all
+                                                          → TimerOccurrence + EvidenceSegments
+                                                          → History UI
+```
+
+Component responsibilities:
+
+* `TimerRepository`: Room is the truth for the list, the labels and editing; the
+  device-protected mirror is authoritative before first unlock and is reconciled into
+  Room on `USER_UNLOCKED`.
+* `TimerScheduler`: keeps exactly one exact alarm, for the earliest-ending timer (§6a).
+  Idempotent. Reports failure explicitly.
+* `TimerReceiver`: Direct-Boot aware `BroadcastReceiver`; does no long work; starts
+  `TimerPlaybackService` and hands off; must not touch credential-protected Room before
+  `UserManager.isUserUnlocked()` is verified.
+* `TimerPlaybackService`: foreground service (`mediaPlayback`) owning the timer ringtone,
+  vibration, one wake lock, the notification and ringing state for every ringing timer at
+  once (§8a).
+* `TimerRingingActivity`: `showWhenLocked` + `turnScreenOn`; owns user interaction and the
+  evidence lifecycle (§9a).
+* Timer run state is exactly one of `Idle`, `Running`, `Paused`, `Ringing`, `Missed`.
+  Transitions are the table in ADR 0008 and are pure functions of the stored anchors.
+
+No always-running service. A `Running` timer and a running stopwatch are plain ongoing
+notifications computed from stored anchors: no foreground service and no wake lock. Only a
+ringing timer (`TimerPlaybackService`) or a ringing alarm (`AlarmPlaybackService`) holds an
+FGS.
 
 ## 6. Alarm scheduling rules
 
@@ -128,7 +201,7 @@ Component responsibilities:
   weekdays, across DST gaps/overlaps and timezone changes.
 * Re-evaluate all alarms on: `BOOT_COMPLETED`, `LOCKED_BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`,
   `TIME_SET`, `TIMEZONE_CHANGED`, user unlock, exact-alarm permission state changes, and **every app
-  launch** (`MainViewModel`) — the only supported recovery after a force stop, which the platform does not
+  launch** (`MainViewModel`), the only supported recovery after a force stop, which the platform does not
   announce. Rescheduling is idempotent, so repeating it is safe.
 * PendingIntent identity is deterministic and collision-safe (derived from the alarm id
   and occurrence kind), so rescheduling replaces rather than duplicates.
@@ -136,6 +209,32 @@ Component responsibilities:
   Where exact access can still be unavailable, detect it, surface it on the reliability
   screen with a settings deep link, and reschedule once restored. **Never** silently
   downgrade to an inexact alarm.
+
+## 6a. Timer scheduling rules
+
+* The one exception to §6, and a closed one (ADR 0009): a timer schedules exactly one
+  exact alarm with `AlarmManager.setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)`, one
+  fixed request code, for the earliest-ending timer (ADR 0008). Only timers, and only that
+  API. An alarm occurrence is never scheduled with it, and a timer is never scheduled with
+  `setAlarmClock()`: a countdown is not the device's next alarm and must not be reported as
+  one on the status bar, lock screen or keyguard.
+* A `Running` timer stores `remainingAtAnchor` alongside both an elapsed anchor and a
+  wall-clock anchor, because `elapsedRealtime` resets at boot. Remaining time is a pure
+  function of either pair, clamped at zero.
+* Re-arm after every timer mutation, on boot from the device-protected mirror, on user
+  unlock and on every app launch. Re-arming is idempotent.
+* A delivery is validated against the timer's current end instant and dropped as stale when
+  it no longer matches, so a cancelled, paused, reset or extended timer cannot ring an
+  alarm that is no longer its own.
+* Elapsed-realtime alarms do not move when the wall clock changes: `TIME_SET` and
+  `TIMEZONE_CHANGED` re-arm nothing, they recompute remaining time from the elapsed delta
+  and ignore a negative delta.
+* Discovery (`LOCKED_BOOT_COMPLETED`, `USER_UNLOCKED`, app launch) moves a `Running` timer
+  that is more than 60 s overdue to `Missed`: it does not ring, records nothing and waits
+  under a low-importance notification. A timer 0 to 60 s overdue rings through an immediate
+  exact alarm, so the platform still authorises the foreground service start.
+* `USE_EXACT_ALARM` covers timers as well as alarms. Where exact access is unavailable the
+  §6 rule applies unchanged: detect it, surface it, never downgrade to an inexact alarm.
 
 ## 7. Full-screen-intent rules
 
@@ -159,6 +258,17 @@ the alarm wake lock, ringing state exposed to the UI, snooze/dismiss command han
 auto-timeout. It must keep ringing if `RingingActivity` crashes or disappears. It must not
 depend on Compose, Room, or the camera. Do not request DND policy access.
 
+## 8a. TimerPlaybackService responsibility
+
+Mirrors §8 for timers and shares only `AlarmSoundPlayer` and `AlarmVibrator` with the alarm
+path (ADR 0008); reusing `AlarmPlaybackService` is forbidden, because that object owns
+occurrences, snooze budgets, evidence and the single alarm ringing session. Owns and is the
+single source of truth for: the timer ringtone, vibration, one wake lock and one sound
+serving every ringing timer at once, the timer ringing notification (whose text is the
+count of ringing timers), ringing state exposed to the UI, and stop / +1 min command
+handling. It must keep ringing if `TimerRingingActivity` crashes or disappears. It must not
+depend on Compose, Room, the camera or the evidence component.
+
 ## 9. RingingActivity responsibility
 
 Owns interaction only: shows time/label, Snooze and Dismiss, recording status, optional
@@ -166,14 +276,32 @@ preview; drives the CameraX evidence lifecycle; sends commands to the service. I
 plays audio or vibrates. Dismiss/Snooze must work while camera state is broken, and must
 remain large, high-contrast and reachable.
 
+## 9a. TimerRingingActivity responsibility
+
+Owns interaction only, for the timers that are ringing: lists every ringing timer with
+Stop and +1 min, adds Stop all when two or more are ringing, shows recording status, drives
+the evidence lifecycle through the same component `RingingActivity` uses (§10, never two
+copies), and sends commands to `TimerPlaybackService`. It never plays audio or vibrates.
+Pause is not offered while a timer is ringing. Stop, Stop all and +1 min must work while
+camera state is broken, and must remain large, high-contrast and reachable. The §7 rules
+apply to it unchanged: a high-importance alarm-category notification with a
+`fullScreenIntent`, `setShowWhenLocked(true)`, `setTurnScreenOn(true)`, and never a
+keyguard bypass.
+
 ## 10. Camera / evidence lifecycle rules
 
-* CameraX use cases bind to the `RingingActivity` lifecycle; recording starts only after
-  the activity is actually resumed and stops when it is no longer visible.
+* CameraX use cases bind to the ringing screen's lifecycle (`RingingActivity` or
+  `TimerRingingActivity`); recording starts only after the activity is actually resumed and
+  stops when it is no longer visible. Both screens use one evidence component, never two
+  copies (ADR 0010).
 * Front camera, `VideoCapture<Recorder>`, **no audio**, quality capped at 720p (fallback
   480p). `RECORD_AUDIO` is never requested or declared.
 * No camera foreground service; no background recording; recording state is always visible
   in the UI (indicator + elapsed timer, not color-only).
+* One camera permission serves both ringing screens. Turning timer evidence on uses it, or
+  requests it at that moment; there is no timer-specific permission and no new permission at
+  all. The prominent disclosure (ADR 0006) says that timers can record too, when the user
+  turns that on.
 * Timestamps recorded per occurrence: `scheduledFor`, `alarmTriggeredAt`, `activityVisibleAt`,
   and per segment `recordingRequestedAt`, `recordingStartedAt?`, `recordingEndedAt?`,
   `recordingFinalizedAt?`, plus `dismissedAt?` on the occurrence. `recordingStartedAt` comes
@@ -183,17 +311,28 @@ remain large, high-contrast and reachable.
 * Every expected failure (permission denied/revoked, camera unavailable or in use, init
   failure, start failure, finalization failure, storage error, Direct Boot unavailable,
   unknown) is persisted as a machine-readable status and never blocks dismissal.
+* The same rules govern a timer occurrence: the timer ringing screen drives the same
+  component and records the same per-occurrence and per-segment timestamps, and
+  `recordingStartedAt` still comes only from `VideoRecordEvent.Start`. A timer occurrence
+  ends at a stop or a +1 min rather than a dismissal, and a missed timer never records
+  because it never rings.
 
 ## 11. Direct Boot constraints
 
-* Alarm-critical components (`AlarmReceiver`, `BootReceiver`, `AlarmPlaybackService`,
-  `RingingActivity`) are `directBootAware`.
+* Alarm-critical and timer-critical components (`AlarmReceiver`, `BootReceiver`,
+  `AlarmPlaybackService`, `RingingActivity`, `TimerReceiver`, `TimerPlaybackService`,
+  `TimerRingingActivity`) are `directBootAware`.
 * A **minimal** alarm-critical mirror (id, trigger time, label, vibration, snooze minutes,
   sound URI) lives in device-protected storage; it holds nothing else about the user.
+* A separate **minimal** timer mirror (id, state, total length, remaining at its anchor,
+  wall-clock anchor, end instant, label, ringtone URI) lives in device-protected storage
+  (ADR 0008). It carries the timer label, because before first unlock the ringing screen has
+  no other way to tell one ringing timer from another. Alarm labels are not mirrored, and
+  that does not change.
 * Any code reachable before first unlock must check `UserManager.isUserUnlocked()` before
   touching Room/DataStore. Hilt dependencies used on that path must not eagerly build Room.
 * Before first unlock, evidence is best-effort; when it cannot run, persist
-  `DIRECT_BOOT_UNAVAILABLE` and still ring, snooze and dismiss normally.
+  `DIRECT_BOOT_UNAVAILABLE` and still ring, snooze, dismiss, stop and +1 min normally.
 
 ## 12. Storage and privacy rules
 
@@ -201,9 +340,12 @@ remain large, high-contrast and reachable.
   any network permission. The app declares no `INTERNET` permission.
 * Video files live under app-private `noBackupFilesDir/evidence/` with opaque generated
   names (no labels or timestamps in filenames). `allowBackup=false`, no cloud backup rules.
-* Room stores metadata only — never video blobs, never localized display strings.
+* Room stores metadata only: never video blobs, never localized display strings.
 * Retention: default 7 days, options 1/7/30 days or indefinite. Cleanup is asynchronous and
   never touches segments belonging to an in-progress recording.
+* Retention and deletion are identical for timer occurrences (ADR 0010): deleting a timer
+  occurrence deletes its files, deleting a timer keeps its past evidence, and a missed timer
+  never records because it never rings.
 * Logs never contain video content, file paths of evidence, or user labels in release builds.
 
 ## 13. Compose architecture conventions
@@ -255,9 +397,15 @@ only.
 * **Unit (JVM)**: recurrence calculation (one-time, daily, weekday sets, before/after today,
   week rollover, DST spring-forward gap, DST fall-back overlap, timezone change), snooze
   math, scheduling identity, alarm/occurrence/evidence state transitions, entity mappers,
-  retention policy selection, reliability check evaluation.
-* **Instrumented**: Room creation + migrations, DAOs/repositories, Compose screens for list,
-  editor, history, ringing controls, permission-state UI, navigation.
+  retention policy selection, reliability check evaluation, the timer run-state machine and
+  its transition table (ADR 0008), remaining-time math from both anchors including a
+  negative elapsed delta, timer scheduling identity and stale-delivery rejection, timer
+  intent handling (`SET_TIMER`, `DISMISS_TIMER`; ADR 0007), occurrence source and timer
+  evidence toggle resolution.
+* **Instrumented**: Room creation + migrations (including the occurrence-source migration),
+  DAOs/repositories, Compose screens for list, editor, history, ringing controls,
+  permission-state UI, navigation, the timer screens (list, editor, ringing), the Settings
+  Timers section, and timer history entries with the Timer badge.
 * **Device/emulator**: the end-to-end matrix in `docs/TESTING.md`, including Doze, process
   kill, reboot with and without unlock, and camera failure modes.
 * New behavior ships with tests. Never delete or `@Ignore` a failing test to go green.
@@ -273,6 +421,10 @@ force-stop recovery, since the platform does not announce a force stop - but it 
 launch**. Its live callers are `BootReceiver`, `UserUnlockedReceiver` and `AlarmPlaybackService`, so after a
 force stop an alarm stays cancelled until one of those fires. Wiring it is outstanding work, not a licence
 to schedule alarms any other way.
+
+The timer re-arm (§6a, one exact alarm for the earliest-ending timer) also runs here, for the same reason: a
+force stop clears it exactly as it clears alarms, and the platform announces nothing. It is idempotent, it
+may not become a background worker, and it may not block the first frame.
 
 ## 18. Required validation commands
 
@@ -333,10 +485,16 @@ did not happen. Keep planning artifacts (`docs/superpowers/**`) local; do not co
 
 ## 20. Explicitly prohibited approaches
 
-* WorkManager / `setRepeating()` / timers / coroutine delays / notifications as alarms.
+* WorkManager / `setRepeating()` / in-process timers (`Handler`, `java.util.Timer`, coroutine
+  `delay`) / notifications as alarms.
 * Alarm logic that depends on the Activity, Compose, Room, or the camera.
 * `previousTrigger + 24h` recurrence.
 * Notification actions that dismiss the alarm without the ringing experience.
+* Any exact alarm other than `setAlarmClock()` for an alarm and
+  `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` for the earliest-ending timer. The
+  timer carve-out is closed: it admits no other API and no other caller.
+* Timer logic that depends on the Activity, Compose, Room, or the camera, or that reuses
+  `AlarmPlaybackService` or `RingingActivity` for timers.
 * Background or invisible camera use; camera foreground service; `RECORD_AUDIO`.
 * Overlay windows, accessibility services, device admin, keyguard bypass, hidden APIs,
   reflection into the framework, root or shell commands, undocumented restart hacks,
