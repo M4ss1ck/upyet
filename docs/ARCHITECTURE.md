@@ -131,9 +131,11 @@ flowchart LR
 ```
 
 * Alarm-critical components are `directBootAware`. Everything they need before first unlock lives in
-  device-protected storage: alarm id, trigger time, snooze minutes, vibration flag, sound URI. Labels
-  and history are deliberately *not* mirrored — device-protected storage is not the place for user
-  content that is not required to ring.
+  device-protected storage: alarm id, trigger time, snooze minutes, vibration flag, sound URI, and, for a
+  timer, its label. `AGENTS.md` §11 permits a label in the minimal mirror; alarm labels are not mirrored,
+  a deliberate choice, while a timer's label is, because the ringing screen has nothing else to name a
+  ringing timer by before first unlock. History is never mirrored: device-protected storage is not the
+  place for user content that is not required to ring.
 * Any code reachable before unlock checks `UserManager.isUserUnlocked()` before touching Room or
   DataStore, and the Hilt graph on that path never eagerly constructs the database.
 * Occurrences that fire while locked are appended to a device-protected pending list and merged into
