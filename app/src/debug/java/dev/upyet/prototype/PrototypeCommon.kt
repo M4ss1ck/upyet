@@ -11,16 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
-
-/**
- * How much room a #13 screen leaves free at the bottom. The prototype pill sits 92 dp above the
- * navigation bar and is up to ~70 dp tall, so anything pinned to the bottom - a FAB, a button bar, the
- * last list row - stops this far short of the edge instead of disappearing under it.
- */
-internal val PrototypePillClearance: Dp = 168.dp
 
 /**
  * "7:42" below an hour, "1:07:42" above it. A countdown is read at a glance, so the hours field only

@@ -513,8 +513,8 @@ private val fakeAlarms =
 private val timerKeypadRows =
     listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("⌫", "0", "00"))
 
-/** No empty rows are visible under the floating pill: the list pads past it instead. */
-private val tabListPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 150.dp)
+/** Room for the last row to breathe; the shell's own bottom bar already clears the system inset. */
+private val tabListPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp)
 
 @Composable
 private fun AlarmsTab(modifier: Modifier = Modifier) {
@@ -611,8 +611,7 @@ private fun TimerTab(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.weight(1f))
         TimerKeypad()
-        // Clears the floating pill, which sits above the bottom bar.
-        Spacer(Modifier.height(150.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 

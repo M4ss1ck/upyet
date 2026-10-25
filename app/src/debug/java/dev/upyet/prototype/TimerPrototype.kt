@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -361,8 +362,9 @@ private fun TimerVariantA(lab: TimerLab) {
                     modifier =
                     Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .padding(horizontal = 20.dp)
-                        .padding(top = 8.dp, bottom = PrototypePillClearance),
+                        .padding(top = 8.dp, bottom = 16.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -383,13 +385,14 @@ private fun TimerVariantA(lab: TimerLab) {
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().navigationBarsPadding(),
                     contentPadding =
                     PaddingValues(
                         start = 16.dp,
                         top = 4.dp,
                         end = 16.dp,
-                        bottom = PrototypePillClearance,
+                        // Clears the FAB, not the prototype pill: 56 dp of button plus the two margins.
+                        bottom = 88.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
@@ -402,7 +405,7 @@ private fun TimerVariantA(lab: TimerLab) {
         if (lab.timers.isNotEmpty()) {
             FloatingActionButton(
                 onClick = { showKeypad = true },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = PrototypePillClearance),
+                modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 20.dp, bottom = 16.dp),
             ) {
                 Text(text = "+", style = MaterialTheme.typography.headlineMedium)
             }
@@ -423,7 +426,7 @@ private fun TimerVariantA(lab: TimerLab) {
             ) {
                 Text(text = "Start")
             }
-            Spacer(Modifier.height(PrototypePillClearance))
+            Spacer(Modifier.height(16.dp))
         }
     }
 
@@ -452,7 +455,7 @@ private fun TimerVariantA(lab: TimerLab) {
                     lab.delete(editing.id)
                     editingId = 0
                 }) { Text(text = "Delete timer") }
-                Spacer(Modifier.height(PrototypePillClearance))
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -568,8 +571,8 @@ private fun TimerVariantB(lab: TimerLab) {
     Column(Modifier.fillMaxSize()) {
         PrototypeBareTitle(title = "Timer", subtitle = "B · Wheels and presets, everything inline")
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = PrototypePillClearance),
+            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+            contentPadding = PaddingValues(bottom = 16.dp),
         ) {
             item {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -831,7 +834,7 @@ private fun TimerPageC(timer: PrototypeTimer, lab: TimerLab) {
     var editingLabel by rememberSaveable(timer.id) { mutableStateOf(false) }
     val editableEvidence = timer.status != TimerStatus.Ringing
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -904,7 +907,7 @@ private fun TimerPageC(timer: PrototypeTimer, lab: TimerLab) {
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        Spacer(Modifier.height(PrototypePillClearance))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -913,7 +916,7 @@ private fun NewTimerPageC(lab: TimerLab, onCreated: () -> Unit) {
     var digits by rememberSaveable { mutableStateOf("") }
     val total = keypadSeconds(digits)
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "New timer", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 8.dp))
@@ -929,7 +932,7 @@ private fun NewTimerPageC(lab: TimerLab, onCreated: () -> Unit) {
         ) {
             Text(text = "Start")
         }
-        Spacer(Modifier.height(PrototypePillClearance))
+        Spacer(Modifier.height(16.dp))
     }
 }
 

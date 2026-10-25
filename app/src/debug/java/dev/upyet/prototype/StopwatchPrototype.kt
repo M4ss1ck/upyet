@@ -195,7 +195,10 @@ private fun StopwatchVariantA(lab: StopwatchLab) {
             )
         }
         HorizontalDivider()
-        LazyColumn(contentPadding = PaddingValues(top = 4.dp, bottom = PrototypePillClearance)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+        ) {
             // Newest on top: the lap just taken is the one being looked at.
             items(laps.asReversed(), key = { it.number }) { lap ->
                 LapRowA(lap = lap, ranking = ranking)
@@ -278,7 +281,10 @@ private fun StopwatchVariantB(lab: StopwatchLab) {
             modifier = Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp),
         )
         HorizontalDivider()
-        LazyColumn(contentPadding = PaddingValues(top = 4.dp, bottom = PrototypePillClearance)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+        ) {
             items(laps, key = { it.number }) { lap -> CompactLapRow(lap = lap) }
         }
     }
@@ -429,8 +435,9 @@ private fun StopwatchVariantC(lab: StopwatchLab) {
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = PrototypePillClearance + 88.dp),
+                modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+                // Clears the bottom bar the layout itself pins here, not the prototype pill.
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(laps.asReversed(), key = { it.number }) { lap ->
@@ -438,15 +445,14 @@ private fun StopwatchVariantC(lab: StopwatchLab) {
                 }
             }
         }
-        // The bar is fixed to the bottom of the content, lifted clear of the prototype pill so the two
-        // primary controls never hide under it.
+        // The bar is fixed to the bottom of the content: Lap and Start belong at the thumb, and the list
+        // above it keeps its own clearance so neither hides the other.
         Row(
             modifier =
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = PrototypePillClearance)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {

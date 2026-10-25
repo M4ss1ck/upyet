@@ -119,4 +119,16 @@ private val prototypeEntries =
             summary = "Three structurally different stopwatch screens",
             content = { StopwatchPrototype() },
         ),
+        PrototypeEntry(
+            id = "14-timer-ringing",
+            title = "14 · Timer ringing",
+            summary = "Three structurally different ringing timer screens",
+            content = { TimerRingingPrototype() },
+        ),
+        PrototypeEntry(
+            id = "14-timer-heads-up",
+            title = "14 · Timer heads-up",
+            summary = "Two heads-up notifications while the phone is in use",
+            content = { TimerHeadsUpPrototype() },
+        ),
     )
