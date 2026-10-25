@@ -107,4 +107,16 @@ private val prototypeEntries =
             summary = "Three structurally different app shells",
             content = { NavigationShellPrototype() },
         ),
+        PrototypeEntry(
+            id = "13-timer",
+            title = "13 · Timer",
+            summary = "Three structurally different timer screens",
+            content = { TimerPrototype() },
+        ),
+        PrototypeEntry(
+            id = "13-stopwatch",
+            title = "13 · Stopwatch",
+            summary = "Three structurally different stopwatch screens",
+            content = { StopwatchPrototype() },
+        ),
     )
