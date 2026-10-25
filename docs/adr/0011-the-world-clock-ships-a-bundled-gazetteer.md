@@ -40,6 +40,32 @@ re-hashes the committed asset and asserts a set of acceptance rows, so the pin a
 apart silently. The compressed cost is roughly 110 KB, which is a rounding error beside a single recorded
 clip.
 
+**Four inputs, and nothing else is read.** The lock file pins exactly these: Natural Earth's 10m populated
+places (`ne_10m_populated_places`, the rows and their names, `NAME_ES`, ISO country, coordinates, population
+and `GEONAMESID`); Natural Earth's 110m land (`ne_110m_land`, the map outline and only the outline); GeoNames
+`cities5000` (a superset of the Natural Earth rows, so a city GeoNames counts below 15,000 still joins), which supplies the zones and the GeoNames id
+space; and the IANA time zone database's `zone.tab` plus `backward`, which supply the per-country validation
+and the canonicalisation. A fifth download would be a new decision, not an implementation detail.
+
+**The two committed formats are an interface, so they are fixed here.** `world_cities.tsv` is UTF-8, tab
+separated, one header line first, no quoting: tabs and line breaks inside a name are collapsed to single
+spaces at write time, so a tab is always a field separator. Its eight columns, in this order, are `name` (the
+ASCII name), `name_es` (Natural Earth's `NAME_ES`, falling back to `name` so the Spanish label is never
+blank), `iso_a2` (the row's ISO 3166-1 alpha-2 country, the key the `zone.tab` validation uses), `zone_id` (the
+canonical IANA zone the row resolved to, never a `backward` link), `latitude` and `longitude` (exactly four
+decimals, about 11 m, so a re-run produces the same bytes), `population`, and `geonames_id` (Natural Earth's
+`GEONAMESID`, which is also the stable key the world clock list persists). Rows are sorted by population
+descending and then by a total order over the remaining columns, so two runs over the same inputs are
+byte-identical. A row whose country is unknown cannot be validated against `zone.tab`, so it is dropped and
+counted like any other rejected row.
+
+`world_land.bin` keeps the prototype's `UPLD` layout, because it is already written and already read: the four
+bytes `UPLD` (version 1 carried by the magic, with no version byte after it), a little-endian `uint32` ring
+count, then per ring a little-endian `uint32` point count followed by that many `int16` pairs, longitude then
+latitude, each `round(degrees * 100)`. Holes are written as their own rings and the reader fills even-odd, so no
+ring carries a hole flag. 1/100 degree keeps every vertex inside `int16` and is finer than a phone can draw at
+this map size, and polygons are not clipped: the screen clips them.
+
 **The drop budget is a gate, not a print.** The script exits non-zero when drops from any rule exceed the
 pinned budget, and the per-rule fill counts land in `world-data.manifest.txt` so a refresh shows up as a
 reviewable diff of numbers rather than a diff of twenty thousand opaque rows. A pipeline that silently drops
@@ -57,10 +83,10 @@ is refreshed when an upstream release lands or a user reports a mis-zoned city, 
 lock file, the asset and the manifest together. The retrieval date and input hashes make that PR auditable
 without trusting the author.
 
-**Attribution is load-bearing, because GeoNames is CC BY 4.0.** The three inputs are compatible with this
-project's GPL-3.0-or-later under `AGENTS.md` §15: Natural Earth is public domain, the IANA time zone
-database is public domain, and GeoNames is CC BY 4.0, which the FSF lists as a free licence compatible with
-the GPL. Compatibility is not the same as silence: the licence requires attribution, so it appears in four
+**Attribution is load-bearing, because GeoNames is CC BY 4.0.** The inputs are compatible with this
+project's GPL-3.0-or-later under `AGENTS.md` §15: both Natural Earth layers are public domain, the IANA time
+zone database is public domain, and GeoNames is CC BY 4.0, which the FSF lists as a free licence compatible
+with the GPL. Compatibility is not the same as silence: the licence requires attribution, so it appears in four
 places. Settings gains About > Data sources, a short static screen naming "Place data © GeoNames, CC BY
 4.0", "Made with Natural Earth" and "Time zone rules: IANA Time Zone Database, public domain", each with its
 link. A repo-root `NOTICE` file carries the same text so the duty survives somebody copying the source. A
