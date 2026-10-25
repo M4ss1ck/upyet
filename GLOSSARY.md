@@ -68,9 +68,30 @@ because rules about ringing, notifications and evidence now mostly cover alarms 
 and would otherwise turn into a list of three.
 _Avoid_: Utility, widget, feature
 
+**Clock-tool ongoing notification**:
+The single low-importance notification a running timer or a running stopwatch shows, driven by a chronometer
+from a stored anchor so that no service has to run and nothing has to be recomputed. It is not a **Ringing**
+notification: it carries no full-screen intent, and its actions mirror the timer list or the stopwatch controls
+rather than ending a ring.
+_Avoid_: Foreground notification, running notification (neither is a foreground service)
+
 **World clock**:
 A user-chosen list of places, each showing its current local time and its offset from the user's own.
 _Avoid_: Global time, time zones (a zone is what a place resolves to, not the feature)
+
+**Gazetteer**:
+The bundled, offline dataset behind World clock search and the map on that screen: place names in English and
+Spanish, coordinates, population, country, and the IANA zone each place resolves to, plus the land outline the
+map draws. It ships inside the APK as a generated asset and is never downloaded at build time or at runtime; a
+place names a zone, while a zone's own label still comes from the platform.
+_Avoid_: City list, database, dataset
+
+**Data sources**:
+The Settings › About screen, and the repository `NOTICE` file, where the third-party data UpYet ships is
+credited: place data from GeoNames, map outlines from Natural Earth, and the IANA time zone database. The
+GeoNames credit is a licence condition rather than a courtesy, which is why it appears in the app and in the
+published privacy page and not only in the repository.
+_Avoid_: Licences, credits
 
 **Timer**:
 A countdown from a chosen duration that rings when it reaches zero. A timer rings through the same
