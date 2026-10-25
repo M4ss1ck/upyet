@@ -13,12 +13,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,7 +98,7 @@ internal fun TimerPrototype() {
             PrototypeVariant("B", "Wheels + presets") { TimerVariantB(lab) },
             PrototypeVariant("C", "One timer per page") { TimerVariantC(lab) },
         )
-    PrototypeVariants(variants = variants) {
+    PrototypeVariants(variants = variants, modifier = Modifier.statusBarsPadding()) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // A default for *new* timers only: flipping it never changes a timer that already exists.
             PrototypeControlChip(
@@ -779,10 +781,28 @@ private fun TimerEvidencePill(timer: PrototypeTimer, lab: TimerLab) {
     }
 }
 
+/**
+ * A compact text-glyph action. It is sized to its own glyph instead of a fixed square, because the Missed
+ * row's action is the word "Dismiss": a 36 dp IconButton box squeezed it onto two lines. Only the label and
+ * time column gives up width, and the glyph itself never wraps.
+ */
 @Composable
 private fun SmallGlyphButton(glyph: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
-        Text(text = glyph, style = MaterialTheme.typography.labelMedium)
+    Box(
+        modifier =
+        Modifier
+            .defaultMinSize(minWidth = 36.dp, minHeight = 36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = glyph,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 

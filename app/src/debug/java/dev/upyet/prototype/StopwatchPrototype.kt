@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -82,7 +83,7 @@ internal fun StopwatchPrototype() {
             PrototypeVariant("B", "Dial") { StopwatchVariantB(lab) },
             PrototypeVariant("C", "Lap cards + delta") { StopwatchVariantC(lab) },
         )
-    PrototypeVariants(variants = variants) {
+    PrototypeVariants(variants = variants, modifier = Modifier.statusBarsPadding()) {
         PrototypeControlChip(
             label = "Seed 6 laps",
             checked = lab.isSeeded,

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -105,7 +106,7 @@ internal fun WorldClockPrototype() {
             PrototypeVariant("B", "Analog grid") { AnalogGridVariant(lab = lab, now = now) },
             PrototypeVariant("C", "Day timeline") { DayTimelineVariant(lab = lab, now = now) },
         )
-    PrototypeVariants(variants = variants) {
+    PrototypeVariants(variants = variants, modifier = Modifier.statusBarsPadding()) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // The gap in the real data, made switchable: off finds only canonical zones, on finds fifteen
             // more by hand.
@@ -623,9 +624,14 @@ private fun ClockTile(
 // region Variant C - every place on one 24-hour strip
 
 /** The two columns the strips are inset by, so every strip shares one x axis and the now line lines up. */
-private val timelineLabelWidth = 104.dp
+private val timelineLabelWidth = 120.dp
 private val timelineTimeWidth = 64.dp
-private val timelineRowHeight = 52.dp
+
+/**
+ * Tall enough for the three text lines of a row (city, day, offset) with room to spare: a row whose text
+ * is clipped is a row whose place cannot be read.
+ */
+private val timelineRowHeight = 56.dp
 private const val WAKING_START_HOUR = 8.0
 private const val WAKING_END_HOUR = 22.0
 
@@ -770,8 +776,17 @@ private fun TimelineRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // The day and the offset each get a line of their own: "Tomorrow, +8 h 30 min" on one line
+                // in a column this narrow would cut the offset off, which is the half that carries a number.
                 Text(
-                    text = moment.detailLine(),
+                    text = if (moment.note == null) moment.dayLabel else "${moment.note} · ${moment.dayLabel}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = moment.delta,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
