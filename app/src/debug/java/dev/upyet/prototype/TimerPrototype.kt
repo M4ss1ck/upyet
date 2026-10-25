@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -578,17 +577,21 @@ private fun TimerVariantB(lab: TimerLab) {
         ) {
             item {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.Top,
-                    ) {
+                    // The three wheels and their two separators split the whole content width, so on a
+                    // 360 dp phone the picker spans about 90% of the screen once the page padding is in.
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                         key(wheelEpoch) {
-                            TimerWheel(value = hours, count = 24, caption = "h") { hours = it }
+                            TimerWheel(value = hours, count = 24, caption = "h", modifier = Modifier.weight(1f)) {
+                                hours = it
+                            }
                             WheelSeparator()
-                            TimerWheel(value = minutes, count = 60, caption = "m") { minutes = it }
+                            TimerWheel(value = minutes, count = 60, caption = "m", modifier = Modifier.weight(1f)) {
+                                minutes = it
+                            }
                             WheelSeparator()
-                            TimerWheel(value = seconds, count = 60, caption = "s") { seconds = it }
+                            TimerWheel(value = seconds, count = 60, caption = "s", modifier = Modifier.weight(1f)) {
+                                seconds = it
+                            }
                         }
                     }
                     Row(
@@ -658,11 +661,16 @@ private fun TimerVariantB(lab: TimerLab) {
     }
 }
 
-private val wheelItemHeight = 36.dp
+/** One row of a wheel: tall enough to hold a displayMedium (45 sp) digit with air around it. */
+private val wheelItemHeight = 64.dp
 
-/** A three-slot snapping wheel: the centred row is the value, and it reports every centred change up. */
+/**
+ * A three-slot snapping wheel: the centred row is the value, with one dimmed neighbour above and below, and
+ * it reports every centred change up. The wheel takes its width from the row it sits in, so the three of
+ * them plus their separators read as one full-width time picker.
+ */
 @Composable
-private fun TimerWheel(value: Int, count: Int, caption: String, onValueChange: (Int) -> Unit) {
+private fun TimerWheel(value: Int, count: Int, caption: String, modifier: Modifier = Modifier, onValueChange: (Int) -> Unit) {
     val state = rememberLazyListState(initialFirstVisibleItemIndex = value.coerceIn(0, count - 1))
     // The scroll position changes on every pixel of a fling; deriving the centred row keeps recomposition
     // down to actual value changes instead of every scroll offset.
@@ -670,10 +678,10 @@ private fun TimerWheel(value: Int, count: Int, caption: String, onValueChange: (
         derivedStateOf { state.firstVisibleItemIndex.coerceIn(0, count - 1) }
     }
     LaunchedEffect(selectedIndex) { onValueChange(selectedIndex) }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         LazyColumn(
             state = state,
-            modifier = Modifier.height(wheelItemHeight * 3).width(64.dp),
+            modifier = Modifier.fillMaxWidth().height(wheelItemHeight * 3),
             // Half-item padding on both ends centres the trailing items, so the item at
             // firstVisibleItemIndex is exactly the one under the selection line.
             contentPadding = PaddingValues(vertical = wheelItemHeight),
@@ -681,38 +689,42 @@ private fun TimerWheel(value: Int, count: Int, caption: String, onValueChange: (
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             items(count) { index ->
-                Box(Modifier.height(wheelItemHeight), contentAlignment = Alignment.Center) {
+                val selected = index == selectedIndex
+                Box(Modifier.fillMaxWidth().height(wheelItemHeight), contentAlignment = Alignment.Center) {
                     Text(
                         text = index.toString().padStart(2, '0'),
-                        style = if (index == selectedIndex) {
-                            MaterialTheme.typography.titleLarge
+                        style = if (selected) {
+                            MaterialTheme.typography.displayMedium
                         } else {
-                            MaterialTheme.typography.bodyMedium
+                            MaterialTheme.typography.headlineSmall
                         },
-                        color = if (index == selectedIndex) {
+                        color = if (selected) {
                             MaterialTheme.colorScheme.onSurface
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         },
+                        maxLines = 1,
                     )
                 }
             }
         }
         Text(
             text = caption,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
+/** Centred on the selected wheel row and as tall as the digits, so it reads as part of the value. */
 @Composable
 private fun WheelSeparator() {
-    Text(
-        text = ":",
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(top = wheelItemHeight, start = 2.dp, end = 2.dp),
-    )
+    Box(
+        modifier = Modifier.height(wheelItemHeight * 3).padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = ":", style = MaterialTheme.typography.displayMedium)
+    }
 }
 
 @Composable

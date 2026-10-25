@@ -2,6 +2,7 @@
 // no persistence, no Hilt - one in-memory fake stopwatch so the three layouts can be judged on their own.
 package dev.upyet.prototype
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -259,37 +262,51 @@ private fun StopwatchVariantB(lab: StopwatchLab) {
     val laps = lab.laps
     Column(Modifier.fillMaxSize()) {
         PrototypeBareTitle(title = "Stopwatch", subtitle = "B · Analog dial, laps oldest first")
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            StopwatchDial(elapsedMillis = lab.elapsedMillis, modifier = Modifier.size(232.dp))
-            Text(text = formatStopwatch(lab.elapsedMillis), style = MaterialTheme.typography.headlineLarge)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RoundButton(text = "Lap", enabled = lab.running) { lab.lap() }
-                RoundButton(text = if (lab.running) "Pause" else "Start", primary = true) { lab.toggleRun() }
-                RoundButton(text = "Reset", enabled = !lab.running && !lab.isPristine) { lab.reset() }
-            }
-        }
-        Text(
-            text = "Laps · oldest first",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp),
-        )
-        HorizontalDivider()
+        // One scroll container for the whole screen: the dial block scrolls away once six laps need the
+        // room, and a stopwatch with no laps still fills most of the height instead of the bottom half.
         LazyColumn(
             modifier = Modifier.fillMaxSize().navigationBarsPadding(),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
         ) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // 0.88 of the window width: the dial is the screen, the buttons just sit under it.
+                    StopwatchDial(
+                        elapsedMillis = lab.elapsedMillis,
+                        modifier = Modifier.fillMaxWidth(0.88f).aspectRatio(1f),
+                    )
+                    Text(
+                        text = formatStopwatch(lab.elapsedMillis),
+                        style = MaterialTheme.typography.displayMedium.tabular(),
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RoundButton(text = "Lap", enabled = lab.running) { lab.lap() }
+                        RoundButton(text = if (lab.running) "Pause" else "Start", primary = true) { lab.toggleRun() }
+                        RoundButton(text = "Reset", enabled = !lab.running && !lab.isPristine) { lab.reset() }
+                    }
+                }
+                Text(
+                    text = "Laps · oldest first",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp),
+                )
+                HorizontalDivider()
+            }
             items(laps, key = { it.number }) { lap -> CompactLapRow(lap = lap) }
         }
     }
 }
+
+/** Fixed-width digits: a running stopwatch must not shuffle sideways as the numbers change. */
+private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
 /** Seconds sweep on the big dial, minutes on the small sub-dial: no text, just where the hand is. */
 @Composable
@@ -301,17 +318,21 @@ private fun StopwatchDial(elapsedMillis: Long, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = size.minDimension / 2f
-        drawCircle(color = trackColor, radius = radius, center = center, style = Stroke(width = 3.dp.toPx()))
+        // Every dimension is a fraction of the radius, so the dial keeps its proportions when it grows
+        // from phone to phone instead of turning into hairline ticks on a big circle.
+        val rim = radius * 0.026f
+        // Inset by half the stroke: a rim drawn at the exact radius loses its outer half to the bounds.
+        drawCircle(color = trackColor, radius = radius - rim / 2f, center = center, style = Stroke(width = rim))
         repeat(60) { index ->
             val radians = (index * 6.0 - 90.0) * PI / 180.0
             val major = index % 5 == 0
-            val outerRadius = radius - 10.dp.toPx()
-            val innerRadius = outerRadius - if (major) 14.dp.toPx() else 7.dp.toPx()
+            val outerRadius = radius - radius * 0.086f
+            val innerRadius = outerRadius - radius * if (major) 0.12f else 0.06f
             drawLine(
                 color = if (major) dialColor else trackColor,
                 start = center + Offset(cos(radians).toFloat() * innerRadius, sin(radians).toFloat() * innerRadius),
                 end = center + Offset(cos(radians).toFloat() * outerRadius, sin(radians).toFloat() * outerRadius),
-                strokeWidth = if (major) 3.dp.toPx() else 2.dp.toPx(),
+                strokeWidth = radius * if (major) 0.026f else 0.017f,
                 cap = StrokeCap.Round,
             )
         }
@@ -320,7 +341,7 @@ private fun StopwatchDial(elapsedMillis: Long, modifier: Modifier = Modifier) {
         val subCenter = center + Offset(0f, -radius * 0.44f)
         val subRadius = radius * 0.24f
         drawCircle(color = faceColor, radius = subRadius, center = subCenter)
-        drawCircle(color = trackColor, radius = subRadius, center = subCenter, style = Stroke(width = 2.dp.toPx()))
+        drawCircle(color = trackColor, radius = subRadius, center = subCenter, style = Stroke(width = radius * 0.017f))
         val minuteFraction = (elapsedMillis / 60_000L % 60L) / 60f
         val minuteRadians = (minuteFraction * 360f - 90f) * (PI / 180.0)
         drawLine(
@@ -332,20 +353,20 @@ private fun StopwatchDial(elapsedMillis: Long, modifier: Modifier = Modifier) {
                     cos(minuteRadians).toFloat() * subRadius * 0.8f,
                     sin(minuteRadians).toFloat() * subRadius * 0.8f,
                 ),
-            strokeWidth = 2.dp.toPx(),
+            strokeWidth = radius * 0.017f,
             cap = StrokeCap.Round,
         )
         val secondFraction = (elapsedMillis % 60_000L) / 60_000f
         val secondRadians = (secondFraction * 360f - 90f) * (PI / 180.0)
-        val handLength = radius - 24.dp.toPx()
+        val handLength = radius - radius * 0.18f
         drawLine(
             color = accent,
             start = center,
             end = center + Offset(cos(secondRadians).toFloat() * handLength, sin(secondRadians).toFloat() * handLength),
-            strokeWidth = 4.dp.toPx(),
+            strokeWidth = radius * 0.034f,
             cap = StrokeCap.Round,
         )
-        drawCircle(color = accent, radius = 6.dp.toPx(), center = center)
+        drawCircle(color = accent, radius = radius * 0.05f, center = center)
     }
 }
 
@@ -356,15 +377,22 @@ private fun RoundButton(text: String, enabled: Boolean = true, primary: Boolean 
     Surface(
         modifier =
         Modifier
-            .size(if (primary) 84.dp else 64.dp)
+            .size(if (primary) 104.dp else 84.dp)
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick),
         shape = CircleShape,
         color = if (enabled) container else container.copy(alpha = 0.4f),
         contentColor = if (enabled) content else content.copy(alpha = 0.5f),
+        // The secondary discs are surfaceVariant on a Mist background, i.e. invisible without an edge:
+        // at 84 dp the outline is what makes Lap and Reset read as round buttons at all.
+        border = if (primary) {
+            null
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = if (enabled) 1f else 0.4f))
+        },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+            Text(text = text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
     }
 }
@@ -372,20 +400,25 @@ private fun RoundButton(text: String, enabled: Boolean = true, primary: Boolean 
 @Composable
 private fun CompactLapRow(lap: PrototypeLap) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = "Lap ${lap.number}",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.width(76.dp),
         )
-        Text(text = formatStopwatch(lap.splitMillis), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        Text(
+            text = formatStopwatch(lap.splitMillis),
+            style = MaterialTheme.typography.titleLarge.tabular(),
+            modifier = Modifier.weight(1f),
+        )
         Text(
             text = formatStopwatch(lap.totalMillis),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.titleMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
         )
     }
 }
