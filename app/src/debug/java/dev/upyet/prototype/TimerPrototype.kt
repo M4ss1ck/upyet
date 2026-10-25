@@ -665,19 +665,31 @@ private fun TimerVariantB(lab: TimerLab) {
 private val wheelItemHeight = 64.dp
 
 /**
- * A three-slot snapping wheel: the centred row is the value, with one dimmed neighbour above and below, and
- * it reports every centred change up. The wheel takes its width from the row it sits in, so the three of
- * them plus their separators read as one full-width time picker.
+ * How many times a wheel repeats its range. The wheel starts in the middle of that run, so even the first
+ * and last value have a neighbour above and below, and a fling can carry on round instead of stopping at a
+ * blank row. A count of 0 or 1 is meaningless here: the caller always passes at least 24.
+ */
+private val wheelLoops = 100
+
+/**
+ * A three-slot snapping wheel: the centred row is the value, with the previous value dimmed above and the
+ * next one dimmed below, and it reports every centred change up. The wheel takes its width from the row it
+ * sits in, so the three of them plus their separators read as one full-width time picker.
  */
 @Composable
 private fun TimerWheel(value: Int, count: Int, caption: String, modifier: Modifier = Modifier, onValueChange: (Int) -> Unit) {
-    val state = rememberLazyListState(initialFirstVisibleItemIndex = value.coerceIn(0, count - 1))
+    // The range is repeated and the wheel opens in the middle of it: at 00 the row above is 23 (or 59),
+    // exactly like a hardware time picker, instead of the blank the end of a single range would give.
+    val repeatedCount = count * wheelLoops
+    val startIndex = count * (wheelLoops / 2) + value.coerceIn(0, count - 1)
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
     // The scroll position changes on every pixel of a fling; deriving the centred row keeps recomposition
     // down to actual value changes instead of every scroll offset.
-    val selectedIndex by remember(state) {
-        derivedStateOf { state.firstVisibleItemIndex.coerceIn(0, count - 1) }
+    val centredIndex by remember(state) {
+        derivedStateOf { state.firstVisibleItemIndex }
     }
-    LaunchedEffect(selectedIndex) { onValueChange(selectedIndex) }
+    val selectedValue = centredIndex.mod(count)
+    LaunchedEffect(selectedValue) { onValueChange(selectedValue) }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         LazyColumn(
             state = state,
@@ -688,11 +700,11 @@ private fun TimerWheel(value: Int, count: Int, caption: String, modifier: Modifi
             flingBehavior = rememberSnapFlingBehavior(state),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            items(count) { index ->
-                val selected = index == selectedIndex
+            items(repeatedCount) { index ->
+                val selected = index == centredIndex
                 Box(Modifier.fillMaxWidth().height(wheelItemHeight), contentAlignment = Alignment.Center) {
                     Text(
-                        text = index.toString().padStart(2, '0'),
+                        text = index.mod(count).toString().padStart(2, '0'),
                         style = if (selected) {
                             MaterialTheme.typography.displayMedium
                         } else {
