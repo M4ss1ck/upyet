@@ -134,7 +134,7 @@ private val prototypeEntries =
         PrototypeEntry(
             id = "15-world-clock",
             title = "15 · World clock",
-            summary = "Three structurally different world clock screens",
+            summary = "The chosen DeskClock list under a world map of every place",
             content = { WorldClockPrototype() },
         ),
     )

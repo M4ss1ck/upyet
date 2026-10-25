@@ -1,13 +1,15 @@
-// PROTOTYPE for #15, throwaway: the real zone data behind the three world clock variants, shared by all of
-// them. Nothing here ships - the whole source set is src/debug - so the catalog can be the platform's own:
-// ICU knows every canonical zone the device already carries and names its city, java.time answers every
-// question about an instant. No bundled city dataset, no network, no Hilt, no Room, no ViewModel.
+// PROTOTYPE for #15, throwaway: the bundled city extract and the time math behind the one surviving world
+// clock variant. Nothing here ships - the whole source set is src/debug - so the places can come from the
+// public-domain Natural Earth extract that prototype-data/convert.py turns into two assets, and java.time
+// can answer every question about an instant. No ICU exemplar names, no alias table, no network, no Hilt,
+// no Room, no ViewModel: reading the extract once is the whole of the "data layer" here.
 package dev.upyet.prototype
 
-import android.icu.text.TimeZoneNames
-import android.icu.util.TimeZone
-import android.icu.util.ULocale
-import android.os.Build
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.text.Normalizer
 import java.time.Instant
 import java.time.ZoneId
@@ -17,91 +19,119 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.abs
 
-/** A canonical zone with the city and country a picker row prints. [country] is empty when ICU knows none. */
-internal data class ZoneCity(val zoneId: String, val city: String, val country: String)
-
 /**
- * A place in the user's list. [note] is the alias caveat - "Los Angeles time" - and is null for a city the
- * platform knows by its own name.
- */
-internal data class WorldPlace(val zoneId: String, val city: String, val note: String? = null)
-
-/** A city the canonical list does not contain, resolved by hand to the zone whose time it keeps. */
-private data class CityAlias(val city: String, val zoneId: String)
-
-/**
- * Fifteen cities the platform's canonical-location list does not contain. Deliberately tiny and hand-made:
- * its job is to make both the gap in the real data and the cost of closing it by hand visible to whoever
- * decides issue #15, so it must never pretend to be a gazetteer.
+ * One place the prototype can list: a row of the bundled extract, with everything a row, a search result or
+ * a map marker prints.
  *
- * Cities the canonical list already contains are absent on purpose - Sydney, Melbourne, Chicago, Toronto
- * and Rome are all searchable without an entry here.
+ * The two name fields stay side by side rather than being resolved once at load time, because the choice
+ * belongs to the device's language, not to the data: a Spanish phone reads "Tokio" and "Nueva York", and the
+ * same build on an English phone reads "Tokyo" and "New York" without reloading anything.
  */
-private val cityAliases = listOf(
-    CityAlias("San Francisco", "America/Los_Angeles"),
-    CityAlias("Seattle", "America/Los_Angeles"),
-    CityAlias("Boston", "America/New_York"),
-    CityAlias("Miami", "America/New_York"),
-    CityAlias("Houston", "America/Chicago"),
-    CityAlias("Munich", "Europe/Berlin"),
-    CityAlias("Frankfurt", "Europe/Berlin"),
-    CityAlias("Milan", "Europe/Rome"),
-    CityAlias("Barcelona", "Europe/Madrid"),
-    CityAlias("Mumbai", "Asia/Kolkata"),
-    CityAlias("Delhi", "Asia/Kolkata"),
-    CityAlias("Osaka", "Asia/Tokyo"),
-    CityAlias("Beijing", "Asia/Shanghai"),
-    CityAlias("Rio de Janeiro", "America/Sao_Paulo"),
-    CityAlias("Tel Aviv", "Asia/Jerusalem"),
-)
+internal class WorldCity(
+    val nameAscii: String,
+    val nameEs: String,
+    val isoA2: String,
+    val zone: ZoneId,
+    val latitude: Double,
+    val longitude: Double,
+    val popMax: Int,
+    /** Localized country name, empty when the extract says "-99" or the platform has no name for it. */
+    val country: String,
+) {
+    // Folded once here, not once per keystroke: a five-thousand-row filter that re-normalises three strings
+    // per row per character is felt on a debug build.
+    private val foldedName: String = foldForSearch(nameAscii)
+    private val foldedNameEs: String = foldForSearch(nameEs)
+    private val foldedCountry: String = foldForSearch(country)
 
-/** 20:00 to 06:00 is the night the analog grid tints and tags. Local hour, never a colour alone. */
-private const val NIGHT_STARTS_AT = 20
-private const val NIGHT_ENDS_AT = 6
+    /**
+     * Stable identity for list keys and map selection. The extract carries no id column, and coordinates are
+     * the one pair that cannot collide between two different places.
+     */
+    val key: String get() = "$nameAscii|$isoA2|$latitude|$longitude"
+
+    /** "Tokio" on a Spanish device, "Tokyo" everywhere else: the only display rule the extract needs. */
+    fun displayName(language: String = Locale.getDefault().language): String =
+        if (language == "es" && nameEs.isNotEmpty()) nameEs else nameAscii
+
+    /** "City, Country", or the city alone when the extract has no country for it. */
+    fun title(language: String = Locale.getDefault().language): String {
+        val name = displayName(language)
+        return if (country.isEmpty()) name else "$name, $country"
+    }
+
+    /** Case- and accent-insensitive "contains" over both names and the localized country name. */
+    fun matches(foldedNeedle: String): Boolean =
+        foldedName.contains(foldedNeedle) || foldedNameEs.contains(foldedNeedle) || foldedCountry.contains(foldedNeedle)
+}
+
+/** The two assets the prototype reads at launch: the city extract and the land rings. */
+internal class WorldClockAssets(val cities: List<WorldCity>, val land: List<FloatArray>)
 
 /**
- * The platform's canonical-location zones, read once per prototype session.
- *
- * Reading is a few hundred ICU lookups on first use - tens of milliseconds on a debug build, which is the
- * price of having the real catalog instead of a fake one, and it buys the decision real coverage: every
- * zone the device can show a time for, with the exact city name ICU prints for it.
+ * Reads `cities.tsv` and `land.bin` once, off the main thread. Both formats are documented in
+ * `app/src/debug/prototype-data/convert.py`; this is the only reader either of them has.
  */
-internal class ZoneCatalog {
-    val cities: List<ZoneCity> by lazy { readCities() }
-    private val byId: Map<String, ZoneCity> by lazy { cities.associateBy { it.zoneId } }
+internal object WorldClockAssetsLoader {
+    private const val CITIES_ASSET = "prototype/cities.tsv"
+    private const val LAND_ASSET = "prototype/land.bin"
+    private const val CITIES_COLUMNS = 7
+    private const val LAND_MAGIC = "UPLD"
 
-    fun city(zoneId: String): ZoneCity? = byId[zoneId]
+    /** The converter's quantisation step: `round(degrees * 100)` back to degrees. */
+    private const val LAND_DEGREE_SCALE = 100f
 
-    private fun readCities(): List<ZoneCity> {
-        val names = TimeZoneNames.getInstance(ULocale.getDefault())
-        // ICU and java.time read the same tzdb but not the same id set, and this screen prints every row's
-        // time through java.time: an id it cannot resolve would be a clock that cannot be drawn, so it is
-        // dropped here rather than discovered inside a row.
-        val resolvable = ZoneId.getAvailableZoneIds()
-        val seen = HashSet<String>()
-        return canonicalZoneIds()
-            .mapNotNull { id ->
-                if (id !in resolvable) return@mapNotNull null
-                // No exemplar name means ICU has no city to print for this zone, so there is nothing to show.
-                val city = names.getExemplarLocationName(id) ?: return@mapNotNull null
-                ZoneCity(zoneId = id, city = city, country = countryName(TimeZone.getRegion(id)))
-            }
-            // One row per place: below API 28 the id list carries renamed zones, so the same city would
-            // otherwise appear twice under two ids that both resolve to the same time.
-            .filter { seen.add(it.city.lowercase(Locale.ROOT) + "|" + it.country) }
-            .sortedBy { it.city.lowercase(Locale.ROOT) }
+    suspend fun load(context: Context): WorldClockAssets = withContext(Dispatchers.IO) {
+        val cities = context.assets.open(CITIES_ASSET).bufferedReader().use { readCities(it.readText()) }
+        val land = context.assets.open(LAND_ASSET).use { readLand(it.readBytes()) }
+        WorldClockAssets(cities = cities, land = land)
     }
 
     /**
-     * Canonical location ids name one zone per place, which is exactly the list a city picker wants.
-     * `SystemTimeZoneType.CANONICAL_LOCATION` only exists from API 28, so on 26 and 27 the platform's whole
-     * id list is used and the duplicate cities it produces are collapsed by [readCities].
+     * The TSV is written by the converter with tabs collapsed out of every name, so a tab is always a field
+     * separator and the header can be skipped by position rather than by name.
      */
-    private fun canonicalZoneIds(): List<String> {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            return TimeZone.getAvailableIDs(TimeZone.SystemTimeZoneType.CANONICAL_LOCATION, null, null).toList()
+    private fun readCities(text: String): List<WorldCity> {
+        val countries = HashMap<String, String>()
+        return text
+            .lineSequence()
+            .filter { it.isNotEmpty() }
+            .drop(1)
+            .mapIndexed { index, line ->
+                val fields = line.split('\t')
+                check(fields.size == CITIES_COLUMNS) { "cities.tsv line ${index + 2}: ${fields.size} fields, expected $CITIES_COLUMNS" }
+                WorldCity(
+                    nameAscii = fields[0],
+                    nameEs = fields[1],
+                    isoA2 = fields[2],
+                    // Validated once here: a zone id the device's tzdb cannot resolve would be a row whose
+                    // clock cannot be drawn, discovered inside a row instead of at load time.
+                    zone = ZoneId.of(fields[3]),
+                    latitude = fields[4].toDouble(),
+                    longitude = fields[5].toDouble(),
+                    popMax = fields[6].toInt(),
+                    country = countries.getOrPut(fields[2]) { countryName(fields[2]) },
+                )
+            }.toList()
+    }
+
+    /** `UPLD`, a ring count, then per ring a point count and little-endian int16 pairs at 1/100 degree. */
+    private fun readLand(bytes: ByteArray): List<FloatArray> {
+        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        val magic = ByteArray(4).also { buffer.get(it) }
+        check(String(magic, Charsets.US_ASCII) == LAND_MAGIC) { "land.bin: unexpected header" }
+        val ringCount = buffer.int
+        return List(ringCount) {
+            val pointCount = buffer.int
+            // Interleaved lon,lat: one FloatArray per ring keeps the whole coastline in two contiguous
+            // allocations per point pair instead of one object per vertex.
+            FloatArray(pointCount * 2).also { ring ->
+                for (index in 0 until pointCount) {
+                    ring[index * 2] = buffer.short / LAND_DEGREE_SCALE
+                    ring[index * 2 + 1] = buffer.short / LAND_DEGREE_SCALE
+                }
+            }
         }
-        return TimeZone.getAvailableIDs().toList()
     }
 }
 
@@ -115,8 +145,8 @@ private fun countryName(region: String): String {
 
 /**
  * Case- and accent-insensitive form of [text]: NFD, combining marks dropped, lower-cased. It stands in for
- * Collator at PRIMARY strength, which folds exactly these differences for the Latin names ICU hands us,
- * and it answers "contains" without a collation iterator.
+ * Collator at PRIMARY strength, which folds exactly these differences for the Latin names the extract hands
+ * us, and it answers "contains" without a collation iterator.
  */
 internal fun foldForSearch(text: String): String {
     val decomposed = Normalizer.normalize(text, Normalizer.Form.NFD)
@@ -128,63 +158,30 @@ internal fun foldForSearch(text: String): String {
     return folded.toString()
 }
 
-/** A picker row: the zone to add, the city to print, its country, and the alias caveat when there is one. */
-internal data class WorldSearchHit(val zoneId: String, val city: String, val country: String, val note: String?) {
-    val label: String get() = if (note == null) city else "$city ($note)"
-}
-
 /**
- * Prefix-first search over city and country names, so "sao" finds Sao Paulo and "spain" finds Madrid and
- * Canary. With [withAliases] on, the hand-curated cities come first and print their caveat.
+ * The places a typed query reaches: every row whose city name, Spanish name or localized country contains it,
+ * most populous first.
  *
- * Aliases are only offered once something has been typed: an alias table that fills the top of an empty
- * search results screen would hide the very gap it exists to show.
+ * Population order is the whole ranking on purpose. "san" reaches San Antonio, San Diego and San Jose before
+ * it reaches a village in the same country, which is the order a person picking a clock expects, and it needs
+ * no scoring heuristic to defend.
  */
-internal fun searchZones(catalog: ZoneCatalog, query: String, withAliases: Boolean): List<WorldSearchHit> {
+internal fun searchCities(cities: List<WorldCity>, query: String): List<WorldCity> {
     val needle = foldForSearch(query.trim())
-    val aliasHits =
-        if (!withAliases || needle.isEmpty()) {
-            emptyList()
-        } else {
-            cityAliases.mapNotNull { alias ->
-                if (!foldForSearch(alias.city).contains(needle)) return@mapNotNull null
-                // An alias to a zone this device does not carry would be a dead row.
-                val target = catalog.city(alias.zoneId) ?: return@mapNotNull null
-                WorldSearchHit(
-                    zoneId = alias.zoneId,
-                    city = alias.city,
-                    country = target.country,
-                    note = "${target.city} time",
-                )
-            }
-        }
-    val zoneHits =
-        catalog.cities
-            .mapNotNull { zone ->
-                val cityKey = foldForSearch(zone.city)
-                val countryKey = foldForSearch(zone.country)
-                if (!cityKey.contains(needle) && !countryKey.contains(needle)) return@mapNotNull null
-                val prefix = cityKey.startsWith(needle) || countryKey.startsWith(needle)
-                WorldSearchHit(zoneId = zone.zoneId, city = zone.city, country = zone.country, note = null) to prefix
-            }
-            // A stable sort keeps the catalog's alphabetical order inside each of the two groups.
-            .sortedByDescending { (_, prefix) -> prefix }
-            .map { (hit, _) -> hit }
-    return aliasHits + zoneHits
+    if (needle.isEmpty()) return emptyList()
+    return cities.filter { it.matches(needle) }.sortedByDescending { it.popMax }
 }
 
-/** One place rendered for one instant: what every variant's row or tile prints, computed in one place. */
-internal data class CityMoment(val note: String?, val time: ZonedDateTime, val dayLabel: String, val delta: String, val isNight: Boolean)
+/** One place rendered for one instant: what a row, a search result and a marker all read from. */
+internal data class CityMoment(val time: ZonedDateTime, val dayLabel: String, val delta: String)
 
-internal fun WorldPlace.moment(now: Instant, homeZone: ZoneId): CityMoment {
-    val time = ZonedDateTime.ofInstant(now, ZoneId.of(zoneId))
+internal fun WorldCity.moment(now: Instant, homeZone: ZoneId): CityMoment {
+    val time = ZonedDateTime.ofInstant(now, zone)
     val home = ZonedDateTime.ofInstant(now, homeZone)
     return CityMoment(
-        note = note,
         time = time,
         dayLabel = formatDayOffset(ChronoUnit.DAYS.between(home.toLocalDate(), time.toLocalDate())),
         delta = formatZoneDelta(time.offset, home.offset),
-        isNight = time.hour >= NIGHT_STARTS_AT || time.hour < NIGHT_ENDS_AT,
     )
 }
 
@@ -215,7 +212,7 @@ internal fun formatDayOffset(days: Long): String = when {
     else -> "${-days} days behind"
 }
 
-/** "Tomorrow, +9 h", prefixed by the alias caveat where there is one: "Los Angeles time · Tomorrow, +9 h". */
-internal fun CityMoment.detailLine(): String = if (note == null) "$dayLabel, $delta" else "$note · $dayLabel, $delta"
+/** "Tomorrow, +9 h": the one line under a city that says how far away it is in both senses. */
+internal fun CityMoment.detailLine(): String = "$dayLabel, $delta"
 
 private fun twoDigits(value: Int): String = value.toString().padStart(2, '0')
