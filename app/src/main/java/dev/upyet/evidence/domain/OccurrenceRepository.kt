@@ -5,7 +5,7 @@ import dev.upyet.alarm.domain.OccurrenceId
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
-interface OccurrenceRepository {
+interface OccurrenceRepository : EvidenceSink {
     data class OccurrenceWithEvidence(val occurrence: AlarmOccurrence, val segments: List<EvidenceSegment>)
 
     fun observeOccurrences(): Flow<List<AlarmOccurrence>>
@@ -23,13 +23,7 @@ interface OccurrenceRepository {
         parentOccurrenceId: OccurrenceId?,
     ): OccurrenceId
 
-    suspend fun markActivityVisible(id: OccurrenceId, at: Instant)
-
     suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome)
-
-    suspend fun insertSegment(segment: EvidenceSegment): Long
-
-    suspend fun updateSegment(segment: EvidenceSegment)
 
     suspend fun deleteOccurrence(id: OccurrenceId)
 }

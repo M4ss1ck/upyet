@@ -222,7 +222,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 |---|---|
 | Scheduling (`AlarmScheduler`, `AlarmReceiver`, `BootReceiver`, recurrence) | `core-path`, `doze`, `process-killed`, `force-stop-recovery`, `back-to-back-alarms`, `reboot-unlocked`, `reboot-no-unlock`, `clock-change`, `timezone-change`, `dst-transition`, `exact-alarm-revoked` |
 | Playback (`AlarmPlaybackService`, notifications, wake lock) | `core-path`, `device-in-use`, `incoming-call`, `snooze`, `fsi-unavailable`, `notifications-disabled` |
-| Camera / evidence (`EvidenceCoordinator`, CameraX use cases) | `core-path`, `camera-denied`, `camera-revoked-mid-flight`, `camera-in-use`, `camera-init-failure`, `screen-off-while-ringing`, `backgrounded-resumed`, `history-thumbnail` |
+| Camera / evidence (`EvidenceSession`, `EvidenceCoordinator`, CameraX use cases) | `core-path`, `camera-denied`, `camera-revoked-mid-flight`, `camera-in-use`, `camera-init-failure`, `screen-off-while-ringing`, `backgrounded-resumed`, `history-thumbnail` |
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
 | Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, and from slice #37 the six rows that assert a ring |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
