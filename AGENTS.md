@@ -452,21 +452,21 @@ only.
 
 ## 17b. Housekeeping on launch
 
-`MainViewModel` runs `RetentionCleaner.clean()` (evidence retention) and
-`AlarmRescheduler.refreshUpcoming()` (the upcoming-alarm notification, which a force stop clears) once per
-launch. Neither may become a background worker, and neither may block the first frame.
+`MainViewModel` runs three steps once per launch, in this order:
 
-`AlarmRescheduler.rescheduleAll()` is specified as the third thing to run here - it is the only supported
-force-stop recovery, since the platform does not announce a force stop - but it is **not currently wired to
-launch**. Its live callers are `BootReceiver`, `UserUnlockedReceiver` and `AlarmPlaybackService`, so after a
-force stop an alarm stays cancelled until one of those fires. Wiring it is outstanding work, not a licence
-to schedule alarms any other way.
+1. `AlarmRescheduler.rescheduleAll()`: the only supported force-stop recovery, since the platform does not
+   announce a force stop. It is idempotent, reports its own counts and failures, and also recomputes the
+   upcoming-alarm notification, which a force stop clears. Its other callers are `BootReceiver`,
+   `UserUnlockedReceiver` and `AlarmPlaybackService`.
+2. `TimerRearm.rearm()`: the timer re-arm (§6a, one exact alarm for the earliest-ending timer), for the same
+   reason. Until the timer scheduler lands (slice #35) the bound implementation is `NoOpTimerRearm`; its
+   replacement must stay idempotent.
+3. `RetentionCleaner.clean()` (evidence retention), last, because alarm reliability outranks evidence.
 
-The timer re-arm (§6a, one exact alarm for the earliest-ending timer) is specified to run here too, for the
-same reason: a force stop clears it exactly as it clears alarms, and the platform announces nothing. Like
-`AlarmRescheduler.rescheduleAll()`, it is **not currently wired**: no timer scheduler exists in code yet, so
-there is nothing to call. When it lands it is idempotent, it may not become a background worker, and it may
-not block the first frame.
+None of them may become a background worker, and none may block the first frame: the whole sequence runs on
+the injected `@DefaultDispatcher`, so constructing the ViewModel does no work on the main thread. Each step
+is isolated, so a throw in one is logged as `launch_housekeeping_failed` and the others still run.
+`MainViewModelTest` pins the order, the once-per-launch count, the isolation and the dispatcher.
 
 ## 18. Required validation commands
 

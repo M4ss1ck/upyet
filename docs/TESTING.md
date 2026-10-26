@@ -104,6 +104,7 @@ and never by its position in this table, so rows can be added or reordered witho
 | `core-path` | physical | automated | the flow above, end to end |
 | `doze` | emulator-ok | adb | alarm fires on time |
 | `process-killed` | either | adb | alarm fires; see the lane note below |
+| `force-stop-recovery` | either | adb | set an alarm, `am force-stop` the package, relaunch the app: the alarm still fires at its time (launch housekeeping reschedules it) |
 | `device-in-use` | physical | human-eyes | heads-up alarm notification; tapping opens the ringing screen |
 | `camera-denied` | either | adb | alarm rings, dismiss works, status `Camera permission denied` |
 | `camera-revoked-mid-flight` | either | adb | same as `camera-denied`, no crash |
@@ -127,13 +128,14 @@ and never by its position in this table, so rows can be added or reordered witho
 | `retention-cleanup` | emulator-ok | human-eyes | segments older than the policy are removed, active ones never |
 | `history-thumbnail` | either | human-eyes | after recording, the history row shows a real frame from the clip, not a placeholder; deleting the occurrence leaves no orphan `.jpg` in `noBackupFilesDir/evidence/` |
 
-**Permanent `adb` lane.** Five scenarios can never become instrumented tests, all for the same reason:
+**Permanent `adb` lane.** Six scenarios can never become instrumented tests, all for the same reason:
 instrumentation is hosted by the application process, so anything that ends that process ends the test
 runner with it and leaves nothing to assert with.
 
 | Scenario | What kills the runner |
 |---|---|
 | `process-killed` | `am kill` on the package under test |
+| `force-stop-recovery` | `am force-stop` on the package under test |
 | `reboot-unlocked`, `reboot-no-unlock` | the reboot |
 | `camera-denied`, `camera-revoked-mid-flight` | `pm revoke` — the platform kills the app's process on revocation (verified on API 34: the pid is gone within seconds) |
 
@@ -209,7 +211,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 
 | Subsystem changed | Scenarios re-triggered |
 |---|---|
-| Scheduling (`AlarmScheduler`, `AlarmReceiver`, `BootReceiver`, recurrence) | `core-path`, `doze`, `process-killed`, `back-to-back-alarms`, `reboot-unlocked`, `reboot-no-unlock`, `clock-change`, `timezone-change`, `dst-transition`, `exact-alarm-revoked` |
+| Scheduling (`AlarmScheduler`, `AlarmReceiver`, `BootReceiver`, recurrence) | `core-path`, `doze`, `process-killed`, `force-stop-recovery`, `back-to-back-alarms`, `reboot-unlocked`, `reboot-no-unlock`, `clock-change`, `timezone-change`, `dst-transition`, `exact-alarm-revoked` |
 | Playback (`AlarmPlaybackService`, notifications, wake lock) | `core-path`, `device-in-use`, `incoming-call`, `snooze`, `fsi-unavailable`, `notifications-disabled` |
 | Camera / evidence (`EvidenceCoordinator`, CameraX use cases) | `core-path`, `camera-denied`, `camera-revoked-mid-flight`, `camera-in-use`, `camera-init-failure`, `screen-off-while-ringing`, `backgrounded-resumed`, `history-thumbnail` |
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
@@ -264,8 +266,17 @@ adb shell am broadcast -a dev.upyet.debug.SCHEDULE --ei seconds 60 --ez evidence
 # Kill the app process normally (alarms must survive this)
 adb shell am kill "$PKG"
 
-# Force stop (alarms are cancelled by the platform; app must recover on next launch)
+# Force stop (alarms are cancelled by the platform; app must recover on next launch). This is the
+# `force-stop-recovery` row: the dumpsys must list the alarm again only after the relaunch. On API 35 the
+# platform also re-delivers LOCKED_BOOT_COMPLETED and BOOT_COMPLETED when a force-stopped app next starts
+# (observed on the API 35 emulator, 2026-10-26), so BootReceiver restores the alarm too and the row passes
+# even without launch housekeeping. Run it on API 34 or lower to prove the launch path: there the log shows
+# `launch_rescheduled` and no `boot_rescheduled`.
 adb shell am force-stop "$PKG"
+adb shell dumpsys alarm | grep -E -A 12 "\b${PKG}\b"      # expect no UpYet alarm here
+adb shell am start -n "$PKG"/dev.upyet.MainActivity
+adb shell dumpsys alarm | grep -E -A 12 "\b${PKG}\b"      # expect the alarm back, same trigger time
+adb logcat -d -s UpYet | grep -E "launch_rescheduled|alarms_rescheduled"
 
 # Doze
 adb shell dumpsys deviceidle enable
