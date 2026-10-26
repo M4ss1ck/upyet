@@ -138,6 +138,12 @@ flowchart LR
   place for user content that is not required to ring.
 * Any code reachable before unlock checks `UserManager.isUserUnlocked()` before touching Room or
   DataStore, and the Hilt graph on that path never eagerly constructs the database.
+* Timers have their own mirror, `DirectBootTimerStore` (ADR 0008): id, run state, length, remaining at
+  its anchor, wall-clock anchor, end instant, label, ringtone URI and the Timer evidence flag. No elapsed
+  anchor, because elapsed realtime restarts at boot. Each record also says whether it was written while
+  locked; on `USER_UNLOCKED`, `TimerMirrorReconciler` copies only those run states into Room, so
+  reconciling is idempotent and never reverts an edit made after unlock. Room keeps the label, length and
+  evidence flag, and a mirror record for a timer Room no longer has is dropped, never recreated.
 * Occurrences that fire while locked are appended to a device-protected pending list and merged into
   Room when the user unlocks.
 * CameraX before first unlock is best-effort only: when it cannot initialize, the occurrence records
@@ -147,8 +153,8 @@ flowchart LR
 
 | Data | Where | Why |
 |---|---|---|
-| Alarms, occurrences, evidence metadata | Room (credential-protected) | relational queries, migrations, observable Flows |
-| Alarm-critical mirror, pending occurrences | device-protected `SharedPreferences` | must be readable before first unlock |
+| Alarms, timers, occurrences, evidence metadata | Room (credential-protected) | relational queries, migrations, observable Flows |
+| Alarm-critical mirror, timer mirror, pending occurrences | device-protected `SharedPreferences` | must be readable before first unlock |
 | Settings (retention, defaults) | DataStore Preferences | simple key/value, async, no schema churn |
 | Video files | `noBackupFilesDir/evidence/<uuid>.mp4` | app-private, excluded from cloud backup, opaque names |
 

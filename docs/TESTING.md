@@ -28,6 +28,7 @@ precisely which environment and why.
 | Mappers | entity ↔ domain round trips including recurrence encoding and enum persistence |
 | Retention | which segments a policy selects, and that in-progress segments are never selected |
 | Reliability checks | each check's pass/fail evaluation from injected platform state |
+| Timer persistence | `TimerMapperTest`: every run state round-trips through `TimerEntity`, both anchors included. `MirroredTimerCodecTest`: every mirror field round-trips, a `\|` in a label cannot shift the fields after it, a record without the last appended field still parses, fields from a later build are ignored, malformed records are dropped. `MirroredTimerMapperTest`: a restored running timer counts down on the wall clock after a reboot and keeps how overdue it is. `TimerMirrorReconcilerTest`: a run state changed before unlock reaches Room, reconciling twice changes nothing, an edit made after unlock is never reverted, a record for a timer Room does not have is dropped, and nothing touches Room while locked |
 
 ## 3. Instrumented tests (`app/src/androidTest`)
 
@@ -50,6 +51,10 @@ precisely which environment and why.
   budget and chain start round-trip, and a record written before those fields existed still parses. The
   mirror is a positional `|` string that nothing validates, so every appended field is a compatibility
   question only real storage can answer.
+* The timer mirror against real device-protected storage (`DirectBootTimerStoreTest`): every field
+  round-trips, a record written while locked is marked so on unlock it reconciles into Room, the caller
+  cannot forge that mark, and a record written before the last field existed still parses. Timer Room
+  round trips and the 3 → 4 migration live in `UpYetDatabaseTest` and `MigrationSmokeTest`.
 * Compose, snooze chain: the final ring offers no Snooze and stays dismissible, the ring before it is
   labelled "Last snooze", a silenced stream is explained on the ringing screen, the maximum-snoozes
   setting renders and reports every option including Unlimited, and a snooze chain collapses into one
@@ -329,6 +334,12 @@ adb reboot
 
 # Inspect device-protected storage (rooted emulator)
 adb shell run-as dev.upyet.debug ls /data/user_de/0/dev.upyet.debug/shared_prefs
+
+# Inspect the timer mirror (ADR 0008). One entry per timer, key timer:<id>, value
+# state|lengthMs|remainingMs|wallAnchorMs|endsAtMs|label|ringtoneUri|evidence|writtenWhileLocked,
+# label and URI URL-encoded. writtenWhileLocked=true before unlock means USER_UNLOCKED will copy that
+# run state into Room; after unlock every entry must read false (logcat: timer_mirror_reconciled).
+adb shell run-as dev.upyet.debug cat /data/user_de/0/dev.upyet.debug/shared_prefs/timer_mirror.xml
 ```
 
 ## 7. Reporting rules
