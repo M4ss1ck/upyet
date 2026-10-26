@@ -48,6 +48,15 @@
             android:exported="false"
             android:directBootAware="true"
             android:foregroundServiceType="mediaPlayback" />
+        <!--
+            Timer ringing (AGENTS.md §8a): its own service, never AlarmPlaybackService. Started from the timer's
+            exact-alarm delivery, before first unlock too, so it is Direct-Boot aware.
+        -->
+        <service
+            android:name=".timer.playback.TimerPlaybackService"
+            android:exported="false"
+            android:directBootAware="true"
+            android:foregroundServiceType="mediaPlayback" />
         <receiver
             android:name=".alarm.scheduling.AlarmReceiver"
             android:directBootAware="true"

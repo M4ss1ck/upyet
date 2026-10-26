@@ -151,6 +151,15 @@ flowchart LR
   timer, and posts or clears the `timer_missed` notice. `RoomTimerRepository` mirrors and re-arms on every
   write. A delivery carries the timer id and its wall-clock end; `Timer.onExpiry` rings only when that still
   matches. `TimerReceiver` registers no `TIMEZONE_CHANGED`: both anchors are zone-free.
+* Timer ringing (ADR 0008, AGENTS.md §8a) lives in `timer/playback/`. A validated expiry starts
+  `TimerPlaybackService` (`mediaPlayback`, Direct-Boot aware), which runs its commands one at a time through
+  `TimerRinging`: one sound, one vibration and one wake lock for every ringing timer, a set-holding
+  `TimerRingingRegistry` the ringing screen observes, and Stop, +1 min and Stop all written back through
+  `TimerDiscovery`'s lock, so they reach the mirror rather than Room before first unlock. The sound stops before
+  anything is persisted. The service builds its own `AlarmSoundPlayer` and `AlarmVibrator` instead of taking
+  the Hilt singletons, because sharing the alarm's `MediaPlayer` would let a timer silence a ringing alarm.
+  `TimerNotifications` posts id 1101 on `timer_ringing`; its heads-up offers Stop and +1 min, or Stop all,
+  only while no ringing timer has Timer evidence on (issue #14). It never calls `cancelUpcoming()`.
 * Occurrences that fire while locked are appended to a device-protected pending list and merged into
   Room when the user unlocks.
 * CameraX before first unlock is best-effort only: when it cannot initialize, the occurrence records

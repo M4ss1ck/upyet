@@ -11,6 +11,13 @@
     <string name="timer_missed_channel_description">A timer that ended without ringing and was found later, when the phone restarted or the app opened.</string>
     <plurals name="timer_missed_notice_title"><item quantity="one">Timer missed</item><item quantity="other">%1$d timers missed</item></plurals>
     <plurals name="timer_missed_notice_text"><item quantity="one">It ended while UpYet could not ring it. Reset it from the Timer tab.</item><item quantity="other">They ended while UpYet could not ring them. Reset them from the Timer tab.</item></plurals>
+    <string name="timer_ringing_title">Timer</string>
+    <string name="timer_ringing_title_labelled">Timer · %1$s</string>
+    <plurals name="timer_ringing_count"><item quantity="one">%1$d timer ringing</item><item quantity="other">%1$d timers ringing</item></plurals>
+    <string name="timer_ringing_tap_to_open">Tap to open</string>
+    <string name="timer_notification_stop">Stop</string>
+    <string name="timer_notification_add_minute">+1 min</string>
+    <string name="timer_notification_stop_all">Stop all</string>
     <string name="alarm_ringing_title">Alarm ringing</string>
     <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
     <string name="alarm_notification_snooze">Snooze</string>

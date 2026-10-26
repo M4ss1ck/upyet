@@ -17,7 +17,4 @@ abstract class TimerSchedulingModule {
 
     @Binds
     abstract fun bindTimerMissedNotices(notices: AndroidTimerMissedNotices): TimerMissedNotices
-
-    @Binds
-    abstract fun bindTimerRingingHandoff(handoff: PendingTimerRingingHandoff): TimerRingingHandoff
 }

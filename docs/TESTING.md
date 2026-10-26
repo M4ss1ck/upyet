@@ -130,6 +130,14 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timer-exact-revoked` | either | adb | revoking exact-alarm access warns on the reliability screen and arms no timer alarm, exact or inexact; on restore the timer is re-armed once (one `TIMER_EXPIRED` alarm, same trigger) and does not ring early or twice. Needs API 31 or 32: from API 33 `USE_EXACT_ALARM` cannot be revoked |
 | `timer-clock-change` | emulator-ok | adb | moving the wall clock re-anchors running timers from the elapsed delta and leaves the armed alarm's `whenElapsed` unchanged; `TIMEZONE_CHANGED` re-arms nothing (no `timer_` log line) |
 | `timer-missed` | either | adb | a `Running` timer found more than 60 s past its end moves to `Missed`, posts the low-importance `timer_missed` notice (id 1103) and never rings. Notice half owned by slice #35; the "Reset clears it" half needs the Timer tab and is re-run by slice #39 |
+| `timer-doze` | emulator-ok | adb | a timer ending while the device is forced idle rings, through `TimerPlaybackService` (`timer_ringing_started`); record how late against its end, never assert zero (see the note under the table) |
+| `timer-two-ending-close-in-doze` | emulator-ok | adb | two timers ending about 30 s apart while forced idle both ring, the second joining the first's ringing (`ringing=2`); record each one's lateness, never assert zero (see the note under the table) |
+| `timer-process-killed` | either | adb | `am kill` while a timer runs: it still rings at its end (`timer_expired`, then `timer_ringing_started`) |
+| `timer-reboot-unlocked` | either | adb | reboot while a timer runs and unlock: it rings at its end |
+| `timer-reboot-no-unlock` | physical | adb | reboot while a timer runs and never unlock: it rings at its end above the keyguard; Stop and +1 min work. The evidence-status half (`DIRECT_BOOT_UNAVAILABLE` for a recording-on timer) completes with slice #41 |
+| `timer-boot-grace-window` | either | adb | with `FGS_BOOT_COMPLETED_RESTRICTIONS` enabled as the negative control, a timer due 0 to 60 s before boot completes rings through the immediate exact alarm discovery arms (`timer_expired` after `timer_discovery trigger=boot`), never from the boot receiver |
+| `timer-concurrent` | either | adb | two timers ringing at once: one notification (id 1101, title "2 timers ringing"), one sound, one wake lock (`dumpsys power` lists one `UpYet:timer_ringing`), and Stop all offered. The "one screen" half needs `TimerRingingActivity` (slice #38) and the "one showing produces one occurrence" half cannot pass before slice #40; both are recorded as skipped with that reason and re-run at slice #40 |
+| `timer-notification-actions` | physical | human-eyes | with the phone in use, the heads-up for one ringing timer offers Stop and +1 min, for several Stop all, and when any ringing timer has Timer evidence on, no action at all, only "Tap to open" |
 | `fsi-unavailable` | physical | human-eyes | notification still routes to the ringing screen |
 | `notifications-disabled` | either | adb | reliability screen warns with a settings action |
 | `low-storage` | emulator-ok | adb | evidence status `Storage error`, alarm unaffected |
@@ -137,15 +145,17 @@ and never by its position in this table, so rows can be added or reordered witho
 | `retention-cleanup` | emulator-ok | human-eyes | segments older than the policy are removed, active ones never |
 | `history-thumbnail` | either | human-eyes | after recording, the history row shows a real frame from the clip, not a placeholder; deleting the occurrence leaves no orphan `.jpg` in `noBackupFilesDir/evidence/` |
 
-**Permanent `adb` lane.** Six scenarios can never become instrumented tests, all for the same reason:
+**The two timer Doze rows record lateness and never assert zero.** The Doze guide says `setExactAndAllowWhileIdle` alarms fire at most once per nine minutes per app while idle, and ADR 0009 cites a quota of 72 per hour; the two statements do not reconcile, and neither is something the app can change. `timer-doze` and `timer-two-ending-close-in-doze` therefore write down how many seconds after its end each timer rang, so a regression shows up as a number that moved, not as a flaky pass or fail.
+
+**Permanent `adb` lane.** Nine scenarios can never become instrumented tests, all for the same reason:
 instrumentation is hosted by the application process, so anything that ends that process ends the test
 runner with it and leaves nothing to assert with.
 
 | Scenario | What kills the runner |
 |---|---|
-| `process-killed` | `am kill` on the package under test |
+| `process-killed`, `timer-process-killed` | `am kill` on the package under test |
 | `force-stop-recovery` | `am force-stop` on the package under test |
-| `reboot-unlocked`, `reboot-no-unlock` | the reboot |
+| `reboot-unlocked`, `reboot-no-unlock`, `timer-reboot-unlocked`, `timer-reboot-no-unlock` | the reboot |
 | `camera-denied`, `camera-revoked-mid-flight` | `pm revoke` — the platform kills the app's process on revocation (verified on API 34: the pid is gone within seconds) |
 
 `camera-denied` could in principle be asserted by an instrumented flow that never grants the permission in
@@ -224,7 +234,8 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Playback (`AlarmPlaybackService`, notifications, wake lock) | `core-path`, `device-in-use`, `incoming-call`, `snooze`, `fsi-unavailable`, `notifications-disabled` |
 | Camera / evidence (`EvidenceSession`, `EvidenceCoordinator`, CameraX use cases) | `core-path`, `camera-denied`, `camera-revoked-mid-flight`, `camera-in-use`, `camera-init-failure`, `screen-off-while-ringing`, `backgrounded-resumed`, `history-thumbnail` |
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
-| Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, and from slice #37 the six rows that assert a ring |
+| Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window` |
+| Timer playback (`TimerPlaybackService`, `TimerRinging`, `TimerRingingRegistry`, `TimerNotifications`, wake lock) | `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window`, `timer-concurrent`, `timer-notification-actions`; the channel ids are checked with the notification-channels recipe in §5 |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 
 A scenario that is skipped is recorded as skipped, with the reason. Silence is not a pass.
@@ -298,11 +309,17 @@ adb shell appops set "$PKG" SCHEDULE_EXACT_ALARM allow
 # timer_discovery missed=1, notification id 1103 on timer_missed, and no timer_expired.
 adb shell dumpsys notification --noredact | grep -A12 "id=1103"
 
-# timer-boot-grace-window negative control (the row runs in slice #37): with this compat change on, a
+# timer-boot-grace-window negative control (the `timer-boot-grace-window` row): with this compat change on, a
 # BOOT_COMPLETED receiver may not start a mediaPlayback foreground service, so a timer due inside the
 # grace window must still ring, through the immediate exact alarm discovery arms.
 adb shell am compat enable FGS_BOOT_COMPLETED_RESTRICTIONS "$PKG"
 adb shell am compat reset FGS_BOOT_COMPLETED_RESTRICTIONS "$PKG"
+
+# Timer ringing (timer-doze, timer-concurrent, timer-two-ending-close-in-doze): one notification id 1101 on
+# timer_ringing whatever the number of ringing timers, and exactly one timer wake lock.
+adb shell dumpsys notification --noredact | grep -E -A12 "id=1101"
+adb shell dumpsys power | grep -c "UpYet:timer_ringing"     # expect 1 while any timer rings, 0 after
+adb logcat -d -s UpYet | grep -E "timer_(ringing_started|ring_stale|stopped|minute_added|stopped_all|ringing_ended)"
 
 # Kill the app process normally (alarms must survive this)
 adb shell am kill "$PKG"

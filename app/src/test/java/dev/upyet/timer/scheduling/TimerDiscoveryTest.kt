@@ -55,7 +55,7 @@ class TimerDiscoveryTest {
             reconciler = TimerMirrorReconciler(mirror, repository, FakeUserUnlockState(unlocked), clock),
             clock = clock,
             alarms = TimerAlarmSync(scheduler, notices, clock),
-            ringing = { handedOff += it },
+            handoff = { handedOff += it },
         )
     }
 
@@ -261,6 +261,63 @@ class TimerDiscoveryTest {
         assertThat(result).isEqualTo(TimerExpiry.RANG)
         assertThat(mirror.all().single().state.name).isEqualTo("RINGING")
         assertThat(handedOff).containsExactly(TimerId(1))
+    }
+
+    // The ringing store TimerPlaybackService writes through (slice #37).
+
+    @Test
+    fun theRingingStoreReturnsOnlyATimerStoredAsRinging() = runTest {
+        val (repository, mirror) = roomOf(timer(1, TimerRunState.Ringing), running(2, Duration.ofMinutes(5)))
+        val discovery = discovery(mirror, { repository }, unlocked = true)
+
+        assertThat(discovery.ringing(TimerId(1))?.id).isEqualTo(TimerId(1))
+        assertThat(discovery.ringing(TimerId(2))).isNull()
+        assertThat(discovery.ringing(TimerId(3))).isNull()
+    }
+
+    @Test
+    fun stopReturnsARingingTimerToIdleInRoom() = runTest {
+        val (repository, mirror) = roomOf(timer(1, TimerRunState.Ringing))
+
+        discovery(mirror, { repository }, unlocked = true).stop(TimerId(1))
+
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Idle)
+        assertThat(scheduler.armed).isEmpty()
+    }
+
+    @Test
+    fun stopLeavesATimerThatIsNoLongerRingingAlone() = runTest {
+        val runningTimer = running(1, Duration.ofMinutes(5))
+        val (repository, mirror) = roomOf(runningTimer)
+
+        discovery(mirror, { repository }, unlocked = true).stop(TimerId(1))
+
+        assertThat(repository.getTimer(TimerId(1))).isEqualTo(runningTimer)
+        assertThat(repository.upserts).isEqualTo(0)
+    }
+
+    @Test
+    fun addMinuteRestartsARingingTimerAtSixtySecondsAndArmsIt() = runTest {
+        // Found ringing at 08:10 / elapsed 2 min: Running with 60 s, so zero at 08:11, elapsed 3 min.
+        val (repository, mirror) = roomOf(timer(1, TimerRunState.Ringing))
+
+        discovery(mirror, { repository }, unlocked = true).addMinute(TimerId(1))
+
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Running(Duration.ofSeconds(60), afterReboot))
+        assertThat(scheduler.armed.single()).isEqualTo(TimerAlarm(TimerId(1), Instant.parse("2026-10-26T08:11:00Z"), Duration.ofMinutes(3)))
+    }
+
+    @Test
+    fun stopAndAddMinuteBeforeUnlockWriteTheMirrorAndNeverBuildRoom() = runTest {
+        val mirror = lockedMirrorOf(timer(1, TimerRunState.Ringing), timer(2, TimerRunState.Ringing))
+        val discovery = discovery(mirror, roomNeverBuilt, unlocked = false)
+
+        discovery.stop(TimerId(1))
+        discovery.addMinute(TimerId(2))
+
+        val states = mirror.all().associate { it.timerId to it.state.name }
+        assertThat(states).containsExactly(TimerId(1), "IDLE", TimerId(2), "RUNNING")
+        assertThat(scheduler.armed.single()).isEqualTo(TimerAlarm(TimerId(2), Instant.parse("2026-10-26T08:11:00Z"), Duration.ofMinutes(3)))
     }
 
     // Wall-clock change.
