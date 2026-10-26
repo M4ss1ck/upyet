@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -55,30 +56,35 @@ import dev.upyet.core.ui.components.RowDivider
 import dev.upyet.core.ui.components.SectionLabel
 import dev.upyet.core.ui.components.SettingsRow
 import dev.upyet.core.ui.components.UpYetCard
+import dev.upyet.core.ui.components.UpYetTopBar
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.settings.data.AppLanguage
 import dev.upyet.settings.data.RetentionPolicy
 
 @Composable
-fun SettingsScreen(onReliability: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Changing the language recreates the activity but retains this ViewModel, and the system's own per-app
     // language screen can change it too, so the stored value is re-read on every configuration change.
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
     LaunchedEffect(configuration) { viewModel.refreshLanguage() }
-    SettingsContent(
-        state = state,
-        onReliability = onReliability,
-        onSnooze = viewModel::setSnooze,
-        onMaxSnoozes = viewModel::setMaxSnoozes,
-        onVibration = viewModel::setVibration,
-        onEvidence = viewModel::setEvidence,
-        onRetention = viewModel::setRetention,
-        onLanguage = viewModel::setLanguage,
-        onUpcomingAlarmLead = viewModel::setUpcomingAlarmLead,
-        onShareDiagnostics = { viewModel.shareDiagnosticReport { intent -> context.startActivity(intent) } },
-    )
+    Scaffold(topBar = { UpYetTopBar(title = stringResource(R.string.settings), onBack = onBack) }) { padding ->
+        Box(Modifier.padding(padding)) {
+            SettingsContent(
+                state = state,
+                onReliability = onReliability,
+                onSnooze = viewModel::setSnooze,
+                onMaxSnoozes = viewModel::setMaxSnoozes,
+                onVibration = viewModel::setVibration,
+                onEvidence = viewModel::setEvidence,
+                onRetention = viewModel::setRetention,
+                onLanguage = viewModel::setLanguage,
+                onUpcomingAlarmLead = viewModel::setUpcomingAlarmLead,
+                onShareDiagnostics = { viewModel.shareDiagnosticReport { intent -> context.startActivity(intent) } },
+            )
+        }
+    }
 }
 
 @Composable
@@ -99,13 +105,6 @@ fun SettingsContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = stringResource(R.string.settings),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-
         ReliabilityStatusCard(state.reliabilitySummary, onReliability, Modifier.padding(top = 8.dp))
 
         SectionLabel(stringResource(R.string.settings_defaults), Modifier.padding(top = 16.dp, bottom = 2.dp))

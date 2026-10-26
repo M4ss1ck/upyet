@@ -29,6 +29,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +53,7 @@ import dev.upyet.core.ui.components.ClockText
 import dev.upyet.core.ui.components.SectionLabel
 import dev.upyet.core.ui.components.StatusBadge
 import dev.upyet.core.ui.components.UpYetCard
+import dev.upyet.core.ui.components.UpYetTopBar
 import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.core.ui.theme.extraColors
 import dev.upyet.evidence.domain.EvidenceSegment
@@ -72,15 +74,19 @@ internal const val THUMBNAIL_NO_CLIP_TAG = "history_thumbnail_no_clip"
 internal const val FILTER_ROW_TAG = "history_filter_row"
 
 @Composable
-fun HistoryScreen(onOpen: (Long) -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
+fun HistoryScreen(onOpen: (Long) -> Unit, onBack: () -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HistoryContent(
-        state,
-        onFilterChange = viewModel::setFilter,
-        onOpen = onOpen,
-        onThumbnailNeeded = viewModel::onThumbnailNeeded,
-        onStatsWindowChange = viewModel::setStatsWindow,
-    )
+    Scaffold(topBar = { UpYetTopBar(title = stringResource(R.string.history), onBack = onBack) }) { padding ->
+        Box(Modifier.padding(padding)) {
+            HistoryContent(
+                state,
+                onFilterChange = viewModel::setFilter,
+                onOpen = onOpen,
+                onThumbnailNeeded = viewModel::onThumbnailNeeded,
+                onStatsWindowChange = viewModel::setStatsWindow,
+            )
+        }
+    }
 }
 
 /** Stateless history screen, so the layout can be exercised without Hilt or a ViewModel. */
@@ -96,7 +102,6 @@ internal fun HistoryContent(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-                Text(stringResource(R.string.history), style = MaterialTheme.typography.headlineMedium)
                 Text(
                     stringResource(R.string.history_subtitle),
                     style = MaterialTheme.typography.bodyMedium,

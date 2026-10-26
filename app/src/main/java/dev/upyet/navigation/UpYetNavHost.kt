@@ -7,18 +7,29 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.upyet.alarm.ui.AlarmEditorScreen
+import dev.upyet.history.ui.HistoryScreen
 import dev.upyet.history.ui.OccurrenceDetailScreen
 import dev.upyet.reliability.ui.ReliabilityScreen
+import dev.upyet.settings.ui.SettingsScreen
+
+/** Route names. The start destination is [TABS], so every launch lands on Alarms. */
+internal object Routes {
+    const val TABS = "tabs"
+    const val HISTORY = "history"
+    const val SETTINGS = "settings"
+    const val RELIABILITY = "reliability"
+}
 
 @Composable
 fun UpYetNavHost() {
     val navController = rememberNavController()
-    NavHost(navController, startDestination = "tabs") {
-        composable("tabs") {
+    NavHost(navController, startDestination = Routes.TABS) {
+        composable(Routes.TABS) {
             TabsScreen(
                 onEdit = { navController.navigate("alarmEditor?alarmId=$it") },
-                onOpenOccurrence = { navController.navigate("occurrence/$it") },
-                onReliability = { navController.navigate("reliability") },
+                onHistory = { navController.navigate(Routes.HISTORY) },
+                onSettings = { navController.navigate(Routes.SETTINGS) },
+                onReliability = { navController.navigate(Routes.RELIABILITY) },
             )
         }
         composable(
@@ -37,7 +48,7 @@ fun UpYetNavHost() {
                     it >= 0
                 },
                 onDone = { navController.popBackStack() },
-                onReliability = { navController.navigate("reliability") },
+                onReliability = { navController.navigate(Routes.RELIABILITY) },
             )
         }
         composable(
@@ -48,6 +59,18 @@ fun UpYetNavHost() {
                 },
             ),
         ) { OccurrenceDetailScreen(onBack = { navController.popBackStack() }) }
-        composable("reliability") { ReliabilityScreen(onBack = { navController.popBackStack() }) }
+        composable(Routes.RELIABILITY) { ReliabilityScreen(onBack = { navController.popBackStack() }) }
+        composable(Routes.HISTORY) {
+            HistoryScreen(
+                onOpen = { navController.navigate("occurrence/$it") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onReliability = { navController.navigate(Routes.RELIABILITY) },
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }

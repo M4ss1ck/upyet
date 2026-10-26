@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -13,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.upyet.R
 
 /**
  * The tinted pill that states an outcome: dismissed, snoozed, timed out. Colour is never the only
@@ -31,4 +34,10 @@ fun StatusBadge(text: String, container: Color, content: Color, modifier: Modifi
             Text(text, style = MaterialTheme.typography.labelMedium, color = content)
         }
     }
+}
+
+/** The word beside a drawer entry that needs the user, so the warning never depends on colour alone. */
+@Composable
+fun ActionNeededBadge(modifier: Modifier = Modifier) {
+    Badge(modifier) { Text(stringResource(R.string.action_needed)) }
 }

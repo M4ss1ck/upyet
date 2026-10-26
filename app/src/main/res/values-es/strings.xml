@@ -85,6 +85,14 @@
     <string name="alarms">Alarmas</string>
     <string name="history">Historial</string>
     <string name="settings">Ajustes</string>
+    <string name="world_clock">Reloj mundial</string>
+    <string name="timer">Temporizador</string>
+    <string name="stopwatch">Cronómetro</string>
+    <string name="clock_tool_coming_soon">Llegará en una próxima actualización.</string>
+    <string name="open_menu">Abrir menú</string>
+    <string name="open_menu_action_needed">Abrir menú, la fiabilidad requiere atención</string>
+    <string name="action_needed">Acción necesaria</string>
+    <string name="drawer_tagline">El despertador que demuestra que te levantaste</string>
     <string name="retention_one_day">1 día</string>
     <string name="retention_seven_days">7 días</string>
     <string name="retention_thirty_days">30 días</string>

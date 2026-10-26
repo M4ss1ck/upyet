@@ -37,7 +37,10 @@ precisely which environment and why.
 * Compose: alarm list rendering and toggles, alarm editor input, ringing controls (dismiss/snooze
   present and clickable while the camera state reports failure), history list and evidence-status
   labels, permission-state UI on the reliability screen.
-* Navigation between the main destinations.
+* Navigation between the main destinations: the clock shell's four tap-only tabs (a swipe never changes tab),
+  Alarms as the start tab, the drawer's History, Settings and Reliability entries, the reliability dot on the
+  hamburger and the "Action needed" drawer badge agreeing with `ReliabilitySummary`, and the back contract
+  (drawer closes, then Alarms, then the app exits).
 * Receiver/service integration that can reasonably be exercised (scheduler → receiver intent extras,
   service command handling with a fake player).
 * Alarm volume against a real `AudioManager` (`AlarmVolumeTest`): what the stream's floor actually is,
