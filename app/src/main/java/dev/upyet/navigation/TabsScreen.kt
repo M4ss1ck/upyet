@@ -85,7 +85,9 @@ fun TabsScreen(
     ) { tab ->
         when (tab) {
             ClockTab.ALARMS -> AlarmListScreen(onEdit = onEdit, onReliability = onReliability)
-            else -> ClockToolPlaceholder()
+
+            // Listed one by one so each tool's slice gets a compiler prompt to replace its placeholder.
+            ClockTab.WORLD_CLOCK, ClockTab.TIMER, ClockTab.STOPWATCH -> ClockToolPlaceholder()
         }
     }
 }
