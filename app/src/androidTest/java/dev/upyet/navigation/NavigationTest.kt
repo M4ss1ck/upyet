@@ -24,16 +24,19 @@ class NavigationTest {
         instrumentation.runOnMainSync {
             val controller = NavHostController(instrumentation.targetContext)
             controller.navigatorProvider.addNavigator(ComposeNavigator())
-            controller.graph = controller.createGraph(startDestination = "alarms") {
-                composable("alarms") {}
-                composable("history") {}
-                composable("settings") {}
+            controller.graph = controller.createGraph(startDestination = Routes.TABS) {
+                composable(Routes.TABS) {}
+                composable(Routes.HISTORY) {}
+                composable(Routes.SETTINGS) {}
+                composable(Routes.RELIABILITY) {}
             }
-            assertThat(controller.currentDestination?.route).isEqualTo("alarms")
-            controller.navigate("history")
-            assertThat(controller.currentDestination?.route).isEqualTo("history")
-            controller.navigate("settings")
-            assertThat(controller.currentDestination?.route).isEqualTo("settings")
+            assertThat(controller.currentDestination?.route).isEqualTo(Routes.TABS)
+            for (route in listOf(Routes.HISTORY, Routes.SETTINGS, Routes.RELIABILITY)) {
+                controller.navigate(route)
+                assertThat(controller.currentDestination?.route).isEqualTo(route)
+                assertThat(controller.popBackStack()).isTrue()
+                assertThat(controller.currentDestination?.route).isEqualTo(Routes.TABS)
+            }
         }
     }
 }

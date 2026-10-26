@@ -82,6 +82,14 @@
     <string name="alarms">Alarms</string>
     <string name="history">History</string>
     <string name="settings">Settings</string>
+    <string name="world_clock">World clock</string>
+    <string name="timer">Timer</string>
+    <string name="stopwatch">Stopwatch</string>
+    <string name="clock_tool_coming_soon">Coming in a later update.</string>
+    <string name="open_menu">Open menu</string>
+    <string name="open_menu_action_needed">Open menu, reliability needs action</string>
+    <string name="action_needed">Action needed</string>
+    <string name="drawer_tagline">The alarm clock that proves you woke up</string>
     <string name="retention_one_day">1 day</string>
     <string name="retention_seven_days">7 days</string>
     <string name="retention_thirty_days">30 days</string>
