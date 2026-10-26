@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.Lazy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.alarm.domain.OccurrenceId
@@ -14,6 +15,7 @@ import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.camera.EvidenceCoordinator
 import dev.upyet.evidence.camera.EvidenceRequest
 import dev.upyet.evidence.camera.EvidenceSession
+import dev.upyet.evidence.data.DeferredEvidenceSink
 import dev.upyet.evidence.domain.OccurrenceRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +62,8 @@ constructor(
     private val registry: RingingSessionRegistry,
     private val timeProvider: TimeProvider,
     evidenceCoordinator: EvidenceCoordinator,
-    occurrenceRepository: OccurrenceRepository,
+    // Lazy: this screen is Direct Boot aware, so it must not build credential-protected Room before unlock.
+    occurrenceRepository: Lazy<OccurrenceRepository>,
 ) : ViewModel() {
     // The session starts as null while the service is still publishing it, so the phase stays LOADING
     // until a session has actually been seen; only afterwards does a null session mean "ringing ended".
@@ -102,7 +105,10 @@ constructor(
 
     // Lives as long as this ViewModel, so activityVisibleAt is still written once per occurrence across
     // the ringing screen being hidden and shown again.
-    val evidence = EvidenceSession(evidenceCoordinator, occurrenceRepository, viewModelScope, timeProvider)
+    val evidence = EvidenceSession(evidenceCoordinator, DeferredEvidenceSink(occurrenceRepository), viewModelScope, timeProvider)
+
+    /** Read live, never from a composed snapshot, so a resume after the ring ended records nothing. */
+    fun currentEvidenceRequest(): EvidenceRequest? = state.value.evidenceRequest
 
     fun dismiss() {
         // Evidence is finalized asynchronously; the alarm command is never delayed by the camera.

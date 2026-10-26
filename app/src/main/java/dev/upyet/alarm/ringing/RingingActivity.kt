@@ -53,7 +53,11 @@ class RingingActivity : ComponentActivity() {
                         EvidencePreview(surfaceRequest)
                     },
                 )
-                EvidenceLifecycleEffect(viewModel.evidence, state.evidenceRequest)
+                EvidenceLifecycleEffect(
+                    session = viewModel.evidence,
+                    ringing = state.phase == RingingPhase.RINGING,
+                    currentRequest = viewModel::currentEvidenceRequest,
+                )
                 // Only a session that existed and then ended may close this Activity; the initial LOADING
                 // phase must never finish it, otherwise the alarm UI disappears before the service publishes.
                 LaunchedEffect(state.phase) {

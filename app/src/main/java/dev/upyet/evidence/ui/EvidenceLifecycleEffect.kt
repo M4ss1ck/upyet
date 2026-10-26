@@ -11,20 +11,20 @@ import dev.upyet.evidence.camera.EvidenceSession
 
 /**
  * Binds [session] to the ringing screen that composes it: recording is requested on every resume and when
- * [request] first becomes available while the screen is up (the ringing state usually arrives after the
- * first resume), and the camera is released on stop and when the screen leaves composition. A null
- * [request] means the screen is not ringing yet, or any more, so nothing is recorded.
+ * the screen starts [ringing] while it is up (the ringing state usually arrives after the first resume), and
+ * the camera is released on stop and when the screen leaves composition. [currentRequest] must read the
+ * ViewModel's live state, not a composed snapshot: composition stops collecting while the screen is stopped,
+ * so on resume a snapshot can still describe a ring that has already ended.
  */
 @Composable
-fun EvidenceLifecycleEffect(session: EvidenceSession, request: EvidenceRequest?) {
+fun EvidenceLifecycleEffect(session: EvidenceSession, ringing: Boolean, currentRequest: () -> EvidenceRequest?) {
     val host = LocalLifecycleOwner.current
-    val latestRequest by rememberUpdatedState(request)
+    val latestProvider by rememberUpdatedState(currentRequest)
     DisposableEffect(host, session) {
-        val binding = session.bind(host) { latestRequest }
+        val binding = session.bind(host) { latestProvider() }
         onDispose { binding.dispose() }
     }
-    val ringing = request != null
     LaunchedEffect(ringing) {
-        if (ringing) session.onVisible(host, latestRequest)
+        if (ringing) session.onVisible(host, latestProvider())
     }
 }
