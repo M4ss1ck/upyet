@@ -5,9 +5,19 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
+/** Every binding here is Direct-Boot safe: none of them builds Room or DataStore (AGENTS.md §11, §14). */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class TimerSchedulingModule {
     @Binds
-    abstract fun bindTimerRearm(rearm: NoOpTimerRearm): TimerRearm
+    abstract fun bindTimerRearm(discovery: TimerDiscovery): TimerRearm
+
+    @Binds
+    abstract fun bindTimerScheduler(scheduler: AndroidTimerScheduler): TimerScheduler
+
+    @Binds
+    abstract fun bindTimerMissedNotices(notices: AndroidTimerMissedNotices): TimerMissedNotices
+
+    @Binds
+    abstract fun bindTimerRingingHandoff(handoff: PendingTimerRingingHandoff): TimerRingingHandoff
 }

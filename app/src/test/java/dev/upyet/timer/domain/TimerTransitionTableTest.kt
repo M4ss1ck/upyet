@@ -175,31 +175,63 @@ class TimerTransitionTableTest {
         assertThat(result.appliedState()).isEqualTo(TimerRunState.Running(Duration.ofMinutes(1), now))
     }
 
-    // onExpiry()
+    // onExpiry(endsAt): the running fixture is anchored at 08:00 with 4 min left, so its own delivery says 08:04.
+
+    private val runningEndsAt = Instant.parse("2026-10-26T08:04:00Z")
 
     @Test
     fun onExpiryWhileIdleIsNoOp() {
-        assertThat(timerIn(idle).onExpiry()).isEqualTo(TimerTransition.NoOp)
+        assertThat(timerIn(idle).onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
     }
 
     @Test
     fun onExpiryWhileRunningStartsRinging() {
-        assertThat(timerIn(running).onExpiry().appliedState()).isEqualTo(TimerRunState.Ringing)
+        assertThat(timerIn(running).onExpiry(runningEndsAt).appliedState()).isEqualTo(TimerRunState.Ringing)
+    }
+
+    @Test
+    fun onExpiryWithAnotherEndInstantIsStale() {
+        val delivered = Instant.parse("2026-10-26T08:03:59Z")
+
+        assertThat(timerIn(running).onExpiry(delivered)).isEqualTo(TimerTransition.NoOp)
+    }
+
+    @Test
+    fun onExpiryAfterPlusOneMinuteIsStale() {
+        val extended = timerIn(running).addMinute(now).appliedTimer()
+
+        assertThat(extended.onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
+        assertThat(extended.endsAt).isEqualTo(Instant.parse("2026-10-26T08:05:00Z"))
+    }
+
+    @Test
+    fun onExpiryAfterPauseAndResumeIsStale() {
+        val later = TimerAnchor(Duration.ofMinutes(13), Instant.parse("2026-10-26T08:03:00Z"))
+        val resumed = timerIn(running).pause(now).appliedTimer().start(later).appliedTimer()
+
+        assertThat(resumed.onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
     }
 
     @Test
     fun onExpiryWhilePausedIsNoOp() {
-        assertThat(timerIn(paused).onExpiry()).isEqualTo(TimerTransition.NoOp)
+        assertThat(timerIn(paused).onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
     }
 
     @Test
     fun onExpiryWhileRingingIsNoOp() {
-        assertThat(timerIn(ringing).onExpiry()).isEqualTo(TimerTransition.NoOp)
+        assertThat(timerIn(ringing).onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
     }
 
     @Test
     fun onExpiryWhileMissedIsNoOp() {
-        assertThat(timerIn(missed).onExpiry()).isEqualTo(TimerTransition.NoOp)
+        assertThat(timerIn(missed).onExpiry(runningEndsAt)).isEqualTo(TimerTransition.NoOp)
+    }
+
+    @Test
+    fun onlyARunningTimerHasAnEndInstant() {
+        assertThat(timerIn(running).endsAt).isEqualTo(runningEndsAt)
+        assertThat(timerIn(paused).endsAt).isNull()
+        assertThat(timerIn(ringing).endsAt).isNull()
     }
 
     // stop()
@@ -435,7 +467,7 @@ class TimerTransitionTableTest {
     @Test
     fun startThenExpiryThenStopReturnsToIdleAtFullLength() {
         val started = timerIn(idle).start(anchor).appliedTimer()
-        val ringingTimer = started.onExpiry().appliedTimer()
+        val ringingTimer = started.onExpiry(Instant.parse("2026-10-26T08:05:00Z")).appliedTimer()
         val stopped = ringingTimer.stop().appliedTimer()
 
         assertThat(stopped.runState).isEqualTo(TimerRunState.Idle)

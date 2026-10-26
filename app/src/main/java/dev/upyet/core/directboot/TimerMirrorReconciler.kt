@@ -24,9 +24,10 @@ sealed interface TimerReconciliation {
  * second pass, or one after the user edited the timer, changes nothing. A record for a timer Room does not have
  * is dropped, never turned into a timer.
  *
- * Contract for slice #35: any path that writes timers after unlock (app launch, discovery, the repository)
- * calls [reconcile] first. It is idempotent and cheap, and it is the only way a run state that changed before
- * unlock survives a writer that would otherwise mirror Room's older copy over it.
+ * Contract: any path that writes timers after unlock calls [reconcile] first; `TimerDiscovery` does, for
+ * boot, unlock, launch, expiry and wall-clock changes, and the Timer tab must too. It is idempotent and cheap,
+ * and it is the only way a run state that changed before unlock survives a writer that would otherwise mirror
+ * Room's older copy over it.
  *
  * Room is behind [Lazy] and built only after [UserUnlockState.isUserUnlocked] holds (AGENTS.md §11).
  */

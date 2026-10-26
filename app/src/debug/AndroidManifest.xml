@@ -17,5 +17,14 @@
                 <action android:name="dev.upyet.debug.SCHEDULE" />
             </intent-filter>
         </receiver>
+        <!-- Same guard and same reason as DebugAlarmReceiver: reachable from adb, from nothing else. -->
+        <receiver
+            android:name=".debug.DebugTimerReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="dev.upyet.debug.TIMER" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

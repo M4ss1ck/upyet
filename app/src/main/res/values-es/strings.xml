@@ -12,6 +12,8 @@
     <string name="clock_tool_ongoing_channel_description">Una cuenta atrás o un cronómetro silenciosos mientras están en marcha.</string>
     <string name="timer_missed_channel_name">Temporizador perdido</string>
     <string name="timer_missed_channel_description">Un temporizador que terminó sin sonar y se detectó después, al reiniciar el teléfono o abrir la app.</string>
+    <plurals name="timer_missed_notice_title"><item quantity="one">Temporizador perdido</item><item quantity="many">%1$d temporizadores perdidos</item><item quantity="other">%1$d temporizadores perdidos</item></plurals>
+    <plurals name="timer_missed_notice_text"><item quantity="one">Terminó cuando UpYet no podía hacerlo sonar. Reinícialo desde la pestaña Temporizador.</item><item quantity="many">Terminaron cuando UpYet no podía hacerlos sonar. Reinícialos desde la pestaña Temporizador.</item><item quantity="other">Terminaron cuando UpYet no podía hacerlos sonar. Reinícialos desde la pestaña Temporizador.</item></plurals>
     <string name="alarm_ringing_title">Alarma sonando</string>
     <string name="alarm_ringing_text">Toca para despertarte y descartarla</string>
     <string name="alarm_notification_snooze">Posponer</string>

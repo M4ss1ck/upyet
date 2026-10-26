@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   channel, so they can be quieted without touching alarms. Channels are created at startup instead of on
   first use, and existing alarm channel settings are kept.
 
+- Timers are scheduled: one exact alarm, for whichever running timer ends first, re-armed after every change,
+  at boot, on unlock, on app launch, after an update and when exact-alarm access comes back. An alarm that no
+  longer matches its timer (paused, reset, extended or deleted since) is dropped instead of ringing. A timer
+  found more than a minute past its end after a reboot or force stop becomes Missed, never rings late, and
+  posts a quiet "Timer missed" notice until it is reset or deleted. Changing the clock does not move a
+  running timer; changing the time zone changes nothing. Ringing itself arrives with the timer playback
+  service.
+
 ### Fixed
 - Launching the app now reschedules every enabled alarm, so an alarm cancelled by a force stop (which the
   platform does not announce) comes back the next time the app is opened instead of waiting for a reboot,
