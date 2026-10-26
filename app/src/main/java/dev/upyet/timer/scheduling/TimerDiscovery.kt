@@ -13,6 +13,7 @@ import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRepository
 import dev.upyet.timer.domain.TimerRunState
 import dev.upyet.timer.domain.TimerTransition
+import dev.upyet.timer.playback.TimerRingingStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,9 +35,12 @@ enum class TimerExpiry {
  * Room once the user is unlocked, after reconciling the mirror into it as [TimerMirrorReconciler] requires, and
  * the device-protected mirror before. Room sits behind [Lazy] and is built only on the unlocked path (§11).
  *
- * One lock serialises these events, so an expiry cannot interleave with a boot pass over the same timer. User
- * edits through `TimerRepository` do not take it yet; the Timer tab (slice #39) must route its read-modify-write
- * through here, or an edit landing between an expiry's read and write would be overwritten.
+ * It is also the [TimerRingingStore] `TimerPlaybackService` writes Stop and +1 min through, before and after
+ * first unlock alike, so those two never touch Room from a Direct Boot path either.
+ *
+ * One lock serialises these events, so an expiry cannot interleave with a boot pass, a Stop or a +1 min over
+ * the same timer. User edits through `TimerRepository` do not take it yet; the Timer tab (slice #39) must route
+ * its read-modify-write through here, or an edit landing between an expiry's read and write would be overwritten.
  */
 @Singleton
 class TimerDiscovery @Inject constructor(
@@ -45,8 +49,9 @@ class TimerDiscovery @Inject constructor(
     private val reconciler: TimerMirrorReconciler,
     private val clock: TimerClock,
     private val alarms: TimerAlarmSync,
-    private val ringing: TimerRingingHandoff,
-) : TimerRearm {
+    private val handoff: TimerRingingHandoff,
+) : TimerRearm,
+    TimerRingingStore {
     private val lock = Mutex()
 
     /** `LOCKED_BOOT_COMPLETED` and `BOOT_COMPLETED`: elapsed realtime restarted, so measure on the wall clock. */
@@ -99,7 +104,7 @@ class TimerDiscovery @Inject constructor(
             store.save(transition.timer)
             alarms.sync { store.all() }
             AlarmLog.event("timer_expired", "timerId" to timerId.value)
-            ringing.ring(timerId)
+            handoff.ring(timerId)
             TimerExpiry.RANG
         } else {
             AlarmLog.event("timer_delivery_stale", "timerId" to timerId.value, "reason" to staleReason(timer))
@@ -107,6 +112,31 @@ class TimerDiscovery @Inject constructor(
             alarms.sync { store.all() }
             TimerExpiry.STALE
         }
+    }
+
+    override suspend fun ringing(id: TimerId): Timer? = lock.withLock {
+        open().store.get(id)?.takeIf { it.runState == TimerRunState.Ringing }
+    }
+
+    override suspend fun stop(id: TimerId) {
+        lock.withLock { applyToRinging(id, "stop") { it.stop() } }
+    }
+
+    override suspend fun addMinute(id: TimerId) {
+        lock.withLock { applyToRinging(id, "add_minute") { it.addMinute(clock.now()) } }
+    }
+
+    /** Only a Ringing timer changes: a late Stop for a timer the user already restarted must not reset it. */
+    private suspend fun applyToRinging(id: TimerId, command: String, transition: (Timer) -> TimerTransition) {
+        val store = open().store
+        val timer = store.get(id)?.takeIf { it.runState == TimerRunState.Ringing }
+        val applied = timer?.let(transition) as? TimerTransition.Applied
+        if (applied == null) {
+            AlarmLog.event("timer_command_ignored", "command" to command, "timerId" to id.value, "reason" to "not_ringing")
+            return
+        }
+        store.save(applied.timer)
+        alarms.sync { store.all() }
     }
 
     private suspend fun discover(store: TimerStore, afterBoot: Boolean, trigger: String): TimerSyncResult {
