@@ -4,11 +4,18 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.core.directboot.MirroredTimer
+import dev.upyet.core.directboot.TimerMirror
 import dev.upyet.timer.data.RoomTimerRepository
 import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerAnchor
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRunState
+import dev.upyet.timer.scheduling.TimerAlarm
+import dev.upyet.timer.scheduling.TimerAlarmSync
+import dev.upyet.timer.scheduling.TimerArmResult
+import dev.upyet.timer.scheduling.TimerMissedNotices
+import dev.upyet.timer.scheduling.TimerScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -127,7 +134,7 @@ class UpYetDatabaseTest {
 
     @Test
     fun aTimerRoundTripsThroughTheRepositoryInEveryRunState() = runBlocking<Unit> {
-        val repository = RoomTimerRepository(database.timerDao())
+        val repository = timerRepository()
         val createdAt = Instant.parse("2026-10-26T07:00:00Z")
         val runStates =
             listOf(
@@ -149,7 +156,7 @@ class UpYetDatabaseTest {
 
     @Test
     fun theEvidenceFlagAndLabelSurviveAnUpdate() = runBlocking<Unit> {
-        val repository = RoomTimerRepository(database.timerDao())
+        val repository = timerRepository()
         val createdAt = Instant.parse("2026-10-26T07:00:00Z")
         val id = repository.upsert(timerWith(TimerId(0), "Pasta", true, TimerRunState.Idle, createdAt))
 
@@ -162,7 +169,7 @@ class UpYetDatabaseTest {
 
     @Test
     fun deleteRemovesTheTimer() = runBlocking<Unit> {
-        val repository = RoomTimerRepository(database.timerDao())
+        val repository = timerRepository()
         val id =
             repository.upsert(
                 timerWith(TimerId(0), "Pasta", true, TimerRunState.Idle, Instant.parse("2026-10-26T07:00:00Z")),
@@ -175,7 +182,7 @@ class UpYetDatabaseTest {
 
     @Test
     fun timersAreListedInCreationOrder() = runBlocking<Unit> {
-        val repository = RoomTimerRepository(database.timerDao())
+        val repository = timerRepository()
         val laterId =
             repository.upsert(
                 timerWith(TimerId(0), "Later", true, TimerRunState.Idle, Instant.parse("2026-10-26T09:00:00Z")),
@@ -200,4 +207,34 @@ class UpYetDatabaseTest {
             runState = runState,
             createdAt = createdAt,
         )
+
+    /** Room is what these tests exercise; the mirror and the alarm are covered by their own tests. */
+    private fun timerRepository() = RoomTimerRepository(
+        database.timerDao(),
+        object : TimerMirror {
+            override fun put(record: MirroredTimer) = Unit
+
+            override fun markReconciled(timerId: TimerId) = Unit
+
+            override fun remove(timerId: TimerId) = Unit
+
+            override fun all(): List<MirroredTimer> = emptyList()
+
+            override fun clear() = Unit
+        },
+        TimerAlarmSync(
+            object : TimerScheduler {
+                override fun arm(alarm: TimerAlarm): TimerArmResult = TimerArmResult.Armed
+
+                override fun cancel() = Unit
+            },
+            object : TimerMissedNotices {
+                override fun isShowing(): Boolean = false
+
+                override fun post(missed: List<Timer>) = Unit
+
+                override fun clear() = Unit
+            },
+        ) { TimerAnchor(Duration.ZERO, Instant.EPOCH) },
+    )
 }

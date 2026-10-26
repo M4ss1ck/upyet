@@ -28,6 +28,7 @@ precisely which environment and why.
 | Mappers | entity ↔ domain round trips including recurrence encoding and enum persistence |
 | Retention | which segments a policy selects, and that in-progress segments are never selected |
 | Reliability checks | each check's pass/fail evaluation from injected platform state |
+| Timer scheduling | `TimerAlarmTest`: one alarm for the earliest-ending Running timer, never a Paused one, an overdue timer armed for now, ties to the lower id, a pre-reboot anchor measured on the wall clock. `TimerTransitionTableTest`: a delivery with another end instant, after a pause and resume, or after +1 min is stale. `MissedNoticeTest`: posted when a timer is newly missed, never re-posted after a swipe, cleared when none is missed. `TimerDiscoveryTest`: boot before unlock arms from the mirror and never builds Room, the 60 s grace window rings through an immediate alarm, 61 s overdue is Missed with the notice and no ring, unlock reconciles before discovering, launch re-arms the same alarm twice, a stale delivery never rings, a wall-clock change keeps the elapsed trigger, no exact access arms nothing. `TimerReceiverCommandTest`: `TIMEZONE_CHANGED` re-arms nothing. `AndroidTimerSchedulerTest` (Robolectric): one `ELAPSED_REALTIME_WAKEUP` allow-while-idle alarm, never the next alarm clock, re-arming replaces it, no inexact fallback. `AndroidTimerMissedNoticesTest`: id 1103 on `timer_missed`, not ongoing. `RoomTimerRepositoryTest`: every write mirrors and re-arms |
 | Timer persistence | `TimerMapperTest`: every run state round-trips through `TimerEntity`, both anchors included. `MirroredTimerCodecTest`: every mirror field round-trips, a `\|` in a label cannot shift the fields after it, a record without the last appended field still parses, fields from a later build are ignored, malformed records are dropped. `MirroredTimerMapperTest`: a restored running timer counts down on the wall clock after a reboot and keeps how overdue it is. `TimerMirrorReconcilerTest`: a run state changed before unlock reaches Room, reconciling twice changes nothing, an edit made after unlock is never reverted, a record for a timer Room does not have is dropped, and nothing touches Room while locked |
 
 ## 3. Instrumented tests (`app/src/androidTest`)
@@ -126,6 +127,9 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timezone-change` | emulator-ok | adb | alarms keep local wall-clock semantics |
 | `dst-transition` | emulator-ok | adb | no double or skipped firing |
 | `exact-alarm-revoked` | either | adb | reliability screen warns; alarms rescheduled on restore |
+| `timer-exact-revoked` | either | adb | revoking exact-alarm access warns on the reliability screen and arms no timer alarm, exact or inexact; on restore the timer is re-armed once (one `TIMER_EXPIRED` alarm, same trigger) and does not ring early or twice. Needs API 31 or 32: from API 33 `USE_EXACT_ALARM` cannot be revoked |
+| `timer-clock-change` | emulator-ok | adb | moving the wall clock re-anchors running timers from the elapsed delta and leaves the armed alarm's `whenElapsed` unchanged; `TIMEZONE_CHANGED` re-arms nothing (no `timer_` log line) |
+| `timer-missed` | either | adb | a `Running` timer found more than 60 s past its end moves to `Missed`, posts the low-importance `timer_missed` notice (id 1103) and never rings. Notice half owned by slice #35; the "Reset clears it" half needs the Timer tab and is re-run by slice #39 |
 | `fsi-unavailable` | physical | human-eyes | notification still routes to the ringing screen |
 | `notifications-disabled` | either | adb | reliability screen warns with a settings action |
 | `low-storage` | emulator-ok | adb | evidence status `Storage error`, alarm unaffected |
@@ -220,6 +224,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Playback (`AlarmPlaybackService`, notifications, wake lock) | `core-path`, `device-in-use`, `incoming-call`, `snooze`, `fsi-unavailable`, `notifications-disabled` |
 | Camera / evidence (`EvidenceCoordinator`, CameraX use cases) | `core-path`, `camera-denied`, `camera-revoked-mid-flight`, `camera-in-use`, `camera-init-failure`, `screen-off-while-ringing`, `backgrounded-resumed`, `history-thumbnail` |
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
+| Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, and from slice #37 the six rows that assert a ring |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 
 A scenario that is skipped is recorded as skipped, with the reason. Silence is not a pass.
@@ -267,6 +272,37 @@ adb shell am start -n "$PKG"/dev.upyet.MainActivity
 # but guarded by DUMP, so the shell can reach it and installed apps cannot. It exists only in the debug
 # source set; a release pass creates the alarm through the UI instead.
 adb shell am broadcast -a dev.upyet.debug.SCHEDULE --ei seconds 60 --ez evidence true -p dev.upyet.debug
+
+# Debug-only: start a timer N seconds long through the repository, so the mirror and the re-arm are the
+# production path. Same DUMP guard. A freshly installed or cleared package is "stopped" and drops
+# broadcasts: launch it once first.
+adb shell am broadcast -a dev.upyet.debug.TIMER --ei seconds 300 -p dev.upyet.debug
+
+# Exactly one timer alarm, for the earliest end: start two timers, then expect one ELAPSED_WAKEUP entry
+# tagged *walarm*:dev.upyet.action.TIMER_EXPIRED whose whenElapsed is the shorter timer's, and never an
+# ALARM_CLOCK entry for it (ADR 0009). An entry with a Reason= line is removal history, not a live alarm.
+adb shell dumpsys alarm | grep -E -B1 -A5 "TIMER_EXPIRED"
+adb logcat -d -s UpYet | grep -E "timer_(armed|discovery|delivery_stale|expired|wall_clock)"
+
+# timer-clock-change: move the wall clock without root, then re-read whenElapsed (it must not change)
+adb shell settings put global auto_time 0
+adb shell cmd alarm set-time $(( ($(adb shell date +%s | tr -d '\r') + 3600) * 1000 ))
+adb shell settings put global auto_time 1        # afterwards
+
+# timer-exact-revoked (API 31-32 only): revoking kills the process; restoring sends
+# SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED, which logs timer_discovery trigger=rearm
+adb shell appops set "$PKG" SCHEDULE_EXACT_ALARM deny
+adb shell appops set "$PKG" SCHEDULE_EXACT_ALARM allow
+
+# timer-missed: a 20 s timer, force stop (cancels its alarm), wait 90 s, relaunch. Expect
+# timer_discovery missed=1, notification id 1103 on timer_missed, and no timer_expired.
+adb shell dumpsys notification --noredact | grep -A12 "id=1103"
+
+# timer-boot-grace-window negative control (the row runs in slice #37): with this compat change on, a
+# BOOT_COMPLETED receiver may not start a mediaPlayback foreground service, so a timer due inside the
+# grace window must still ring, through the immediate exact alarm discovery arms.
+adb shell am compat enable FGS_BOOT_COMPLETED_RESTRICTIONS "$PKG"
+adb shell am compat reset FGS_BOOT_COMPLETED_RESTRICTIONS "$PKG"
 
 # Kill the app process normally (alarms must survive this)
 adb shell am kill "$PKG"

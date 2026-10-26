@@ -144,6 +144,13 @@ flowchart LR
   locked; on `USER_UNLOCKED`, `TimerMirrorReconciler` copies only those run states into Room, so
   reconciling is idempotent and never reverts an edit made after unlock. Room keeps the label, length and
   evidence flag, and a mirror record for a timer Room no longer has is dropped, never recreated.
+* Timer scheduling (ADR 0008, ADR 0009) lives in `timer/scheduling/`. `TimerDiscovery` handles every event
+  that is not the user's (boot, unlock, launch, expiry, `TIME_SET`, restored exact access) against Room once
+  unlocked and the mirror before, under one lock. `TimerAlarmSync` then arms exactly one
+  `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` alarm, fixed request code, for the earliest-ending
+  timer, and posts or clears the `timer_missed` notice. `RoomTimerRepository` mirrors and re-arms on every
+  write. A delivery carries the timer id and its wall-clock end; `Timer.onExpiry` rings only when that still
+  matches. `TimerReceiver` registers no `TIMEZONE_CHANGED`: both anchors are zone-free.
 * Occurrences that fire while locked are appended to a device-protected pending list and merged into
   Room when the user unlocks.
 * CameraX before first unlock is best-effort only: when it cannot initialize, the occurrence records

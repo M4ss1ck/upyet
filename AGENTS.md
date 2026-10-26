@@ -460,8 +460,9 @@ only.
    upcoming-alarm notification, which a force stop clears. Its other callers are `BootReceiver`,
    `UserUnlockedReceiver` and `AlarmPlaybackService`.
 2. `TimerRearm.rearm()`: the timer re-arm (§6a, one exact alarm for the earliest-ending timer), for the same
-   reason. Until the timer scheduler lands (slice #35) the bound implementation is `NoOpTimerRearm`; its
-   replacement must stay idempotent.
+   reason. The bound implementation is `TimerDiscovery`: it reconciles the mirror, moves timers more than
+   60 s overdue to `Missed` and re-arms. It is idempotent; its other callers are `TimerReceiver` and
+   `UserUnlockedReceiver`.
 3. `RetentionCleaner.clean()` (evidence retention), last, because alarm reliability outranks evidence.
 
 None of them may become a background worker, and none may block the first frame: the whole sequence runs on

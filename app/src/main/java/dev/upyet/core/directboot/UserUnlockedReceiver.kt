@@ -8,6 +8,7 @@ import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.core.logging.AlarmLog
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.timer.scheduling.TimerDiscovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ class UserUnlockedReceiver : BroadcastReceiver() {
 
     @Inject lateinit var userUnlockState: UserUnlockState
 
-    @Inject lateinit var timerReconciler: TimerMirrorReconciler
+    @Inject lateinit var timerDiscovery: TimerDiscovery
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_USER_UNLOCKED) return
@@ -38,7 +39,8 @@ class UserUnlockedReceiver : BroadcastReceiver() {
                 reconcileAlarms()
             } finally {
                 // Timers have their own mirror, so a timer record never reaches the alarm code. After the
-                // alarms, because alarm reliability outranks timers, and even when they throw.
+                // alarms, because alarm reliability outranks timers, and even when they throw. Discovery
+                // reconciles the mirror into Room first, then moves overdue timers to Missed and re-arms.
                 reconcileTimers()
                 pending.finish()
                 scope.cancel()
@@ -61,7 +63,7 @@ class UserUnlockedReceiver : BroadcastReceiver() {
 
     private suspend fun reconcileTimers() {
         try {
-            when (val result = timerReconciler.reconcile()) {
+            when (val result = timerDiscovery.onUserUnlocked()) {
                 TimerReconciliation.Locked -> AlarmLog.event("timer_mirror_reconcile_skipped", "reason" to "locked")
 
                 is TimerReconciliation.Done ->

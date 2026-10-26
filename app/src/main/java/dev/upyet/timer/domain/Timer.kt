@@ -67,11 +67,22 @@ data class Timer private constructor(
     }
 
     /**
-     * The exact alarm fired. Only a Running timer starts ringing; in any other state the delivery is stale.
-     * Whether a Running timer's delivery is its own (its end instant still matches) is slice #35's check.
+     * The wall-clock instant a Running timer reaches zero: its anchor plus what was left there. It is a pure
+     * function of the stored anchors, so the alarm that delivery carries can be compared with it exactly; it
+     * changes with every pause, resume, +1 min, reset and re-anchoring. Null in every other state.
      */
-    fun onExpiry(): TimerTransition = when (runState) {
-        is TimerRunState.Running -> applied(TimerRunState.Ringing)
+    val endsAt: Instant?
+        get() = (runState as? TimerRunState.Running)?.let { it.anchor.wallClock.plus(it.remainingAtAnchor) }
+
+    /**
+     * The exact alarm fired, carrying the [endsAt] it was armed for. Only a Running timer whose end still
+     * matches, to the millisecond the alarm carries, starts ringing. Anything else is stale: the timer was
+     * cancelled, paused, reset, extended or re-anchored after the alarm was armed (AGENTS.md §6a).
+     */
+    fun onExpiry(deliveredEndsAt: Instant): TimerTransition = when (runState) {
+        is TimerRunState.Running ->
+            if (endsAt?.toEpochMilli() == deliveredEndsAt.toEpochMilli()) applied(TimerRunState.Ringing) else TimerTransition.NoOp
+
         TimerRunState.Idle, is TimerRunState.Paused, TimerRunState.Ringing, TimerRunState.Missed -> TimerTransition.NoOp
     }
 

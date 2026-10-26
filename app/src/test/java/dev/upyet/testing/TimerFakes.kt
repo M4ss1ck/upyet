@@ -5,6 +5,10 @@ import dev.upyet.core.directboot.TimerMirror
 import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRepository
+import dev.upyet.timer.scheduling.TimerAlarm
+import dev.upyet.timer.scheduling.TimerArmResult
+import dev.upyet.timer.scheduling.TimerMissedNotices
+import dev.upyet.timer.scheduling.TimerScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -52,4 +56,35 @@ class FakeTimerMirror(var unlocked: Boolean = true) : TimerMirror {
     override fun all(): List<MirroredTimer> = records.values.toList()
 
     override fun clear() = records.clear()
+}
+
+/** Records every alarm armed and every cancel, in order, and answers with [result]. */
+class FakeTimerScheduler(var result: TimerArmResult = TimerArmResult.Armed) : TimerScheduler {
+    val armed = mutableListOf<TimerAlarm>()
+    var cancels = 0
+        private set
+
+    override fun arm(alarm: TimerAlarm): TimerArmResult {
+        if (result == TimerArmResult.Armed) armed += alarm
+        return result
+    }
+
+    override fun cancel() {
+        cancels++
+    }
+}
+
+/** The missed-timer notice as the shade would hold it: [shown] is null while nothing is posted. */
+class FakeTimerMissedNotices : TimerMissedNotices {
+    var shown: List<Timer>? = null
+
+    override fun isShowing(): Boolean = shown != null
+
+    override fun post(missed: List<Timer>) {
+        shown = missed
+    }
+
+    override fun clear() {
+        shown = null
+    }
 }

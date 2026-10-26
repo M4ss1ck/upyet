@@ -9,6 +9,8 @@
     <string name="clock_tool_ongoing_channel_description">A silent countdown or stopwatch while one is running.</string>
     <string name="timer_missed_channel_name">Missed timer</string>
     <string name="timer_missed_channel_description">A timer that ended without ringing and was found later, when the phone restarted or the app opened.</string>
+    <plurals name="timer_missed_notice_title"><item quantity="one">Timer missed</item><item quantity="other">%1$d timers missed</item></plurals>
+    <plurals name="timer_missed_notice_text"><item quantity="one">It ended while UpYet could not ring it. Reset it from the Timer tab.</item><item quantity="other">They ended while UpYet could not ring them. Reset them from the Timer tab.</item></plurals>
     <string name="alarm_ringing_title">Alarm ringing</string>
     <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
     <string name="alarm_notification_snooze">Snooze</string>
