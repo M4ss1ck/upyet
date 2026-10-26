@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Launching the app now reschedules every enabled alarm, so an alarm cancelled by a force stop (which the
+  platform does not announce) comes back the next time the app is opened instead of waiting for a reboot,
+  an unlock or another alarm to ring. Launch housekeeping also calls the timer re-arm seam, which does
+  nothing until timers exist.
+
 ## [0.2.0] - 2026-10-07
 
 ### Added
