@@ -6,6 +6,12 @@
 -->
 <resources>
     <string name="alarm_channel_name">Alarma sonando</string>
+    <string name="timer_channel_name">Temporizador sonando</string>
+    <string name="timer_channel_description">Un temporizador que llegó a cero. Separado de las alarmas, para poder silenciar los temporizadores sin tocar las alarmas.</string>
+    <string name="clock_tool_ongoing_channel_name">Temporizador y cronómetro en marcha</string>
+    <string name="clock_tool_ongoing_channel_description">Una cuenta atrás o un cronómetro silenciosos mientras están en marcha.</string>
+    <string name="timer_missed_channel_name">Temporizador perdido</string>
+    <string name="timer_missed_channel_description">Un temporizador que terminó sin sonar y se detectó después, al reiniciar el teléfono o abrir la app.</string>
     <string name="alarm_ringing_title">Alarma sonando</string>
     <string name="alarm_ringing_text">Toca para despertarte y descartarla</string>
     <string name="alarm_notification_snooze">Posponer</string>
