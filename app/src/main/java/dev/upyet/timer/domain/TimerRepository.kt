@@ -2,7 +2,7 @@ package dev.upyet.timer.domain
 
 import kotlinx.coroutines.flow.Flow
 
-/** Room is the truth for the timer list (ADR 0008); slice #34 implements this and its device-protected mirror. */
+/** Room is the truth for the timer list (ADR 0008). Credential-protected: never reach it before first unlock. */
 interface TimerRepository {
     fun observeTimers(): Flow<List<Timer>>
 

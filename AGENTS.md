@@ -351,8 +351,9 @@ keyguard bypass.
   sound URI) lives in device-protected storage; it holds nothing else about the user.
 * A separate **minimal** timer mirror (id, state, total length, remaining at its anchor,
   wall-clock anchor, end instant, label, ringtone URI, and the per-timer Timer evidence
-  flag) lives in device-protected storage (ADR 0008, ADR 0010). It carries the timer label,
-  because before first unlock the ringing screen has no other way to tell one ringing timer
+  flag) lives in device-protected storage (ADR 0008, ADR 0010), plus a `writtenWhileLocked`
+  marker that is bookkeeping, not user data: only a record so marked is reconciled into Room on
+  `USER_UNLOCKED`. It carries the timer label, because before first unlock the ringing screen has no other way to tell one ringing timer
   from another, and it carries the evidence flag, because the pre-unlock path cannot ask
   Room which timers are recording-on. Alarm labels are not mirrored, and that does not
   change.

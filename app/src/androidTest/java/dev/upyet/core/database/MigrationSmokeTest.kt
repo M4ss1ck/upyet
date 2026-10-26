@@ -105,4 +105,66 @@ class MigrationSmokeTest {
         }
         roomDb.close()
     }
+
+    @Test
+    @Throws(IOException::class)
+    fun migratesFrom3To4AddsAnEmptyTimersTableAndKeepsAlarms() {
+        // Create a v3 database with one alarm, including the soundEnabled column that v3 introduced.
+        helper.createDatabase("migration-test-3-4", 3).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'DAILY', 0, 'content://ring', 1, 1, 9, 0, 20123, 100, 200)",
+            )
+            close()
+        }
+
+        // Run the 3 -> 4 migration and validate the schema.
+        val db = helper.runMigrationsAndValidate("migration-test-3-4", 4, true, *UpYetDatabase.MIGRATIONS)
+        // The alarm must survive untouched.
+        db.query("SELECT label FROM alarms WHERE id = 1").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getString(0) == "Wake")
+        }
+        // The new table starts empty.
+        db.query("SELECT COUNT(*) FROM timers").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getInt(0) == 0)
+        }
+        // A running timer row with every column written must be readable back.
+        db.execSQL(
+            "INSERT INTO timers (id, lengthMillis, label, ringtoneUri, evidenceEnabled, runState, " +
+                "remainingAtAnchorMillis, anchorElapsedRealtimeMillis, anchorWallClockMillis, createdAt) " +
+                "VALUES (1, 600000, 'Pasta', NULL, 1, 'RUNNING', 425000, 123456, 1793001600000, 100)",
+        )
+        db.query("SELECT label, runState FROM timers WHERE id = 1").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getString(0) == "Pasta")
+            assert(cursor.getString(1) == "RUNNING")
+        }
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migratesFrom1To4() {
+        // Create a v1 database with one alarm and none of the later columns.
+        helper.createDatabase("migration-test-1-4", 1).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "vibrationEnabled, snoozeMinutes, evidenceEnabled, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'DAILY', 0, NULL, 1, 9, 0, 100, 200)",
+            )
+            close()
+        }
+
+        // Run every migration from 1 to 4 and validate the schema.
+        val db = helper.runMigrationsAndValidate("migration-test-1-4", 4, true, *UpYetDatabase.MIGRATIONS)
+        // The alarm must survive the whole chain.
+        db.query("SELECT label FROM alarms WHERE id = 1").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getString(0) == "Wake")
+        }
+        db.close()
+    }
 }

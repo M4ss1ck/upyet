@@ -68,6 +68,11 @@ reconciled into Room on `USER_UNLOCKED` by dispatching on that source so a timer
 alarm-only effect such as retiring a one-time alarm; it still loses no video, because none could be
 recorded. The evidence flag is in the mirror for the same reason: before first unlock nothing else can tell
 the ringing screen whether that timer was recording-on.)*
+*(Implementation note, slice #34: each mirror record also carries a `writtenWhileLocked` marker. It is
+bookkeeping, not user data: it says the record may hold a run state Room has not seen, and only such a
+record is copied into Room on `USER_UNLOCKED`, which is what makes reconciliation idempotent and keeps it
+from reverting an edit made after unlock. There is no elapsed anchor in the mirror, because elapsed
+realtime restarts at boot.)*
 
 **The timer mirror carries the label, and the alarm mirror does not.** `AGENTS.md` §11 already permits a
 label in the minimal mirror; `docs/ARCHITECTURE.md` said labels are not mirrored, which was only ever true

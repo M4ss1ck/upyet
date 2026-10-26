@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.upyet.core.database.AlarmDao
 import dev.upyet.core.database.EvidenceSegmentDao
 import dev.upyet.core.database.OccurrenceDao
+import dev.upyet.core.database.TimerDao
 import dev.upyet.core.database.UpYetDatabase
 import javax.inject.Singleton
 
@@ -34,4 +35,7 @@ object DatabaseModule {
 
     @Provides
     fun provideEvidenceSegmentDao(database: UpYetDatabase): EvidenceSegmentDao = database.evidenceSegmentDao()
+
+    @Provides
+    fun provideTimerDao(database: UpYetDatabase): TimerDao = database.timerDao()
 }
