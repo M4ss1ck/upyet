@@ -3,6 +3,12 @@
     <!-- Brand name: the same in every language, so it is never sent for translation. -->
     <string name="app_name" translatable="false">UpYet</string>
     <string name="alarm_channel_name">Alarm ringing</string>
+    <string name="timer_channel_name">Timer ringing</string>
+    <string name="timer_channel_description">A timer that reached zero. Separate from alarms, so timers can be quieted without touching alarms.</string>
+    <string name="clock_tool_ongoing_channel_name">Running timer and stopwatch</string>
+    <string name="clock_tool_ongoing_channel_description">A silent countdown or stopwatch while one is running.</string>
+    <string name="timer_missed_channel_name">Missed timer</string>
+    <string name="timer_missed_channel_description">A timer that ended without ringing and was found later, when the phone restarted or the app opened.</string>
     <string name="alarm_ringing_title">Alarm ringing</string>
     <string name="alarm_ringing_text">Tap to wake up and dismiss</string>
     <string name="alarm_notification_snooze">Snooze</string>

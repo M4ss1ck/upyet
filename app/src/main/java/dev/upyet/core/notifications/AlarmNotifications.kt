@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,29 +25,54 @@ import javax.inject.Singleton
 
 @Singleton
 class AlarmNotifications @Inject constructor(@ApplicationContext private val context: Context) {
+    /**
+     * Every channel the app posts on, alarm and clock tool alike (ADR 0012). Called from
+     * [dev.upyet.UpYetApplication.onCreate] so system settings lists all five from the first launch. Creating a
+     * channel that exists only updates its name and description, so a user's importance or sound choice survives.
+     * Touches no Room and no DataStore: it runs before first unlock.
+     */
     fun ensureChannels() {
         val ringing = NotificationChannel(
             CHANNEL_RINGING,
             context.getString(R.string.alarm_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
-        ).apply {
-            setSound(null, null)
-            enableVibration(false)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        }
+        ).silentPublic()
         // An audible nudge before the alarm is a second alarm the user did not ask for; this stays silent.
         val upcoming = NotificationChannel(
             CHANNEL_UPCOMING,
             context.getString(R.string.upcoming_channel_name),
             NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            setSound(null, null)
-            enableVibration(false)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        }
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager?.createNotificationChannel(ringing)
-        manager?.createNotificationChannel(upcoming)
+        ).silentPublic()
+        // Its own channel, never alarm_ringing: quieting timers must not demote the alarm's evidence surface.
+        // The sound comes from the timer playback service, as the alarm's comes from AlarmPlaybackService.
+        // A channel has no category: CATEGORY_ALARM goes on the notification, with the ringing builder.
+        val timerRinging = NotificationChannel(
+            CHANNEL_TIMER_RINGING,
+            context.getString(R.string.timer_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).silentPublic(R.string.timer_channel_description)
+        // One channel for a running timer and a running stopwatch: both are silent chronometers with no service.
+        val clockToolOngoing = NotificationChannel(
+            CHANNEL_CLOCK_TOOL_ONGOING,
+            context.getString(R.string.clock_tool_ongoing_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
+        ).silentPublic(R.string.clock_tool_ongoing_channel_description)
+        val timerMissed = NotificationChannel(
+            CHANNEL_TIMER_MISSED,
+            context.getString(R.string.timer_missed_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
+        ).silentPublic(R.string.timer_missed_channel_description)
+        context.getSystemService(NotificationManager::class.java)?.createNotificationChannels(
+            listOf(ringing, upcoming, timerRinging, clockToolOngoing, timerMissed),
+        )
+    }
+
+    /** The alarm channels never had a description; leaving it null keeps them exactly as upgrading users have them. */
+    private fun NotificationChannel.silentPublic(@StringRes description: Int? = null): NotificationChannel = apply {
+        setSound(null, null)
+        enableVibration(false)
+        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        description?.let { this.description = context.getString(it) }
     }
 
     fun buildRingingNotification(alarmLabel: String?, isUserUnlocked: Boolean): Notification {
@@ -152,9 +178,18 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
     companion object {
         const val CHANNEL_RINGING = "alarm_ringing"
         const val CHANNEL_UPCOMING = "alarm_upcoming"
+        const val CHANNEL_TIMER_RINGING = "timer_ringing"
+        const val CHANNEL_CLOCK_TOOL_ONGOING = "clock_tool_ongoing"
+        const val CHANNEL_TIMER_MISSED = "timer_missed"
+
+        // The alarm path owns 1001-1004 and the clock tools 1101-1104, so neither can cancel or replace the other.
         const val NOTIFICATION_ID_RINGING = 1001
+        internal const val REQUEST_SNOOZE = 1002
+        internal const val REQUEST_DISMISS = 1003
         const val NOTIFICATION_ID_UPCOMING = 1004
-        private const val REQUEST_SNOOZE = 1002
-        private const val REQUEST_DISMISS = 1003
+        const val NOTIFICATION_ID_TIMER_RINGING = 1101
+        const val NOTIFICATION_ID_TIMER_RUNNING = 1102
+        const val NOTIFICATION_ID_TIMER_MISSED = 1103
+        const val NOTIFICATION_ID_STOPWATCH = 1104
     }
 }

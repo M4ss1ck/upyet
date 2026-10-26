@@ -303,6 +303,11 @@ adb shell dumpsys notification --noredact | grep -E -A 20 "\b${PKG}\b"
 adb shell pm revoke "$PKG" android.permission.CAMERA
 adb shell pm grant  "$PKG" android.permission.CAMERA
 
+# Notification channels (ADR 0012). All five exist from the first launch, before anything has rung or run:
+# alarm_ringing, alarm_upcoming, timer_ringing, clock_tool_ongoing, timer_missed. Run it on a fresh install.
+adb shell dumpsys notification --noredact | grep -E -A 200 "\b${PKG}\b" \
+  | grep -oE "mId='(alarm_ringing|alarm_upcoming|timer_ringing|clock_tool_ongoing|timer_missed)'" | sort -u
+
 # Time / timezone / DST
 adb shell su 0 date MMDDhhmmYYYY.ss     # rooted emulator only
 adb shell setprop persist.sys.timezone America/New_York

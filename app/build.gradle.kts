@@ -102,6 +102,9 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Robolectric reads the merged manifest and resources from here: without them no test sees a string, and
+        // UpYetApplication.onCreate, which creates the notification channels at startup, never runs.
+        unitTests.isIncludeAndroidResources = true
     }
 
     lint {

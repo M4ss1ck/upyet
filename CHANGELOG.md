@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- System notification settings now list every UpYet channel from the first launch: the two alarm channels
+  plus Timer ringing, Running timer and stopwatch, and Missed timer (ADR 0012). Timers get their own ringing
+  channel, so they can be quieted without touching alarms. Channels are created at startup instead of on
+  first use, and existing alarm channel settings are kept.
+
 ### Fixed
 - Launching the app now reschedules every enabled alarm, so an alarm cancelled by a force stop (which the
   platform does not announce) comes back the next time the app is opened instead of waiting for a reboot,
