@@ -19,7 +19,7 @@ dev.upyet
 ├── evidence
 │   ├── domain      AlarmOccurrence, EvidenceSegment, statuses, repository interface
 │   ├── data        Room entities/DAOs, EvidenceFileStore, RetentionCleaner
-│   ├── camera      EvidenceRecorder (CameraX)
+│   ├── camera      EvidenceSession (shared by both ringing screens), EvidenceCoordinator (CameraX)
 │   └── ui          recording indicator, evidence player
 ├── history/ui      occurrence list + detail
 ├── settings        DataStore-backed settings + UI
@@ -186,8 +186,12 @@ composables; navigation confined to the NavHost. The ringing screen additionally
 * **Foreground service types.** Ringing declares `mediaPlayback`; the exact-alarm broadcast grants the
   temporary allowance needed to start it from the receiver. There is deliberately no camera FGS, which
   is what keeps the camera tied to a visible Activity.
-* **Camera lifecycle.** CameraX binds to the Activity lifecycle; the OS may take the camera away at any
-  time, so evidence is modelled as segments rather than a single guaranteed file.
+* **Camera lifecycle.** CameraX binds to the ringing screen's lifecycle; the OS may take the camera away
+  at any time, so evidence is modelled as segments rather than a single guaranteed file. One
+  `EvidenceSession` per ringing screen owns that binding (request on resume, release on stop, the
+  `activityVisibleAt` mark, the recording state the UI renders) and takes the host lifecycle and the
+  `EvidenceSink` that receives the occurrence's segments as parameters, so the alarm and timer ringing
+  screens share it rather than each carrying a copy (AGENTS.md §10, ADR 0010).
 * **Direct Boot.** Credential-protected storage is unreadable before first unlock, so the alarm path
   cannot depend on Room.
 * **Force stop.** A force-stopped app loses its alarms and cannot restart itself; Android offers no

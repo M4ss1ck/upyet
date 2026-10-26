@@ -19,7 +19,6 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.core.directboot.UserUnlockState
@@ -29,8 +28,8 @@ import dev.upyet.evidence.data.EvidenceFileStore
 import dev.upyet.evidence.data.EvidenceThumbnailExtractor
 import dev.upyet.evidence.domain.EvidenceErrorCode
 import dev.upyet.evidence.domain.EvidenceSegment
+import dev.upyet.evidence.domain.EvidenceSink
 import dev.upyet.evidence.domain.EvidenceStatus
-import dev.upyet.evidence.domain.OccurrenceRepository
 import dev.upyet.evidence.domain.thumbnailFrameOffsetMicros
 import dev.upyet.evidence.domain.withFinalized
 import dev.upyet.evidence.domain.withStarted
@@ -47,18 +46,22 @@ import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * The CameraX engine behind [EvidenceSession]: front camera, no audio, 720p capped with a 480p fallback,
+ * `recordingStartedAt` only from [VideoRecordEvent.Start]. It writes through the [EvidenceSink] each start
+ * hands it and touches that sink only after the user is unlocked, so it never builds credential-protected
+ * storage before first unlock.
+ */
 @Singleton
 class EvidenceCoordinator
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
-    // Lazy: nothing on the ringing path may build credential-protected storage before first unlock.
-    private val occurrenceRepository: Lazy<OccurrenceRepository>,
     private val evidenceFileStore: EvidenceFileStore,
     private val thumbnailExtractor: EvidenceThumbnailExtractor,
     private val timeProvider: TimeProvider,
     private val userUnlockState: UserUnlockState,
-) {
+) : EvidenceRecorder {
     /**
      * Process lifetime is justified because recording finalization must still be persisted after the
      * ringing Activity is gone; this scope is never cancelled and only runs short metadata writes.
@@ -71,20 +74,20 @@ constructor(
     private var preview: Preview? = null
     private var videoCapture: VideoCapture<Recorder>? = null
 
-    val state: StateFlow<EvidenceRecordingState> = _state.asStateFlow()
-    val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
+    override val state: StateFlow<EvidenceRecordingState> = _state.asStateFlow()
+    override val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
 
-    suspend fun start(lifecycleOwner: LifecycleOwner, occurrenceId: OccurrenceId?, evidenceEnabled: Boolean) {
+    override suspend fun start(host: LifecycleOwner, occurrenceId: OccurrenceId?, evidenceEnabled: Boolean, sink: EvidenceSink) {
         if (!evidenceEnabled) {
-            unavailable(occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.EVIDENCE_DISABLED)
+            unavailable(sink, occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.EVIDENCE_DISABLED)
             return
         }
         if (!userUnlockState.isUserUnlocked()) {
-            unavailable(occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.DIRECT_BOOT_UNAVAILABLE)
+            unavailable(sink, occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.DIRECT_BOOT_UNAVAILABLE)
             return
         }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            unavailable(occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.PERMISSION_DENIED)
+            unavailable(sink, occurrenceId, EvidenceStatus.SKIPPED, EvidenceErrorCode.PERMISSION_DENIED)
             return
         }
 
@@ -93,22 +96,22 @@ constructor(
         val provider = try {
             ProcessCameraProvider.awaitInstance(context)
         } catch (error: IllegalArgumentException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         } catch (error: IllegalStateException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         } catch (error: CameraUnavailableException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         } catch (error: ExecutionException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         }
 
         val selector = CameraSelector.DEFAULT_FRONT_CAMERA
         if (!provider.hasCamera(selector)) {
-            unavailable(occurrenceId, EvidenceStatus.FAILED, EvidenceErrorCode.CAMERA_UNAVAILABLE)
+            unavailable(sink, occurrenceId, EvidenceStatus.FAILED, EvidenceErrorCode.CAMERA_UNAVAILABLE)
             return
         }
         val boundPreview = Preview.Builder().build().also {
@@ -120,15 +123,15 @@ constructor(
             ).build()
         val boundVideoCapture = VideoCapture.withOutput(recorder)
         try {
-            provider.bindToLifecycle(lifecycleOwner, selector, boundPreview, boundVideoCapture)
+            provider.bindToLifecycle(host, selector, boundPreview, boundVideoCapture)
         } catch (error: IllegalArgumentException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         } catch (error: IllegalStateException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         } catch (error: CameraUnavailableException) {
-            initializationFailed(occurrenceId, error)
+            initializationFailed(sink, occurrenceId, error)
             return
         }
         preview = boundPreview
@@ -141,7 +144,7 @@ constructor(
             EvidenceSegment(0L, it, requestedAt, null, null, null, file.name, null, null, EvidenceStatus.REQUESTED, null)
         }
         val segmentWithId = if (segment != null) {
-            segment.copy(id = occurrenceRepository.get().insertSegment(segment))
+            segment.copy(id = sink.insertSegment(segment))
         } else {
             null
         }
@@ -154,21 +157,21 @@ constructor(
             // still REQUESTED because Start never updated it throws out of the CameraX callback.
             var segment = segmentWithId
             recording = prepared.start(ContextCompat.getMainExecutor(context)) { event ->
-                segment = handleEvent(event, segment, file)
+                segment = handleEvent(sink, event, segment, file)
             }
         } catch (_: IllegalArgumentException) {
-            recordingStartFailed(segmentWithId, file)
+            recordingStartFailed(sink, segmentWithId, file)
         } catch (_: IllegalStateException) {
-            recordingStartFailed(segmentWithId, file)
+            recordingStartFailed(sink, segmentWithId, file)
         }
     }
 
-    fun stop() {
+    override fun stop() {
         recording?.stop()
         recording = null
     }
 
-    fun release() {
+    override fun release() {
         recording?.stop()
         recording = null
         val boundPreview = preview
@@ -183,12 +186,12 @@ constructor(
     }
 
     /** Returns the segment as this event leaves it, so the next event works from the current state. */
-    private fun handleEvent(event: VideoRecordEvent, segment: EvidenceSegment?, file: File): EvidenceSegment? {
+    private fun handleEvent(sink: EvidenceSink, event: VideoRecordEvent, segment: EvidenceSegment?, file: File): EvidenceSegment? {
         when (event) {
             is VideoRecordEvent.Start -> {
                 val startedAt = timeProvider.now()
                 val started = segment?.withStarted(startedAt)
-                if (started != null) persist(started)
+                if (started != null) persist(sink, started)
                 _state.value = EvidenceRecordingState.Recording(startedAt, 0L)
                 AlarmLog.event("recording_started")
                 return started
@@ -203,14 +206,14 @@ constructor(
             }
 
             is VideoRecordEvent.Finalize -> {
-                finalize(event, segment, file)
+                finalize(sink, event, segment, file)
                 return null
             }
         }
         return segment
     }
 
-    private fun finalize(event: VideoRecordEvent.Finalize, segment: EvidenceSegment?, file: File) {
+    private fun finalize(sink: EvidenceSink, event: VideoRecordEvent.Finalize, segment: EvidenceSegment?, file: File) {
         val durationMs = event.recordingStats.recordedDurationNanos / NANOS_PER_MILLISECOND
         val hasFile = file.isFile && file.length() > 0L
         val (status, errorCode) = statusForFinalize(event.error, hasFile, durationMs)
@@ -230,7 +233,7 @@ constructor(
             } else {
                 pending.withUnavailable(now, EvidenceStatus.FAILED, errorCode ?: EvidenceErrorCode.FINALIZATION_FAILED)
             }
-            persist(updated)
+            persist(sink, updated)
             if (hasFile && (status == EvidenceStatus.RECORDED || status == EvidenceStatus.PARTIAL)) {
                 extractThumbnail(file, durationMs)
             }
@@ -258,20 +261,20 @@ constructor(
         }
     }
 
-    private fun persist(segment: EvidenceSegment) {
-        scope.launch { occurrenceRepository.get().updateSegment(segment) }
+    private fun persist(sink: EvidenceSink, segment: EvidenceSegment) {
+        scope.launch { sink.updateSegment(segment) }
     }
 
     /**
      * Publishes why evidence is not being captured and, when there is an occurrence to attach it to,
      * persists that reason as a segment so the history screen can explain the gap.
      */
-    private fun unavailable(occurrenceId: OccurrenceId?, status: EvidenceStatus, errorCode: EvidenceErrorCode) {
+    private fun unavailable(sink: EvidenceSink, occurrenceId: OccurrenceId?, status: EvidenceStatus, errorCode: EvidenceErrorCode) {
         _state.value = EvidenceRecordingState.Unavailable(status, errorCode)
         if (occurrenceId == null || !userUnlockState.isUserUnlocked()) return
         val now = timeProvider.now()
         scope.launch {
-            occurrenceRepository.get().insertSegment(
+            sink.insertSegment(
                 EvidenceSegment(
                     id = 0L,
                     occurrenceId = occurrenceId,
@@ -289,18 +292,18 @@ constructor(
         }
     }
 
-    private fun initializationFailed(occurrenceId: OccurrenceId?, error: Throwable) {
+    private fun initializationFailed(sink: EvidenceSink, occurrenceId: OccurrenceId?, error: Throwable) {
         val inUse = error.message?.contains("in use", ignoreCase = true) == true
         val code = if (inUse) EvidenceErrorCode.CAMERA_IN_USE else EvidenceErrorCode.INITIALIZATION_FAILED
-        unavailable(occurrenceId, EvidenceStatus.FAILED, code)
+        unavailable(sink, occurrenceId, EvidenceStatus.FAILED, code)
         AlarmLog.event("alarm_error", "error" to code)
     }
 
-    private fun recordingStartFailed(segment: EvidenceSegment?, file: File) {
+    private fun recordingStartFailed(sink: EvidenceSink, segment: EvidenceSegment?, file: File) {
         file.delete()
         val now = timeProvider.now()
         val updated = segment?.withUnavailable(now, EvidenceStatus.FAILED, EvidenceErrorCode.RECORDING_START_FAILED)
-        if (updated != null) persist(updated)
+        if (updated != null) persist(sink, updated)
         // The segment row already carries the reason, so only the UI state needs updating here.
         _state.value = EvidenceRecordingState.Unavailable(EvidenceStatus.FAILED, EvidenceErrorCode.RECORDING_START_FAILED)
         AlarmLog.event("alarm_error", "error" to EvidenceErrorCode.RECORDING_START_FAILED)
