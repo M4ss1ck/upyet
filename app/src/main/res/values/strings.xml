@@ -313,6 +313,8 @@
     <string name="timer_wheel_hours">Hours</string>
     <string name="timer_wheel_minutes">Minutes</string>
     <string name="timer_wheel_seconds">Seconds</string>
+    <string name="timer_wheel_increase">Increase</string>
+    <string name="timer_wheel_decrease">Decrease</string>
     <string name="timer_wheel_description">%1$s: %2$d</string>
     <string name="timer_preset">%1$d min</string>
     <plurals name="timer_preset_description"><item quantity="one">Set %d minute</item><item quantity="other">Set %d minutes</item></plurals>
