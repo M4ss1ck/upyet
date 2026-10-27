@@ -14,12 +14,12 @@ import java.security.MessageDigest
  *
  * The sha256 pins below are the reviewed hashes of the committed files. A refresh regenerates the
  * assets with scripts/world-clock/generate.py and updates these pins in the same PR, together with
- * `world_data_manifest.txt`.
+ * `scripts/world-clock/world-data.manifest.txt`.
  */
 class WorldClockAssetTest {
     private val cities = File("src/main/res/raw/world_cities.tsv")
     private val land = File("src/main/res/raw/world_land.bin")
-    private val manifest = File("src/main/res/raw/world_data_manifest.txt")
+    private val manifest = File("../scripts/world-clock/world-data.manifest.txt")
 
     @Test
     fun citiesFileMatchesPinnedSha256() {
@@ -138,7 +138,7 @@ class WorldClockAssetTest {
 
     private companion object {
         // Pins for the committed assets. Refresh = scripts/world-clock/generate.py, then update these
-        // in the same PR as world_data_manifest.txt.
+        // in the same PR as scripts/world-clock/world-data.manifest.txt.
         const val CITIES_SHA256 = "bac5b4595dbacf4aaa3fa9e34aae0760a9c98b5a3e139f93dc98946522ada47d"
         const val LAND_SHA256 = "85c2739ee7a83e7d21346e54d435445525139298d8353ab0f099074e3a4aaaef"
 

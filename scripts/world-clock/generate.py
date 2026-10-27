@@ -48,7 +48,7 @@ Outputs, the formats ADR 0011 fixes because slice #45 reads them:
   world_land.bin     b"UPLD", uint32 ring count, then per ring a uint32 point count and that many
                      (int16 lon, int16 lat) pairs at 1/100 degree, all little endian. Holes are their own
                      rings, filled even-odd by the reader; nothing is clipped.
-  world_data_manifest.txt
+  scripts/world-clock/world-data.manifest.txt
                      The inputs (version, retrieval date, SHA-256), the per-rule fill and drop counts and
                      the SHA-256 of both assets, so a refresh reviews as a diff of numbers.
 """
@@ -69,6 +69,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 LOCK_PATH = os.path.join(SCRIPT_DIR, "data-sources.lock")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "app", "src", "main", "res", "raw")
+# Next to the lock, not in res/raw: it is for reviewers, has no runtime reader, and should not ship in the APK.
+MANIFEST_PATH = os.path.join(SCRIPT_DIR, "world-data.manifest.txt")
+MANIFEST_NAME = "world-data.manifest.txt"
 
 # POP_MAX below this is a village; ADR 0011's measurements are taken at this floor.
 MIN_POPULATION = 15000
@@ -449,7 +452,7 @@ def generate(lock, read, budget):
     cities = encode_cities(rows)
     land = encode_land(rings)
     manifest = encode_manifest(lock, stats, cities, land, len(rings), sum(len(ring) for ring in rings))
-    return {"world_cities.tsv": cities, "world_land.bin": land, "world_data_manifest.txt": manifest}, stats
+    return {"world_cities.tsv": cities, "world_land.bin": land, MANIFEST_NAME: manifest}, stats
 
 
 def parse_budget(values):
@@ -468,7 +471,8 @@ def main(argv):
     parser.add_argument("--inputs", default=os.path.join(cache_home, "upyet", "world-clock"), help="directory holding the inputs")
     parser.add_argument("--fetch", action="store_true", help="download every pinned input into --inputs first")
     parser.add_argument("--lock", default=LOCK_PATH)
-    parser.add_argument("--out", default=OUTPUT_DIR)
+    parser.add_argument("--out", default=OUTPUT_DIR, help="directory for the two assets")
+    parser.add_argument("--manifest", default=MANIFEST_PATH, help="path of the manifest")
     parser.add_argument("--budget", action="append", metavar="REASON=COUNT", help="override one drop budget")
     args = parser.parse_args(argv[1:])
     try:
@@ -480,7 +484,8 @@ def main(argv):
         return 1
     os.makedirs(args.out, exist_ok=True)
     for name, payload in outputs.items():
-        write_atomically(os.path.join(args.out, name), payload)
+        path = args.manifest if name == MANIFEST_NAME else os.path.join(args.out, name)
+        write_atomically(path, payload)
     print("written {} of {} places; filled {}; dropped {}".format(stats["written"], stats["places"], stats["filled"], stats["dropped"]))
     return 0
 
