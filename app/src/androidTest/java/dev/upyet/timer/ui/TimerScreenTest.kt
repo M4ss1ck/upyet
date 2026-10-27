@@ -1,15 +1,19 @@
 package dev.upyet.timer.ui
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
@@ -20,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Duration
+import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class TimerScreenTest {
@@ -27,14 +32,25 @@ class TimerScreenTest {
 
     private fun string(id: Int, vararg args: Any) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id, *args)
 
-    private fun row(id: Long, tag: TimerTag, label: String = "Row $id", evidence: Boolean = false) = TimerRowState(
-        id = TimerId(id),
-        label = label,
-        tag = tag,
-        remaining = Duration.ofSeconds(300),
-        length = Duration.ofSeconds(300),
-        evidenceEnabled = evidence,
-    )
+    private fun row(id: Long, tag: TimerTag, label: String = "Row $id", evidence: Boolean = false, ringsAt: Instant? = null) =
+        TimerRowState(
+            id = TimerId(id),
+            label = label,
+            tag = tag,
+            remaining = Duration.ofSeconds(300),
+            length = Duration.ofSeconds(300),
+            evidenceEnabled = evidence,
+            ringsAt = ringsAt,
+        )
+
+    /** The locale-proof start of "Rings at %1$s · %2$s timer", taken from the resource itself. */
+    private fun ringsAtPrefix(): String {
+        val prefix = string(R.string.timer_rings_at_with_length, "@", "@").substringBefore("@").trim()
+        assertThat(prefix).isNotEmpty()
+        return prefix
+    }
+
+    private fun lengthText() = string(R.string.timer_length, formatTimerDuration(Duration.ofSeconds(300)))
 
     private fun show(state: TimerUiState, callbacks: TimerCallbacks = TimerCallbacks()) {
         compose.setContent { UpYetTheme { TimerContent(state, callbacks) } }
@@ -134,5 +150,33 @@ class TimerScreenTest {
         compose.onNodeWithText(string(R.string.timer_add_minute)).performClick()
         compose.onNodeWithContentDescription(string(R.string.timer_rec_off_description)).performClick()
         assertThat(calls).containsExactly("pause 7", "add 7", "rec 7 true").inOrder()
+    }
+
+    @Test fun runningRowShowsItsRingTimeInPlaceOfTheLength() {
+        show(TimerUiState(timers = listOf(row(1, TimerTag.RUNNING, ringsAt = Instant.parse("2026-10-27T10:00:00Z")))))
+        compose.onNode(hasText(ringsAtPrefix(), substring = true)).assertExists()
+        compose.onNodeWithText(lengthText()).assertDoesNotExist()
+    }
+
+    @Test fun pausedRowShowsNoRingTimeAndTheLength() {
+        show(TimerUiState(timers = listOf(row(1, TimerTag.PAUSED))))
+        compose.onNode(hasText(ringsAtPrefix(), substring = true)).assertDoesNotExist()
+        compose.onNodeWithText(lengthText()).assertExists()
+    }
+
+    @Test fun addMinuteIsAButtonThatRaisesOnAddMinuteWithTheRowId() {
+        var added = -1L
+        show(
+            TimerUiState(timers = listOf(row(9, TimerTag.RUNNING))),
+            TimerCallbacks(onAddMinute = { added = it.value }),
+        )
+        val button = compose.onNodeWithContentDescription(string(R.string.timer_add_minute_description))
+        button.assertHasClickAction().performClick()
+        assertThat(added).isEqualTo(9L)
+    }
+
+    @Test fun addMinuteButtonIsAtLeastATouchTargetHigh() {
+        show(TimerUiState(timers = listOf(row(1, TimerTag.RUNNING))))
+        compose.onNodeWithContentDescription(string(R.string.timer_add_minute_description)).assertHeightIsAtLeast(48.dp)
     }
 }

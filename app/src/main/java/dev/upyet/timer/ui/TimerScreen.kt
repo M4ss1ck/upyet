@@ -1,5 +1,7 @@
 package dev.upyet.timer.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -27,17 +29,23 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +67,7 @@ import dev.upyet.core.ui.rememberCameraGate
 import dev.upyet.core.ui.theme.ControlHeight
 import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.timer.domain.TimerId
+import java.time.ZoneId
 
 /** The quick lengths under the wheels, in minutes. */
 val TIMER_PRESET_MINUTES = listOf(1, 3, 5, 10, 15, 30)
@@ -66,6 +75,7 @@ val TIMER_PRESET_MINUTES = listOf(1, 3, 5, 10, 15, 30)
 private const val WHEEL_HOURS_MAX = 23
 private const val WHEEL_SEXAGESIMAL_MAX = 59
 private const val WHEELS_WIDTH_FRACTION = 0.9f
+private const val ADD_MINUTE_FLASH_MS = 600
 
 /** Every event the Timer tab can raise; the defaults are no-ops so a test sets only what it checks. */
 @Immutable
@@ -254,6 +264,21 @@ fun TimerRow(row: TimerRowState, callbacks: TimerCallbacks, modifier: Modifier =
         TimerTag.IDLE, TimerTag.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
         else -> MaterialTheme.colorScheme.onSurface
     }
+    val primary = MaterialTheme.colorScheme.primary
+    val configuration = LocalConfiguration.current
+    val context = LocalContext.current
+    val pattern = remember(configuration) { ringTimePattern(context) }
+    val locale = configuration.locales[0]
+    // Each +1 min tap bumps the pulse. The flash runs 0 -> 1 from primary to remainingColor; at rest it is 1, so a
+    // colour change without a tap shows at once. Compose animations honour the system animator duration scale, so
+    // "Remove animations" turns the flash into an instant update.
+    var pulse by remember { mutableIntStateOf(0) }
+    val flash = remember { Animatable(1f) }
+    LaunchedEffect(pulse) {
+        if (pulse == 0) return@LaunchedEffect
+        flash.snapTo(0f)
+        flash.animateTo(1f, tween(durationMillis = ADD_MINUTE_FLASH_MS))
+    }
     UpYetCard(
         modifier.testTag("timer_row_${row.id.value}"),
         contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
@@ -287,21 +312,36 @@ fun TimerRow(row: TimerRowState, callbacks: TimerCallbacks, modifier: Modifier =
                 Text(
                     text = formatTimerDuration(row.remaining),
                     style = MaterialTheme.typography.headlineMedium.copy(fontFeatureSettings = "tnum"),
-                    color = remainingColor,
+                    color = lerp(primary, remainingColor, flash.value),
                     maxLines = 1,
                     softWrap = false,
                 )
+                val ringsAt = row.ringsAt
                 Text(
-                    text = stringResource(R.string.timer_length, formatTimerDuration(row.length)),
+                    text = if (ringsAt != null) {
+                        stringResource(
+                            R.string.timer_rings_at_with_length,
+                            formatRingTime(ringsAt, ZoneId.systemDefault(), pattern, locale),
+                            formatTimerDuration(row.length),
+                        )
+                    } else {
+                        stringResource(R.string.timer_length, formatTimerDuration(row.length))
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (row.canAddMinute) {
                 val description = stringResource(R.string.timer_add_minute_description)
-                TextButton(
-                    onClick = { callbacks.onAddMinute(row.id) },
-                    modifier = Modifier.heightIn(min = MinTouchTarget).semantics { contentDescription = description },
+                OutlinedButton(
+                    onClick = {
+                        pulse++
+                        callbacks.onAddMinute(row.id)
+                    },
+                    modifier = Modifier.heightIn(min = MinTouchTarget).padding(end = 8.dp).semantics { contentDescription = description },
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                 ) { Text(stringResource(R.string.timer_add_minute), style = MaterialTheme.typography.labelLarge) }
             }
             PrimaryAction(row, callbacks)
