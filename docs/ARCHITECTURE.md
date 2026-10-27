@@ -22,6 +22,10 @@ dev.upyet
 │   ├── camera      EvidenceSession (shared by both ringing screens), EvidenceCoordinator (CameraX)
 │   └── ui          recording indicator, evidence player
 ├── history/ui      occurrence list + detail
+├── stopwatch
+│   ├── domain      pure Kotlin: Stopwatch (anchor, accumulated time, laps), ports
+│   ├── data        StopwatchController, DataStore store, boot count, ongoing notice (id 1104)
+│   └── ui          dial, digits, round buttons, lap list
 ├── settings        DataStore-backed settings + UI
 ├── reliability/ui  diagnostics screen
 ├── core            time, database, directboot, notifications, logging, ui theme
@@ -183,6 +187,7 @@ flowchart LR
 | Alarms, timers, occurrences, evidence metadata | Room (credential-protected) | relational queries, migrations, observable Flows |
 | Alarm-critical mirror, timer mirror, pending occurrences | device-protected `SharedPreferences` | must be readable before first unlock |
 | Settings (retention, defaults) | DataStore Preferences | simple key/value, async, no schema churn |
+| Stopwatch anchor and laps | DataStore Preferences (`stopwatch`, credential-protected) | survives process death; no Direct Boot path, since a reboot resets it |
 | Video files | `noBackupFilesDir/evidence/<uuid>.mp4` | app-private, excluded from cloud backup, opaque names |
 
 Room never stores blobs or localized strings. Deleting an occurrence deletes its files through

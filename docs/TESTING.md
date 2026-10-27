@@ -31,6 +31,7 @@ precisely which environment and why.
 | Timer scheduling | `TimerAlarmTest`: one alarm for the earliest-ending Running timer, never a Paused one, an overdue timer armed for now, ties to the lower id, a pre-reboot anchor measured on the wall clock. `TimerTransitionTableTest`: a delivery with another end instant, after a pause and resume, or after +1 min is stale. `MissedNoticeTest`: posted when a timer is newly missed, never re-posted after a swipe, cleared when none is missed. `TimerDiscoveryTest`: boot before unlock arms from the mirror and never builds Room, the 60 s grace window rings through an immediate alarm, 61 s overdue is Missed with the notice and no ring, unlock reconciles before discovering, launch re-arms the same alarm twice, a stale delivery never rings, a wall-clock change keeps the elapsed trigger, no exact access arms nothing. `TimerReceiverCommandTest`: `TIMEZONE_CHANGED` re-arms nothing. `AndroidTimerSchedulerTest` (Robolectric): one `ELAPSED_REALTIME_WAKEUP` allow-while-idle alarm, never the next alarm clock, re-arming replaces it, no inexact fallback. `AndroidTimerMissedNoticesTest`: id 1103 on `timer_missed`, not ongoing. `RoomTimerRepositoryTest`: every write mirrors and re-arms |
 | Pending occurrences | `PendingOccurrenceCodecTest`: alarm and timer records round-trip, a label cannot forge a separator, a legacy record with no discriminator decodes as an alarm record, unknown versions and malformed records are dropped, alarm and timer identities never collide. `PendingOccurrenceReconcilerTest`: an alarm record reconciles exactly as before and names its one-time alarm to retire, a timer record becomes a timer occurrence with one `DIRECT_BOOT_UNAVAILABLE` segment and retires nothing, even when its id equals an alarm's. `TimerShowingOccurrenceTest`: a recording-on showing before unlock writes, joins and ends one pending timer record without building Room, and writes nothing back once unlock has reconciled it |
 | Timer persistence | `TimerMapperTest`: every run state round-trips through `TimerEntity`, both anchors included. `MirroredTimerCodecTest`: every mirror field round-trips, a `\|` in a label cannot shift the fields after it, a record without the last appended field still parses, fields from a later build are ignored, malformed records are dropped. `MirroredTimerMapperTest`: a restored running timer counts down on the wall clock after a reboot and keeps how overdue it is. `TimerMirrorReconcilerTest`: a run state changed before unlock reaches Room, reconciling twice changes nothing, an edit made after unlock is never reverted, a record for a timer Room does not have is dropped, and nothing touches Room while locked |
+| Stopwatch | `StopwatchTest`: elapsed time is a pure function of the stored anchor (idle, running, paused, a clock read before the anchor clamps to zero), a double start keeps the anchor, pause folds the run in and resume continues from it, laps only while running, splits and totals oldest first, a stopwatch from another boot resets (running or paused), and with no boot count an elapsed clock that went back resets it. `StopwatchControllerTest`: start posts id 1104 counting from `wall - elapsed`, pause and reset cancel it, a lap keeps it, `sync()` re-posts the same start instant after a force stop and resets a stopwatch from an earlier boot. `DataStoreStopwatchStoreTest`: every state round-trips, idle clears every key, malformed laps decode to none. `StopwatchFormatTest`, `StopwatchViewModelTest`. `StopwatchDomainPurityTest`: the domain imports nothing from Android |
 
 ## 3. Instrumented tests (`app/src/androidTest`)
 
@@ -44,6 +45,9 @@ precisely which environment and why.
   Alarms as the start tab, the drawer's History, Settings and Reliability entries, the reliability dot on the
   hamburger and the "Action needed" drawer badge agreeing with `ReliabilitySummary`, and the back contract
   (drawer closes, then Alarms, then the app exits).
+* Stopwatch (`StopwatchScreenTest`): Start, Lap, Pause/Resume and Reset enabled per state and wired to their
+  callbacks, the time digits, and the lap list oldest first with lap number, split and total, scrolling to the
+  fortieth lap.
 * Receiver/service integration that can reasonably be exercised (scheduler → receiver intent extras,
   service command handling with a fake player).
 * Alarm volume against a real `AudioManager` (`AlarmVolumeTest`): what the stream's floor actually is,
@@ -147,6 +151,7 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timer-doze` | emulator-ok | adb | a timer ending while the device is forced idle rings, through `TimerPlaybackService` (`timer_ringing_started`); record how late against its end, never assert zero (see the note under the table) |
 | `timer-two-ending-close-in-doze` | emulator-ok | adb | two timers ending about 30 s apart while forced idle both ring, the second joining the first's ringing (`ringing=2`); record each one's lateness, never assert zero (see the note under the table) |
 | `timer-process-killed` | either | adb | `am kill` while a timer runs: it still rings at its end (`timer_expired`, then `timer_ringing_started`) |
+| `stopwatch-process-death` | either | adb | start the stopwatch, take a lap, background the app, `adb shell am kill <package>`: reopening the Stopwatch tab shows it still counting from its original start, with the lap, and `adb shell dumpsys notification --noredact \| grep -c 'id=1104'` prints `1` both before and after the kill. Pause or Reset removes the notice (`0`). Start it again and reboot: after unlock the Stopwatch tab shows `00:00.00` with no laps and no 1104 notice |
 | `timer-reboot-unlocked` | either | adb | reboot while a timer runs and unlock: it rings at its end |
 | `timer-reboot-no-unlock` | physical | adb | reboot while a timer runs and never unlock: it rings at its end above the keyguard; Stop and +1 min work. For a recording-on timer the ringing screen reports `DIRECT_BOOT_UNAVAILABLE` and the ring leaves a pending timer record (`timer-pre-unlock-pending`) |
 | `timer-pre-unlock-pending` | physical | adb | with a one-time alarm and a recording-on timer, reboot and never unlock; let the timer ring and Stop it. Before unlock, `pending_occurrences.xml` (§6) holds one `2\|TIMER\|...\|STOPPED\|DIRECT_BOOT_UNAVAILABLE\|<id>:<label>` record and no alarm record. Unlock: logcat shows `pending_occurrences_reconciled alarms=0 timers=1`, the store is empty, History shows one "Timer" entry, outcome "Stopped", evidence "Unavailable before first unlock", and the one-time alarm is still enabled |
@@ -166,13 +171,13 @@ and never by its position in this table, so rows can be added or reordered witho
 
 **The two timer Doze rows record lateness and never assert zero.** The Doze guide says `setExactAndAllowWhileIdle` alarms fire at most once per nine minutes per app while idle, and ADR 0009 cites a quota of 72 per hour; the two statements do not reconcile, and neither is something the app can change. `timer-doze` and `timer-two-ending-close-in-doze` therefore write down how many seconds after its end each timer rang, so a regression shows up as a number that moved, not as a flaky pass or fail.
 
-**Permanent `adb` lane.** Nine scenarios can never become instrumented tests, all for the same reason:
+**Permanent `adb` lane.** Ten scenarios can never become instrumented tests, all for the same reason:
 instrumentation is hosted by the application process, so anything that ends that process ends the test
 runner with it and leaves nothing to assert with.
 
 | Scenario | What kills the runner |
 |---|---|
-| `process-killed`, `timer-process-killed` | `am kill` on the package under test |
+| `process-killed`, `timer-process-killed`, `stopwatch-process-death` | `am kill` on the package under test (and, for the stopwatch, the reboot) |
 | `force-stop-recovery` | `am force-stop` on the package under test |
 | `reboot-unlocked`, `reboot-no-unlock`, `timer-reboot-unlocked`, `timer-reboot-no-unlock` | the reboot |
 | `camera-denied`, `camera-revoked-mid-flight` | `pm revoke` — the platform kills the app's process on revocation (verified on API 34: the pid is gone within seconds) |
@@ -258,6 +263,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Timer evidence (`TimerShowingOccurrence`, `TimerRingingViewModel`, occurrence source and attribution, History "Timer" badge) | `timer-core-path`, `timer-evidence-mixed`, `timer-plus-one-mid-showing`, `timer-concurrent`, `timer-pre-unlock-pending`, `delete-occurrence`, `retention-cleanup` |
 | Pending occurrences (`PendingOccurrenceStore`, `PendingOccurrenceReconciler`, `UserUnlockedReceiver`) | `reboot-no-unlock`, `timer-reboot-no-unlock`, `timer-pre-unlock-pending` |
 | Timer tab (`TimerScreen`, `TimerViewModel`, `TimerEditor`, running-timer notification) | `timer-missed` (its Reset half), the running-timer recipe in §5 |
+| Stopwatch (`Stopwatch`, `StopwatchController`, `DataStoreStopwatchStore`, `AndroidStopwatchNotices`, `StopwatchScreen`) | `stopwatch-process-death` |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 
 A scenario that is skipped is recorded as skipped, with the reason. Silence is not a pass.

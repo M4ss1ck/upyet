@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The Stopwatch tab: a large dial with a sweeping second hand and a minute sub-dial, big digits, round Lap,
+  Start/Pause and Reset buttons, and a lap list (lap, split, total) oldest first. It keeps counting, laps
+  included, when Android kills the app, and starts from zero after a reboot. While it runs, one quiet
+  "Stopwatch" notification counts along, drawn by the system, with no background service and no wake lock;
+  pausing or resetting removes it. The stopwatch never rings, never records and never appears in History.
+
 - A timer with Timer evidence on that rings before the phone is first unlocked after a reboot now shows up in
   History once you unlock, with the "Timer" badge and "Unavailable before first unlock", instead of vanishing.
   Stop and +1 min work as before, and the record never touches an alarm: a one-time alarm is not switched off
