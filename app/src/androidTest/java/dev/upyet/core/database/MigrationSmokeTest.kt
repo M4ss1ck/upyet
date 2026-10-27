@@ -167,4 +167,71 @@ class MigrationSmokeTest {
         }
         db.close()
     }
+
+    @Test
+    @Throws(IOException::class)
+    fun migratesFrom4To5AddsSourceAndKeepsOccurrences() {
+        helper.createDatabase("migration-test-4-5", 4).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'DAILY', 0, 'content://ring', 1, 1, 9, 0, 20123, 100, 200)",
+            )
+            execSQL(
+                "INSERT INTO alarm_occurrences (id, alarmId, scheduledFor, triggeredAt, activityVisibleAt, dismissedAt, " +
+                    "outcome, parentOccurrenceId) VALUES (7, 1, 1000, 1001, 1002, 1003, 'DISMISSED', NULL)",
+            )
+            execSQL(
+                "INSERT INTO evidence_segments (id, occurrenceId, requestedAt, startedAt, endedAt, finalizedAt, fileName, " +
+                    "durationMs, sizeBytes, status, errorCode) VALUES (3, 7, 1000, 1001, 1002, 1003, 'clip.mp4', 900, 4096, 'RECORDED', NULL)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate("migration-test-4-5", 5, true, *UpYetDatabase.MIGRATIONS)
+        // Every original column of the existing occurrence reads back unchanged.
+        db.query(
+            "SELECT id, alarmId, scheduledFor, triggeredAt, activityVisibleAt, dismissedAt, outcome, parentOccurrenceId, " +
+                "source, timerAttribution FROM alarm_occurrences WHERE id = 7",
+        ).use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getLong(0) == 7L)
+            assert(cursor.getLong(1) == 1L)
+            assert(cursor.getLong(2) == 1000L)
+            assert(cursor.getLong(3) == 1001L)
+            assert(cursor.getLong(4) == 1002L)
+            assert(cursor.getLong(5) == 1003L)
+            assert(cursor.getString(6) == "DISMISSED")
+            assert(cursor.isNull(7))
+            assert(cursor.getString(8) == "ALARM")
+            assert(cursor.isNull(9))
+        }
+        // The occurrence keeps its evidence through the migration.
+        db.query("SELECT fileName, status FROM evidence_segments WHERE occurrenceId = 7").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getString(0) == "clip.mp4")
+            assert(cursor.getString(1) == "RECORDED")
+        }
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migratesFrom1To5() {
+        helper.createDatabase("migration-test-1-5", 1).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "vibrationEnabled, snoozeMinutes, evidenceEnabled, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'DAILY', 0, NULL, 1, 9, 0, 100, 200)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate("migration-test-1-5", 5, true, *UpYetDatabase.MIGRATIONS)
+        db.query("SELECT label FROM alarms WHERE id = 1").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getString(0) == "Wake")
+        }
+        db.close()
+    }
 }

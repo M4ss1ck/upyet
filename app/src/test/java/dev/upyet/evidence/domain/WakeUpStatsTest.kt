@@ -3,6 +3,7 @@ package dev.upyet.evidence.domain
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.timer.domain.TimerId
 import org.junit.Test
 import java.time.Instant
 
@@ -153,5 +154,37 @@ class WakeUpStatsTest {
         val ringingChain = OccurrenceChain(listOf(occurrence(3, now.minusSeconds(400), OccurrenceOutcome.RINGING)))
         val stats = wakeUpStats(listOf(chainWithSnooze, ringingChain), StatsWindow.ALL_TIME, now)
         assertThat(stats.snoozes).isEqualTo(1)
+    }
+
+    private fun timerOccurrence(id: Long, outcome: OccurrenceOutcome) = AlarmOccurrence(
+        id = OccurrenceId(id),
+        alarmId = null,
+        scheduledFor = now.minusSeconds(600),
+        triggeredAt = now.minusSeconds(600),
+        activityVisibleAt = null,
+        dismissedAt = null,
+        outcome = outcome,
+        parentOccurrenceId = null,
+        source = OccurrenceSource.TIMER,
+        timers = listOf(TimerAttribution(TimerId(1), "Pasta")),
+    )
+
+    @Test
+    fun timerOccurrencesNeverChangeAnyCount() {
+        val alarms = listOf(
+            occurrence(1, now.minusSeconds(3600)),
+            occurrence(2, now.minusSeconds(3600 * 2), OccurrenceOutcome.TIMED_OUT),
+        )
+        val timers = listOf(
+            timerOccurrence(10, OccurrenceOutcome.STOPPED),
+            timerOccurrence(11, OccurrenceOutcome.RINGING),
+            timerOccurrence(12, OccurrenceOutcome.STOPPED),
+        )
+
+        val mixed = wakeUpStats(buildOccurrenceChains(alarms + timers), StatsWindow.ALL_TIME, now)
+        val alarmOnly = wakeUpStats(buildOccurrenceChains(alarms), StatsWindow.ALL_TIME, now)
+
+        assertThat(mixed).isEqualTo(alarmOnly)
+        assertThat(mixed).isEqualTo(WakeUpStats(firstTry = 1, finished = 2, snoozes = 0, snoozedMinutes = 0, missed = 1))
     }
 }

@@ -71,7 +71,7 @@ class OccurrenceDetailViewModel @Inject constructor(
                 combine(chain.links.map { repository.observeSegments(it.id) }) { segmentArrays ->
                     val segmentsByOccurrence: Map<OccurrenceId, List<EvidenceSegment>> =
                         chain.links.mapIndexed { index, link -> link.id to segmentArrays[index].toList() }.toMap()
-                    val label = alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""
+                    val label = historyLabel(chain, alarms)
                     OccurrenceDetail(chain, label, segmentsByOccurrence, false)
                 }
             }

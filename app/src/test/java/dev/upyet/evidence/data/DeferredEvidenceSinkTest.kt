@@ -9,6 +9,7 @@ import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.TimerAttribution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -70,6 +71,16 @@ class DeferredEvidenceSinkTest {
             triggeredAt: Instant?,
             parentOccurrenceId: OccurrenceId?,
         ): OccurrenceId = error("unexpected")
+
+        override suspend fun createTimerOccurrence(
+            timers: List<TimerAttribution>,
+            scheduledFor: Instant,
+            triggeredAt: Instant,
+        ): OccurrenceId = error("unexpected")
+
+        override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) = error("unexpected")
+
+        override suspend fun interruptOrphanedTimerOccurrences() = error("unexpected")
 
         override suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome) = error("unexpected")
 

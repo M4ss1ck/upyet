@@ -53,6 +53,7 @@ class HistoryViewModel @Inject constructor(
         val segmentsByOccurrence: Map<OccurrenceId, List<EvidenceSegment>>,
     ) {
         val allSegments: List<EvidenceSegment> = chain.links.flatMap { segmentsByOccurrence[it.id] ?: emptyList() }
+        val isTimer: Boolean get() = !chain.isAlarm
     }
 
     private val filter = MutableStateFlow(HistoryFilter.ALL)
@@ -73,7 +74,7 @@ class HistoryViewModel @Inject constructor(
                     occurrences.mapIndexed { index, occurrence -> occurrence.id to segmentLists[index].toList() }.toMap()
                 val chains = buildOccurrenceChains(occurrences)
                 chains.map { chain ->
-                    val label = alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""
+                    val label = historyLabel(chain, alarms)
                     val chainSegments = chain.links.associate { it.id to (segmentsByOccurrence[it.id] ?: emptyList()) }
                     HistoryItem(chain, label, chainSegments)
                 }

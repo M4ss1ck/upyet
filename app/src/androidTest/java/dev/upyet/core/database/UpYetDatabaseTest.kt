@@ -135,6 +135,112 @@ class UpYetDatabaseTest {
     }
 
     @Test
+    fun aTimerOccurrenceReadsBackWithItsAttributionAndDeletesItsSegments() = runBlocking<Unit> {
+        val occurrenceId =
+            database.occurrenceDao().insert(
+                AlarmOccurrenceEntity(
+                    id = 0,
+                    alarmId = AlarmOccurrenceEntity.NO_ALARM_ID,
+                    scheduledFor = 3,
+                    triggeredAt = 3,
+                    activityVisibleAt = null,
+                    dismissedAt = null,
+                    outcome = "RINGING",
+                    parentOccurrenceId = null,
+                    source = "TIMER",
+                    timerAttribution = "1:4:Pasta",
+                ),
+            )
+        database.evidenceSegmentDao().insert(
+            EvidenceSegmentEntity(0, occurrenceId, 4, null, null, null, "timer.mp4", null, null, "RECORDED", null),
+        )
+
+        val read = database.occurrenceDao().observeById(occurrenceId).first()
+        assertThat(read?.source).isEqualTo("TIMER")
+        assertThat(read?.alarmId).isEqualTo(AlarmOccurrenceEntity.NO_ALARM_ID)
+        assertThat(read?.timerAttribution).isEqualTo("1:4:Pasta")
+
+        database.occurrenceDao().updateTimerAttribution(occurrenceId, "1:4:Pasta2:3:Tea")
+        assertThat(database.occurrenceDao().observeById(occurrenceId).first()?.timerAttribution).isEqualTo("1:4:Pasta2:3:Tea")
+
+        database.occurrenceDao().deleteById(occurrenceId)
+        assertThat(database.evidenceSegmentDao().observeForOccurrence(occurrenceId).first()).isEmpty()
+    }
+
+    /** The orphan sweep closes only timer rings a dead process left open: alarms and finished timers stay as they are. */
+    @Test
+    fun interruptRingingTimerOccurrencesLeavesAlarmsAndFinishedTimersAlone() = runBlocking<Unit> {
+        val dao = database.occurrenceDao()
+        fun row(source: String, outcome: String, alarmId: Long) = AlarmOccurrenceEntity(
+            alarmId = alarmId,
+            scheduledFor = 1_000,
+            triggeredAt = 1_000,
+            activityVisibleAt = null,
+            dismissedAt = null,
+            outcome = outcome,
+            parentOccurrenceId = null,
+            source = source,
+            timerAttribution = if (source == "TIMER") "1:3:Tea" else null,
+        )
+        val orphan = dao.insert(row("TIMER", "RINGING", AlarmOccurrenceEntity.NO_ALARM_ID))
+        val ringingAlarm = dao.insert(row("ALARM", "RINGING", 1))
+        val stoppedTimer = dao.insert(row("TIMER", "STOPPED", AlarmOccurrenceEntity.NO_ALARM_ID))
+
+        assertThat(dao.interruptRingingTimerOccurrences()).isEqualTo(1)
+
+        assertThat(dao.observeById(orphan).first()?.outcome).isEqualTo("INTERRUPTED")
+        assertThat(dao.observeById(orphan).first()?.dismissedAt).isNull()
+        assertThat(dao.observeById(ringingAlarm).first()?.outcome).isEqualTo("RINGING")
+        assertThat(dao.observeById(stoppedTimer).first()?.outcome).isEqualTo("STOPPED")
+    }
+
+    /** Deleting a timer forgets the timer, not its evidence: attribution is text, so nothing cascades (AGENTS.md §10, §12). */
+    @Test
+    fun deletingATimerKeepsItsTimerOccurrences() = runBlocking<Unit> {
+        val timerId =
+            database.timerDao().upsert(
+                TimerEntity(
+                    id = 0,
+                    lengthMillis = 600_000,
+                    label = "Pasta",
+                    ringtoneUri = null,
+                    evidenceEnabled = true,
+                    runState = "IDLE",
+                    remainingAtAnchorMillis = null,
+                    anchorElapsedRealtimeMillis = null,
+                    anchorWallClockMillis = null,
+                    createdAt = 7,
+                ),
+            )
+        val occurrenceId =
+            database.occurrenceDao().insert(
+                AlarmOccurrenceEntity(
+                    id = 0,
+                    alarmId = AlarmOccurrenceEntity.NO_ALARM_ID,
+                    scheduledFor = 3,
+                    triggeredAt = 3,
+                    activityVisibleAt = null,
+                    dismissedAt = null,
+                    outcome = "STOPPED",
+                    parentOccurrenceId = null,
+                    source = "TIMER",
+                    timerAttribution = "$timerId:4:Pasta",
+                ),
+            )
+        database.evidenceSegmentDao().insert(
+            EvidenceSegmentEntity(0, occurrenceId, 4, null, null, null, "timer.mp4", null, null, "RECORDED", null),
+        )
+
+        database.timerDao().deleteById(timerId)
+
+        assertThat(database.timerDao().findById(timerId)).isNull()
+        val kept = database.occurrenceDao().observeById(occurrenceId).first()
+        assertThat(kept?.source).isEqualTo("TIMER")
+        assertThat(kept?.timerAttribution).isEqualTo("$timerId:4:Pasta")
+        assertThat(database.evidenceSegmentDao().observeForOccurrence(occurrenceId).first()).hasSize(1)
+    }
+
+    @Test
     fun aTimerRoundTripsThroughTheRepositoryInEveryRunState() = runBlocking<Unit> {
         val repository = timerRepository()
         val createdAt = Instant.parse("2026-10-26T07:00:00Z")

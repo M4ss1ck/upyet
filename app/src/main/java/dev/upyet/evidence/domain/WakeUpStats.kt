@@ -11,11 +11,14 @@ enum class StatsWindow(val days: Int?) {
 data class WakeUpStats(val firstTry: Int, val finished: Int, val snoozes: Int, val snoozedMinutes: Int, val missed: Int)
 
 fun wakeUpStats(chains: List<OccurrenceChain>, window: StatsWindow, now: Instant): WakeUpStats {
+    // AGENTS.md §2 invariant 11: wake-up stats are alarm-only. A timer chain never snoozes, so counting it would
+    // inflate "finished" and "first try" without being a wake-up at all.
+    val alarmChains = chains.filter { it.isAlarm }
     val inWindow = if (window.days == null) {
-        chains
+        alarmChains
     } else {
         val cutoff = now.minusSeconds(window.days.toLong() * 86_400L)
-        chains.filter { !it.root.scheduledFor.isBefore(cutoff) }
+        alarmChains.filter { !it.root.scheduledFor.isBefore(cutoff) }
     }
     val finished = inWindow.count { it.finalOutcome != OccurrenceOutcome.RINGING && it.finalOutcome != OccurrenceOutcome.ERROR }
     val firstTry = inWindow.count { it.finalOutcome == OccurrenceOutcome.DISMISSED && it.snoozeCount == 0 }

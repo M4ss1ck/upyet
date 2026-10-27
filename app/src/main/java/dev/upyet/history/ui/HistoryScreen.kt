@@ -72,6 +72,7 @@ internal const val THUMBNAIL_NO_CLIP_TAG = "history_thumbnail_no_clip"
  * both a filter and a stats figure, and an unscoped text query finds both.
  */
 internal const val FILTER_ROW_TAG = "history_filter_row"
+internal const val HISTORY_TIMER_BADGE_TAG = "history_timer_badge"
 
 @Composable
 fun HistoryScreen(onOpen: (Long) -> Unit, onBack: () -> Unit, viewModel: HistoryViewModel = hiltViewModel()) {
@@ -234,12 +235,20 @@ private fun OccurrenceRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     ClockText(time, style = MaterialTheme.typography.titleLarge)
                     Text(
-                        item.label.ifBlank { stringResource(R.string.unnamed_alarm) },
+                        item.label.ifBlank { stringResource(if (item.isTimer) R.string.timer_untitled else R.string.unnamed_alarm) },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (item.isTimer) {
+                        StatusBadge(
+                            text = stringResource(R.string.history_timer_badge),
+                            container = MaterialTheme.colorScheme.secondaryContainer,
+                            content = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.testTag(HISTORY_TIMER_BADGE_TAG),
+                        )
+                    }
                     val (container, content) = outcomeBadgeColors(chain.finalOutcome)
                     StatusBadge(text = stringResource(outcomeResource(chain.finalOutcome)), container = container, content = content)
                     historySecondaryLine(item)?.let {
@@ -322,12 +331,14 @@ internal fun outcomeResource(outcome: OccurrenceOutcome): Int = when (outcome) {
     OccurrenceOutcome.INTERRUPTED -> R.string.outcome_interrupted
     OccurrenceOutcome.TIMED_OUT -> R.string.outcome_timed_out
     OccurrenceOutcome.ERROR -> R.string.outcome_error
+    OccurrenceOutcome.STOPPED -> R.string.outcome_stopped
 }
 
 /** Container/content colour pair for an outcome badge. Colour never carries the meaning alone - the word is always there too. */
 @Composable
 internal fun outcomeBadgeColors(outcome: OccurrenceOutcome): Pair<Color, Color> = when (outcome) {
-    OccurrenceOutcome.DISMISSED -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+    OccurrenceOutcome.DISMISSED, OccurrenceOutcome.STOPPED ->
+        MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
 
     OccurrenceOutcome.SNOOZED -> MaterialTheme.extraColors.warningContainer to MaterialTheme.extraColors.onWarningContainer
 

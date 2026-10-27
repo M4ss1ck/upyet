@@ -9,8 +9,11 @@ import dagger.Lazy
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.evidence.camera.EvidenceRecorder
 import dev.upyet.evidence.camera.EvidenceRecordingState
+import dev.upyet.evidence.camera.EvidenceRequest
 import dev.upyet.evidence.domain.EvidenceSink
+import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.testing.FixedTimeProvider
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.playback.RingingTimer
@@ -38,6 +41,15 @@ class TimerRingingViewModelTest {
     private val registry = TimerRingingRegistry()
     private val commands = FakeCommands(events)
     private val recorder = FakeRecorder(events)
+    private val occurrences = FakeOccurrenceRepository()
+
+    // Process-scoped in the app (AGENTS.md §2 invariant 11): one showing outlives any one screen, so the tests share it too.
+    private val showing = TimerShowingOccurrence(
+        Lazy<OccurrenceRepository> { occurrences },
+        FakeUserUnlockState(unlocked = true),
+        FixedTimeProvider(now),
+        registry,
+    )
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
@@ -134,6 +146,33 @@ class TimerRingingViewModelTest {
         assertThat(viewModel.currentEvidenceRequest()).isNull()
     }
 
+    /** One showing that records writes exactly one timer occurrence, and the evidence request carries its id. */
+    @Test fun aRecordingOnShowingCreatesOneOccurrenceAndTheRequestCarriesItsId() = runTest {
+        registry.add(ringing(1, evidence = true))
+        registry.add(ringing(2, evidence = false))
+        val viewModel = viewModel()
+        collect(viewModel)
+
+        registry.add(ringing(3, evidence = true))
+
+        assertThat(occurrences.created.map { it.id }).containsExactly(OccurrenceId(1))
+        assertThat(viewModel.currentEvidenceRequest()).isEqualTo(EvidenceRequest(OccurrenceId(1), evidenceEnabled = true))
+    }
+
+    /** The occurrence spans the showing: it completes as STOPPED only when the last ringing timer leaves. */
+    @Test fun theOccurrenceCompletesAsStoppedWhenTheShowingEmpties() = runTest {
+        registry.add(ringing(1, evidence = true))
+        val viewModel = viewModel()
+        collect(viewModel)
+
+        registry.remove(TimerId(1))
+
+        assertThat(
+            occurrences.completed,
+        ).containsExactly(FakeOccurrenceRepository.Completed(OccurrenceId(1), now, OccurrenceOutcome.STOPPED))
+        assertThat(viewModel.currentEvidenceRequest()).isNull()
+    }
+
     /** Starts the evidence session the way a resumed ringing screen does, then forgets that start. */
     private fun TimerRingingViewModel.recording() {
         evidence.onVisible(TestHost(), currentEvidenceRequest())
@@ -154,7 +193,8 @@ class TimerRingingViewModelTest {
         timeProvider = FixedTimeProvider(now),
         savedStateHandle = saved,
         evidenceRecorder = recorder,
-        occurrenceRepository = Lazy<OccurrenceRepository> { error("the timer screen writes no occurrence before slice #40") },
+        occurrenceRepository = Lazy<OccurrenceRepository> { occurrences },
+        showing = showing,
     )
 
     private fun ringing(id: Long, evidence: Boolean = false) = RingingTimer(

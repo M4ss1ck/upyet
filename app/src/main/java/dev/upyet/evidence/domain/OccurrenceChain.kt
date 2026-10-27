@@ -8,6 +8,9 @@ data class OccurrenceChain(val links: List<AlarmOccurrence>) {
         require(links.isNotEmpty()) { "OccurrenceChain requires at least one link" }
     }
 
+    /** Wake-ups, their filters and their stats are alarm-only (AGENTS.md §2 invariant 11). */
+    val isAlarm: Boolean get() = root.source == OccurrenceSource.ALARM
+
     val root: AlarmOccurrence = links.first()
     val last: AlarmOccurrence = links.last()
     val snoozeCount: Int = links.count { it.outcome == OccurrenceOutcome.SNOOZED }

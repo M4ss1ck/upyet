@@ -19,24 +19,40 @@ data class TimerRingingUiState(
     val queue: List<RingingTimerItem> = emptyList(),
     /** At least one ringing timer has Timer evidence on (ADR 0010): the badge shows and the camera records. */
     val recordingOn: Boolean = false,
+    /** The showing's timer occurrence; recording may start only once it is known (see [evidenceRequest]). */
+    val occurrence: ShowingOccurrence = ShowingOccurrence.None,
 ) {
     /** Stop all only when two or more ring (ADR 0008): the focused timer plus at least one chip. */
     val showStopAll: Boolean get() = focused != null && queue.isNotEmpty()
 
     /**
      * What the evidence component records for this showing; null while nothing rings and while every ringing timer has
-     * Timer evidence off, so such a showing never touches the recorder the alarm path shares. The occurrence id stays
-     * null until slice #40 writes the timer occurrence, so no segment row is written and the coordinator keeps no file.
+     * Timer evidence off, so such a showing never touches the recorder the alarm path shares. Recording waits while the
+     * occurrence is being created, so its first segment attaches to the row; the request turns non-null once the row
+     * exists, and EvidenceLifecycleEffect starts recording at that moment.
      */
     val evidenceRequest: EvidenceRequest?
-        get() = EvidenceRequest(occurrenceId = null, evidenceEnabled = true).takeIf { phase == TimerRingingPhase.RINGING && recordingOn }
+        get() {
+            if (phase != TimerRingingPhase.RINGING || !recordingOn) return null
+            return when (occurrence) {
+                is ShowingOccurrence.Open -> EvidenceRequest(occurrence.id, evidenceEnabled = true)
+                ShowingOccurrence.Unavailable -> EvidenceRequest(occurrenceId = null, evidenceEnabled = true)
+                ShowingOccurrence.None, ShowingOccurrence.Creating -> null
+            }
+        }
 }
 
 /**
  * The screen state for one showing (issue #14, variant C). Focus stays on the timer the user chose while it rings;
  * otherwise it is on the timer that started ringing most recently, which is the one the user just heard.
  */
-fun timerRingingState(ringing: List<RingingTimer>, now: Instant, selected: TimerId?, sessionSeen: Boolean): TimerRingingUiState {
+fun timerRingingState(
+    ringing: List<RingingTimer>,
+    now: Instant,
+    selected: TimerId?,
+    sessionSeen: Boolean,
+    occurrence: ShowingOccurrence = ShowingOccurrence.None,
+): TimerRingingUiState {
     if (ringing.isEmpty()) {
         return TimerRingingUiState(phase = if (sessionSeen) TimerRingingPhase.ENDED else TimerRingingPhase.LOADING)
     }
@@ -46,6 +62,7 @@ fun timerRingingState(ringing: List<RingingTimer>, now: Instant, selected: Timer
         focused = focused.item(now),
         queue = ringing.filter { it.id != focused.id }.map { it.item(now) },
         recordingOn = ringing.any { it.evidenceEnabled },
+        occurrence = occurrence,
     )
 }
 

@@ -1,15 +1,21 @@
 package dev.upyet.history.ui
 
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.OccurrenceSource
+import dev.upyet.evidence.domain.TimerAttribution
 import dev.upyet.evidence.domain.buildOccurrenceChains
+import dev.upyet.timer.domain.TimerId
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 class HistoryGroupingTest {
@@ -105,4 +111,113 @@ class HistoryGroupingTest {
         assertThat(filterHistoryItems(listOf(timedOut, interrupted, dismissed), HistoryFilter.MISSED))
             .containsExactly(timedOut, interrupted)
     }
+
+    @Test fun historyLabelOfATimerJoinsItsRecordingOnLabelsAndSkipsBlankOnes() {
+        val chain = OccurrenceChain(listOf(timerOccurrence(1, Instant.EPOCH, OccurrenceOutcome.STOPPED, "Pasta", " ", "Tea")))
+
+        assertThat(historyLabel(chain, emptyList())).isEqualTo("Pasta, Tea")
+    }
+
+    @Test fun historyLabelOfATimerWithOnlyBlankLabelsIsEmptySoTheRowFallsBackToTimer() {
+        val chain = OccurrenceChain(listOf(timerOccurrence(1, Instant.EPOCH, OccurrenceOutcome.STOPPED, "", "  ")))
+
+        assertThat(historyLabel(chain, emptyList())).isEmpty()
+    }
+
+    @Test fun historyLabelOfAnAlarmIsTheLabelOfItsAlarm() {
+        val chain = OccurrenceChain(listOf(occurrence(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED)))
+        val alarms = listOf(alarm(id = 1, label = "Wake up"), alarm(id = 2, label = "Gym"))
+
+        assertThat(historyLabel(chain, alarms)).isEqualTo("Wake up")
+    }
+
+    @Test fun historyLabelOfAnAlarmWhoseAlarmIsGoneIsEmpty() {
+        val chain = OccurrenceChain(listOf(occurrence(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED)))
+
+        assertThat(historyLabel(chain, emptyList())).isEmpty()
+    }
+
+    @Test fun aTimerItemIsATimerAndAnAlarmItemIsNot() {
+        val timer = HistoryViewModel.HistoryItem(
+            OccurrenceChain(listOf(timerOccurrence(1, Instant.EPOCH, OccurrenceOutcome.STOPPED, "Pasta"))),
+            "Pasta",
+            emptyMap(),
+        )
+
+        assertThat(timer.isTimer).isTrue()
+        assertThat(item(2, Instant.EPOCH, OccurrenceOutcome.DISMISSED).isTimer).isFalse()
+    }
+
+    @Test fun wakeUpFiltersExcludeATimerAndTheAllFilterIncludesIt() {
+        val timer = HistoryViewModel.HistoryItem(
+            OccurrenceChain(listOf(timerOccurrence(1, Instant.EPOCH, OccurrenceOutcome.STOPPED, "Pasta"))),
+            "Pasta",
+            emptyMap(),
+        )
+
+        assertThat(filterHistoryItems(listOf(timer), HistoryFilter.ALL)).containsExactly(timer)
+        assertThat(filterHistoryItems(listOf(timer), HistoryFilter.DISMISSED)).isEmpty()
+        assertThat(filterHistoryItems(listOf(timer), HistoryFilter.SNOOZED)).isEmpty()
+        assertThat(filterHistoryItems(listOf(timer), HistoryFilter.MISSED)).isEmpty()
+    }
+
+    @Test fun wakeUpFiltersExcludeATimerEvenWhenItsOutcomeWouldOtherwiseMatch() {
+        val dismissed = HistoryViewModel.HistoryItem(
+            OccurrenceChain(listOf(timerOccurrence(1, Instant.EPOCH, OccurrenceOutcome.DISMISSED, "Pasta"))),
+            "Pasta",
+            emptyMap(),
+        )
+        val timedOut = HistoryViewModel.HistoryItem(
+            OccurrenceChain(listOf(timerOccurrence(2, Instant.EPOCH, OccurrenceOutcome.TIMED_OUT, "Eggs"))),
+            "Eggs",
+            emptyMap(),
+        )
+
+        assertThat(filterHistoryItems(listOf(dismissed), HistoryFilter.DISMISSED)).isEmpty()
+        assertThat(filterHistoryItems(listOf(timedOut), HistoryFilter.MISSED)).isEmpty()
+    }
+
+    @Test fun aTimerItemSitsInTheDayBucketOfItsScheduledTime() {
+        val timer = HistoryViewModel.HistoryItem(
+            OccurrenceChain(listOf(timerOccurrence(1, today.atTime(8, 0).atZone(zone).toInstant(), OccurrenceOutcome.STOPPED, "Pasta"))),
+            "Pasta",
+            emptyMap(),
+        )
+        val earlierAlarm = item(2, today.minusDays(3).atTime(7, 0).atZone(zone).toInstant(), OccurrenceOutcome.DISMISSED)
+
+        val groups = groupHistoryItemsByDay(listOf(timer, earlierAlarm), zone, today)
+
+        assertThat(groups.map { it.labelRes }).containsExactly(
+            HistoryDayBucket.TODAY.labelRes,
+            HistoryDayBucket.EARLIER.labelRes,
+        ).inOrder()
+        assertThat(groups[0].items).containsExactly(timer)
+    }
+
+    private fun timerOccurrence(id: Long, scheduledFor: Instant, outcome: OccurrenceOutcome, vararg labels: String) = AlarmOccurrence(
+        id = OccurrenceId(id),
+        alarmId = null,
+        scheduledFor = scheduledFor,
+        triggeredAt = scheduledFor,
+        activityVisibleAt = null,
+        dismissedAt = null,
+        outcome = outcome,
+        parentOccurrenceId = null,
+        source = OccurrenceSource.TIMER,
+        timers = labels.mapIndexed { index, label -> TimerAttribution(TimerId(index + 1L), label) },
+    )
+
+    private fun alarm(id: Long, label: String) = Alarm(
+        id = AlarmId(id),
+        time = LocalTime.of(7, 0),
+        enabled = true,
+        label = label,
+        recurrence = Recurrence.OneTime,
+        soundUri = null,
+        vibrationEnabled = true,
+        snoozeMinutes = 9,
+        evidenceEnabled = false,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+    )
 }

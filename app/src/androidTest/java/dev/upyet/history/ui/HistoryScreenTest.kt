@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -28,6 +29,9 @@ import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.OccurrenceSource
+import dev.upyet.evidence.domain.TimerAttribution
+import dev.upyet.timer.domain.TimerId
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,6 +102,34 @@ class HistoryScreenTest {
         compose.onNodeWithText("snoozed", substring = true).assertDoesNotExist()
     }
 
+    /** A timer row is named by the timers it covered and carries the Timer badge, so it reads apart from an alarm. */
+    @Test fun aTimerRowShowsTheTimerBadgeAndTheLabelsOfItsTimers() {
+        show(timerState())
+
+        compose.onNodeWithTag(HISTORY_TIMER_BADGE_TAG, useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Pasta, Tea").assertIsDisplayed()
+    }
+
+    @Test fun aTimerRowWithoutLabelsIsNamedTimer() {
+        show(timerState(labels = listOf("")))
+
+        compose.onAllNodesWithText("Timer", useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    @Test fun anAlarmRowHasNoTimerBadge() {
+        show(stateWith(fileName = "clip.mp4"))
+
+        compose.onNodeWithTag(HISTORY_TIMER_BADGE_TAG, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    /** History has one source-agnostic list, so the only filter chips are the four wake-up filters. */
+    @Test fun theFilterRowHasOnlyTheFourWakeUpChips() {
+        show(timerState())
+
+        compose.onAllNodes(hasAnyAncestor(hasTestTag(FILTER_ROW_TAG)) and hasClickAction(), useUnmergedTree = true)
+            .assertCountEquals(4)
+    }
+
     /** Two rings 18 minutes apart, the first snoozed twice and the last dismissed. */
     private fun chainState(thumbnails: Map<String, ImageBitmap> = emptyMap()): HistoryUiState {
         val start = Instant.parse("2026-08-24T07:00:00Z")
@@ -120,6 +152,27 @@ class HistoryScreenTest {
             groups = listOf(HistoryGroup(R.string.history_earlier, listOf(item))),
             isEmpty = false,
             thumbnails = thumbnails,
+        )
+    }
+
+    /** One stopped timer that covered two recording-on timers, which is what the row is named after. */
+    private fun timerState(labels: List<String> = listOf("Pasta", "Tea")): HistoryUiState {
+        val timer = AlarmOccurrence(
+            id = OccurrenceId(1),
+            alarmId = null,
+            scheduledFor = Instant.EPOCH,
+            triggeredAt = Instant.EPOCH,
+            activityVisibleAt = null,
+            dismissedAt = null,
+            outcome = OccurrenceOutcome.STOPPED,
+            parentOccurrenceId = null,
+            source = OccurrenceSource.TIMER,
+            timers = labels.mapIndexed { index, label -> TimerAttribution(TimerId(index + 1L), label) },
+        )
+        val item = HistoryViewModel.HistoryItem(OccurrenceChain(listOf(timer)), labels.joinToString(", "), emptyMap())
+        return HistoryUiState(
+            groups = listOf(HistoryGroup(R.string.history_earlier, listOf(item))),
+            isEmpty = false,
         )
     }
 
