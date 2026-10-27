@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A timer with Timer evidence on that rings before the phone is first unlocked after a reboot now shows up in
+  History once you unlock, with the "Timer" badge and "Unavailable before first unlock", instead of vanishing.
+  Stop and +1 min work as before, and the record never touches an alarm: a one-time alarm is not switched off
+  because a timer rang. Pending records written by an older build are still read as alarms.
+
 - System notification settings now list every UpYet channel from the first launch: the two alarm channels
   plus Timer ringing, Running timer and stopwatch, and Missed timer (ADR 0012). Timers get their own ringing
   channel, so they can be quieted without touching alarms. Channels are created at startup instead of on

@@ -167,8 +167,12 @@ flowchart LR
   the pure `timerRingingState` picks the focused timer (the user's choice while it rings, otherwise the one
   that started ringing last) and the queue. Recording runs while any ringing timer has Timer evidence on and
   stops when the last of them leaves (ADR 0010). A showing with every toggle off never touches the recorder.
-* Occurrences that fire while locked are appended to a device-protected pending list and merged into
-  Room when the user unlocks.
+* Occurrences that fire while locked are appended to a device-protected pending list
+  (`PendingOccurrenceStore`) and merged into Room when the user unlocks. Each record carries an alarm / timer
+  source discriminator: a recording-on timer showing before first unlock writes a timer record with its
+  attribution and `DIRECT_BOOT_UNAVAILABLE` (`TimerShowingOccurrence`), and `PendingOccurrenceReconciler`
+  dispatches on the source, so a timer record becomes a timer occurrence and never retires a one-time alarm.
+  A record written before the discriminator existed decodes as an alarm record (ADR 0010).
 * CameraX before first unlock is best-effort only: when it cannot initialize, the occurrence records
   `DIRECT_BOOT_UNAVAILABLE` and ringing/snooze/dismiss behave normally.
 

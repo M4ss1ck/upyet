@@ -13,6 +13,7 @@ import dev.upyet.evidence.camera.EvidenceRequest
 import dev.upyet.evidence.domain.EvidenceSink
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.testing.FakePendingOccurrences
 import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.testing.FixedTimeProvider
 import dev.upyet.timer.domain.TimerId
@@ -49,6 +50,7 @@ class TimerRingingViewModelTest {
         FakeUserUnlockState(unlocked = true),
         FixedTimeProvider(now),
         registry,
+        FakePendingOccurrences(),
     )
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())

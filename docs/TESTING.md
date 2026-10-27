@@ -29,6 +29,7 @@ precisely which environment and why.
 | Retention | which segments a policy selects, and that in-progress segments are never selected |
 | Reliability checks | each check's pass/fail evaluation from injected platform state |
 | Timer scheduling | `TimerAlarmTest`: one alarm for the earliest-ending Running timer, never a Paused one, an overdue timer armed for now, ties to the lower id, a pre-reboot anchor measured on the wall clock. `TimerTransitionTableTest`: a delivery with another end instant, after a pause and resume, or after +1 min is stale. `MissedNoticeTest`: posted when a timer is newly missed, never re-posted after a swipe, cleared when none is missed. `TimerDiscoveryTest`: boot before unlock arms from the mirror and never builds Room, the 60 s grace window rings through an immediate alarm, 61 s overdue is Missed with the notice and no ring, unlock reconciles before discovering, launch re-arms the same alarm twice, a stale delivery never rings, a wall-clock change keeps the elapsed trigger, no exact access arms nothing. `TimerReceiverCommandTest`: `TIMEZONE_CHANGED` re-arms nothing. `AndroidTimerSchedulerTest` (Robolectric): one `ELAPSED_REALTIME_WAKEUP` allow-while-idle alarm, never the next alarm clock, re-arming replaces it, no inexact fallback. `AndroidTimerMissedNoticesTest`: id 1103 on `timer_missed`, not ongoing. `RoomTimerRepositoryTest`: every write mirrors and re-arms |
+| Pending occurrences | `PendingOccurrenceCodecTest`: alarm and timer records round-trip, a label cannot forge a separator, a legacy record with no discriminator decodes as an alarm record, unknown versions and malformed records are dropped, alarm and timer identities never collide. `PendingOccurrenceReconcilerTest`: an alarm record reconciles exactly as before and names its one-time alarm to retire, a timer record becomes a timer occurrence with one `DIRECT_BOOT_UNAVAILABLE` segment and retires nothing, even when its id equals an alarm's. `TimerShowingOccurrenceTest`: a recording-on showing before unlock writes, joins and ends one pending timer record without building Room, and writes nothing back once unlock has reconciled it |
 | Timer persistence | `TimerMapperTest`: every run state round-trips through `TimerEntity`, both anchors included. `MirroredTimerCodecTest`: every mirror field round-trips, a `\|` in a label cannot shift the fields after it, a record without the last appended field still parses, fields from a later build are ignored, malformed records are dropped. `MirroredTimerMapperTest`: a restored running timer counts down on the wall clock after a reboot and keeps how overdue it is. `TimerMirrorReconcilerTest`: a run state changed before unlock reaches Room, reconciling twice changes nothing, an edit made after unlock is never reverted, a record for a timer Room does not have is dropped, and nothing touches Room while locked |
 
 ## 3. Instrumented tests (`app/src/androidTest`)
@@ -52,6 +53,9 @@ precisely which environment and why.
   budget and chain start round-trip, and a record written before those fields existed still parses. The
   mirror is a positional `|` string that nothing validates, so every appended field is a compatibility
   question only real storage can answer.
+* The pending-occurrence store against real device-protected storage (`PendingOccurrenceStoreTest`): alarm
+  and timer records round-trip side by side, upserts keep one record per identity, `replaceIfPending` writes
+  nothing once the store was cleared, and a legacy record already on disk still reads as an alarm.
 * The timer mirror against real device-protected storage (`DirectBootTimerStoreTest`): every field
   round-trips, a record written while locked is marked so on unlock it reconciles into Room, the caller
   cannot forge that mark, and a record written before the last field existed still parses. Timer Room
@@ -144,7 +148,8 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timer-two-ending-close-in-doze` | emulator-ok | adb | two timers ending about 30 s apart while forced idle both ring, the second joining the first's ringing (`ringing=2`); record each one's lateness, never assert zero (see the note under the table) |
 | `timer-process-killed` | either | adb | `am kill` while a timer runs: it still rings at its end (`timer_expired`, then `timer_ringing_started`) |
 | `timer-reboot-unlocked` | either | adb | reboot while a timer runs and unlock: it rings at its end |
-| `timer-reboot-no-unlock` | physical | adb | reboot while a timer runs and never unlock: it rings at its end above the keyguard; Stop and +1 min work. The evidence-status half (`DIRECT_BOOT_UNAVAILABLE` for a recording-on timer) completes with slice #41 |
+| `timer-reboot-no-unlock` | physical | adb | reboot while a timer runs and never unlock: it rings at its end above the keyguard; Stop and +1 min work. For a recording-on timer the ringing screen reports `DIRECT_BOOT_UNAVAILABLE` and the ring leaves a pending timer record (`timer-pre-unlock-pending`) |
+| `timer-pre-unlock-pending` | physical | adb | with a one-time alarm and a recording-on timer, reboot and never unlock; let the timer ring and Stop it. Before unlock, `pending_occurrences.xml` (§6) holds one `2\|TIMER\|...\|STOPPED\|DIRECT_BOOT_UNAVAILABLE\|<id>:<label>` record and no alarm record. Unlock: logcat shows `pending_occurrences_reconciled alarms=0 timers=1`, the store is empty, History shows one "Timer" entry, outcome "Stopped", evidence "Unavailable before first unlock", and the one-time alarm is still enabled |
 | `timer-boot-grace-window` | either | adb | with `FGS_BOOT_COMPLETED_RESTRICTIONS` enabled as the negative control, a timer due 0 to 60 s before boot completes rings through the immediate exact alarm discovery arms (`timer_expired` after `timer_discovery trigger=boot`), never from the boot receiver |
 | `timer-concurrent` | either | adb | two timers ringing at once: one notification (id 1101, title "2 timers ringing"), one sound, one wake lock (`dumpsys power` lists one `UpYet:timer_ringing`), and Stop all offered. The "one showing produces one occurrence" half: with Timer evidence on for both, History gains exactly one "Timer" entry listing both labels |
 | `timer-notification-actions` | physical | human-eyes | with the phone in use, the heads-up for one ringing timer offers Stop and +1 min, for several Stop all, and when any ringing timer has Timer evidence on, no action at all, only "Tap to open" |
@@ -249,7 +254,8 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
 | Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window` |
 | Timer playback (`TimerPlaybackService`, `TimerRinging`, `TimerRingingRegistry`, `TimerNotifications`, wake lock) | `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window`, `timer-concurrent`, `timer-notification-actions`; the channel ids are checked with the notification-channels recipe in §5 |
-| Timer evidence (`TimerShowingOccurrence`, `TimerRingingViewModel`, occurrence source and attribution, History "Timer" badge) | `timer-core-path`, `timer-evidence-mixed`, `timer-plus-one-mid-showing`, `timer-concurrent`, `delete-occurrence`, `retention-cleanup` |
+| Timer evidence (`TimerShowingOccurrence`, `TimerRingingViewModel`, occurrence source and attribution, History "Timer" badge) | `timer-core-path`, `timer-evidence-mixed`, `timer-plus-one-mid-showing`, `timer-concurrent`, `timer-pre-unlock-pending`, `delete-occurrence`, `retention-cleanup` |
+| Pending occurrences (`PendingOccurrenceStore`, `PendingOccurrenceReconciler`, `UserUnlockedReceiver`) | `reboot-no-unlock`, `timer-reboot-no-unlock`, `timer-pre-unlock-pending` |
 | Timer tab (`TimerScreen`, `TimerViewModel`, `TimerEditor`, running-timer notification) | `timer-missed` (its Reset half), the running-timer recipe in §5 |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 
@@ -420,6 +426,14 @@ adb shell run-as dev.upyet.debug ls /data/user_de/0/dev.upyet.debug/shared_prefs
 # label and URI URL-encoded. writtenWhileLocked=true before unlock means USER_UNLOCKED will copy that
 # run state into Room; after unlock every entry must read false (logcat: timer_mirror_reconciled).
 adb shell run-as dev.upyet.debug cat /data/user_de/0/dev.upyet.debug/shared_prefs/timer_mirror.xml
+
+# Inspect the pending occurrences (ADR 0010). Each record starts with its source discriminator:
+#   2|ALARM|alarmId|scheduledForMs|triggeredAtMs|dismissedAtMs(-1)|outcome
+#   2|TIMER|triggeredAtMs|dismissedAtMs(-1)|outcome|evidenceError|id:label,id:label   (labels URL-encoded)
+# A record with five fields and no leading 2 was written by an older build and is an alarm record.
+# Before unlock a recording-on timer ring must appear as a TIMER record with DIRECT_BOOT_UNAVAILABLE;
+# after unlock the file must hold no records (logcat: pending_occurrences_reconciled alarms=<n> timers=<n>).
+adb shell run-as dev.upyet.debug cat /data/user_de/0/dev.upyet.debug/shared_prefs/pending_occurrences.xml
 ```
 
 ## 7. Reporting rules
