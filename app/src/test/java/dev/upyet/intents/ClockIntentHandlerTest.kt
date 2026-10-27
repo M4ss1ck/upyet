@@ -221,6 +221,14 @@ class ClockIntentHandlerTest {
     }
 
     @Test
+    fun `set alarm with skip ui takes the default snooze including off`() = runTest {
+        val h = Harness()
+        h.settings.setDefaultSnooze(SnoozePolicy.Off)
+        h.handler.handle(setAlarm(sound = AlarmSound.Uri("content://x"), vibrate = null))
+        assertThat(h.alarms.stored.single().snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
+    @Test
     fun `set alarm silent sound turns sound off and recurring alarms are not voice alarms`() = runTest {
         val h = Harness()
         h.handler.handle(setAlarm(recurrence = Recurrence.Daily, sound = AlarmSound.Silent, vibrate = false))
