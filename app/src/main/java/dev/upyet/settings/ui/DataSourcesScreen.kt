@@ -63,12 +63,6 @@ fun DataSourcesScreen(onBack: () -> Unit) {
                 licence = stringResource(R.string.data_sources_iana_licence),
                 links = listOf(stringResource(R.string.data_sources_iana_url)),
             )
-            // The one-line credit the world clock also shows; kept here so the full list has the same wording.
-            Text(
-                text = stringResource(R.string.world_clock_attribution),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
-            )
             Spacer(Modifier.height(24.dp))
         }
     }

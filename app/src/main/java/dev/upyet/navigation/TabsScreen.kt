@@ -51,6 +51,7 @@ import dev.upyet.core.ui.components.ActionNeededBadge
 import dev.upyet.core.ui.components.TabHeadline
 import dev.upyet.stopwatch.ui.StopwatchScreen
 import dev.upyet.timer.ui.TimerScreen
+import dev.upyet.worldclock.ui.WorldClockScreen
 import kotlinx.coroutines.launch
 
 /** The four Clock tools, in the order the bottom bar shows them. Alarms is the launch tab. */
@@ -88,10 +89,10 @@ fun TabsScreen(
         when (tab) {
             ClockTab.ALARMS -> AlarmListScreen(onEdit = onEdit, onReliability = onReliability)
 
-            // Listed one by one so each tool's slice gets a compiler prompt to replace its placeholder.
+            // Listed one by one so a new tab is a compiler error until it has a screen.
             ClockTab.TIMER -> TimerScreen()
 
-            ClockTab.WORLD_CLOCK -> ClockToolPlaceholder()
+            ClockTab.WORLD_CLOCK -> WorldClockScreen()
 
             ClockTab.STOPWATCH -> StopwatchScreen()
         }
@@ -191,14 +192,6 @@ internal fun ClockShell(
                 Box(Modifier.weight(1f)) { tabContent(tab) }
             }
         }
-    }
-}
-
-/** Shown in the three Clock tools that are not built yet. Stays visible until each one lands. */
-@Composable
-internal fun ClockToolPlaceholder(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.clock_tool_coming_soon), style = MaterialTheme.typography.bodyLarge)
     }
 }
 
