@@ -1,5 +1,6 @@
 package dev.upyet.settings.ui
 
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.theme.UpYetTheme
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.settings.data.AppLanguage
@@ -64,12 +66,36 @@ class SettingsMaxSnoozesTest {
         assertThat(chosen).isEqualTo(SnoozeBudget.UNLIMITED)
     }
 
-    private fun setContent(maxSnoozes: Int, onMaxSnoozes: (Int) -> Unit = {}) {
+    /** The default snooze row sits above the cap; Off is its first choice, and the cap stays enabled beside it. */
+    @Test fun theDefaultSnoozeRowReadsOffWhenOff() {
+        setContent(maxSnoozes = 3, defaultSnooze = SnoozePolicy.Off)
+
+        compose.onNodeWithText("Default snooze").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Off").assertIsDisplayed()
+        compose.onNodeWithText("3 snoozes").assertIsDisplayed().assertHasClickAction()
+    }
+
+    @Test fun choosingOffAsTheDefaultReportsIt() {
+        var chosen: SnoozePolicy? = null
+        setContent(maxSnoozes = 3, onSnooze = { chosen = it })
+
+        compose.onNodeWithText("Default snooze").performScrollTo().performClick()
+        compose.onNodeWithText("Off").assertIsDisplayed().performClick()
+
+        assertThat(chosen).isEqualTo(SnoozePolicy.Off)
+    }
+
+    private fun setContent(
+        maxSnoozes: Int,
+        defaultSnooze: SnoozePolicy = SnoozePolicy.After(9),
+        onMaxSnoozes: (Int) -> Unit = {},
+        onSnooze: (SnoozePolicy) -> Unit = {},
+    ) {
         compose.setContent {
             UpYetTheme {
                 SettingsContent(
                     state = SettingsUiState(
-                        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, 9, true, true, maxSnoozes),
+                        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, defaultSnooze, true, true, maxSnoozes),
                         reliabilitySummary = ReliabilitySummary(blockedCount = 0, totalCount = 5),
                         language = AppLanguage.SYSTEM,
                         languageSupported = false,
@@ -77,6 +103,7 @@ class SettingsMaxSnoozesTest {
                     onReliability = {},
                     onDataSources = {},
                     onMaxSnoozes = onMaxSnoozes,
+                    onSnooze = onSnooze,
                 )
             }
         }

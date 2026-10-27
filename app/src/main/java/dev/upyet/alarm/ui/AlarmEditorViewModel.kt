@@ -10,6 +10,8 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
+import dev.upyet.alarm.domain.encode
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
 import dev.upyet.core.directboot.MirroredRecurrence
@@ -53,7 +55,7 @@ data class AlarmEditorUiState(
     val label: String = "",
     val recurrence: Recurrence = Recurrence.OneTime,
     val vibration: Boolean = true,
-    val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
+    val snooze: SnoozePolicy = SnoozePolicy.After(DEFAULT_SNOOZE_MINUTES),
     val evidence: Boolean = true,
     val soundUri: String? = null,
     val soundEnabled: Boolean = true,
@@ -95,7 +97,7 @@ class AlarmEditorViewModel @Inject constructor(
                         soundUri = (prefill?.sound as? AlarmSound.Uri)?.value,
                         soundEnabled = prefill?.sound != AlarmSound.Silent,
                         vibration = prefill?.vibrate ?: defaults.defaultVibrationEnabled,
-                        snoozeMinutes = defaults.defaultSnoozeMinutes,
+                        snooze = defaults.defaultSnooze,
                         evidence = defaults.evidenceEnabledByDefault,
                         isLoaded = true,
                     )
@@ -135,7 +137,7 @@ class AlarmEditorViewModel @Inject constructor(
                 alarm.label,
                 alarm.recurrence,
                 alarm.vibrationEnabled,
-                alarm.snoozeMinutes,
+                alarm.snooze,
                 alarm.evidenceEnabled,
                 alarm.soundUri,
                 alarm.soundEnabled,
@@ -156,7 +158,7 @@ class AlarmEditorViewModel @Inject constructor(
         savedState[KEY_RECURRENCE_TYPE] = recurrenceType
         savedState[KEY_WEEKDAY_MASK] = weekdayMask
         savedState[KEY_VIBRATION] = state.vibration
-        savedState[KEY_SNOOZE_MINUTES] = state.snoozeMinutes
+        savedState[KEY_SNOOZE_MINUTES] = state.snooze.encode()
         savedState[KEY_EVIDENCE] = state.evidence
         savedState[KEY_SOUND_URI] = state.soundUri
         savedState[KEY_SOUND_ENABLED] = state.soundEnabled
@@ -176,7 +178,7 @@ class AlarmEditorViewModel @Inject constructor(
                 savedState.get<Int>(KEY_WEEKDAY_MASK) ?: 0,
             ),
             vibration = savedState.get<Boolean>(KEY_VIBRATION) ?: true,
-            snoozeMinutes = savedState.get<Int>(KEY_SNOOZE_MINUTES) ?: DEFAULT_SNOOZE_MINUTES,
+            snooze = SnoozePolicy.decode(savedState.get<Int>(KEY_SNOOZE_MINUTES) ?: DEFAULT_SNOOZE_MINUTES),
             evidence = savedState.get<Boolean>(KEY_EVIDENCE) ?: true,
             soundUri = savedState.get<String>(KEY_SOUND_URI),
             soundEnabled = savedState.get<Boolean>(KEY_SOUND_ENABLED) ?: true,
@@ -197,7 +199,7 @@ class AlarmEditorViewModel @Inject constructor(
             soundUri = current.soundUri,
             soundEnabled = current.soundEnabled,
             vibrationEnabled = current.vibration,
-            snoozeMinutes = current.snoozeMinutes,
+            snooze = current.snooze,
             evidenceEnabled = current.evidence,
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,

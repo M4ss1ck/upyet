@@ -6,6 +6,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.playback.RingingSession
 import dev.upyet.alarm.playback.RingingSessionRegistry
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
@@ -53,7 +54,7 @@ class ClockIntentHandlerTest {
         recurrence = recurrence,
         soundUri = null,
         vibrationEnabled = true,
-        snoozeMinutes = 9,
+        snooze = SnoozePolicy.After(9),
         evidenceEnabled = false,
         skipNextOn = skipNextOn,
         voice = voice,
@@ -164,7 +165,7 @@ class ClockIntentHandlerTest {
                 triggeredAt = now,
                 label = null,
                 kind = AlarmOccurrenceKind.MAIN,
-                snoozeMinutes = 9,
+                snooze = SnoozePolicy.After(9),
                 evidenceEnabled = false,
                 isUserUnlocked = true,
                 budget = SnoozeBudget(1),
@@ -217,6 +218,14 @@ class ClockIntentHandlerTest {
         assertThat(stored.createdAt).isEqualTo(now)
         assertThat(h.actions.scheduled.single().id).isEqualTo(stored.id)
         assertThat(effects).containsExactly(toast(R.string.intent_alarm_set, LocalTime.of(6, 45)))
+    }
+
+    @Test
+    fun `set alarm with skip ui takes the default snooze including off`() = runTest {
+        val h = Harness()
+        h.settings.setDefaultSnooze(SnoozePolicy.Off)
+        h.handler.handle(setAlarm(sound = AlarmSound.Uri("content://x"), vibrate = null))
+        assertThat(h.alarms.stored.single().snooze).isEqualTo(SnoozePolicy.Off)
     }
 
     @Test

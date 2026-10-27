@@ -12,6 +12,7 @@ import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +38,7 @@ class AlarmListScreenTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -45,6 +46,18 @@ class AlarmListScreenTest {
         compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
         compose.onNodeWithText(shortTime(time)).assertIsDisplayed()
         compose.onNodeWithText("Wake up").assertIsDisplayed()
+    }
+
+    @Test fun noSnoozeAlarmShowsNoSnoozeLabel() {
+        val alarm = recurring().copy(snooze = SnoozePolicy.Off)
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithText("No snooze").assertIsDisplayed()
+    }
+
+    @Test fun snoozeAlarmShowsNoNoSnoozeLabel() {
+        val alarm = recurring().copy(snooze = SnoozePolicy.After(9))
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithText("No snooze").assertDoesNotExist()
     }
 
     @Test fun skipNextMenuItemAppearsForRecurringEnabledAlarm() {
@@ -57,7 +70,7 @@ class AlarmListScreenTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -78,7 +91,7 @@ class AlarmListScreenTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -102,7 +115,7 @@ class AlarmListScreenTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             skipNextOn = skipDate,
             createdAt = Instant.EPOCH,
@@ -169,7 +182,7 @@ class AlarmListScreenTest {
             null,
             soundEnabled = false,
             vibrationEnabled = true,
-            snoozeMinutes = 9,
+            snooze = SnoozePolicy.After(9),
             evidenceEnabled = false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -189,7 +202,7 @@ class AlarmListScreenTest {
             null,
             soundEnabled = false,
             vibrationEnabled = false,
-            snoozeMinutes = 9,
+            snooze = SnoozePolicy.After(9),
             evidenceEnabled = false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -209,7 +222,7 @@ class AlarmListScreenTest {
             null,
             soundEnabled = true,
             vibrationEnabled = true,
-            snoozeMinutes = 9,
+            snooze = SnoozePolicy.After(9),
             evidenceEnabled = false,
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
@@ -228,7 +241,7 @@ class AlarmListScreenTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,

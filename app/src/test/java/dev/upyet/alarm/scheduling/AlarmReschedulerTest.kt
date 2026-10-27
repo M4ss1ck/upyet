@@ -7,6 +7,7 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.NextAlarm
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.UserUnlockState
@@ -330,7 +331,11 @@ class AlarmReschedulerTest {
         AlarmId(
             id,
         ),
-        LocalTime.of(11, 0), enabled, "label", Recurrence.OneTime, null, true, true, 5, false, createdAt = now, updatedAt = now,
+        LocalTime.of(
+            11,
+            0,
+        ),
+        enabled, "label", Recurrence.OneTime, null, true, true, SnoozePolicy.After(5), false, createdAt = now, updatedAt = now,
     )
 
     private class FakeRepository(alarms: List<Alarm>) : AlarmRepository {

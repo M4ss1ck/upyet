@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- An alarm can have no snooze: pick "Off" in the editor's snooze list and it rings with Dismiss only, on the
+  ringing screen and in the notification, also before the phone is first unlocked. It never snoozes on its own
+  when it times out, and the alarm list marks it "No snooze". Settings › Default snooze can be Off too, which
+  applies to alarms created afterwards, including ones an assistant sets; existing alarms keep their snooze.
+
 ## [0.3.0] - 2026-10-27
 
 UpYet is now a full Clock replacement: Alarms, World clock, Timer and Stopwatch. The camera still records only

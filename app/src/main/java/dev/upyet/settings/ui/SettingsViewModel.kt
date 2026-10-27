@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.upyet.BuildConfig
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.core.logging.AlarmLog
 import dev.upyet.core.logging.DiagnosticContext
@@ -78,7 +79,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setRetention(value: RetentionPolicy) = viewModelScope.launch { repository.setRetention(value) }
-    fun setSnooze(value: Int) = viewModelScope.launch { repository.setDefaultSnoozeMinutes(value) }
+    fun setSnooze(value: SnoozePolicy) = viewModelScope.launch { repository.setDefaultSnooze(value) }
     fun setMaxSnoozes(value: Int) = viewModelScope.launch { repository.setMaxSnoozes(value) }
     fun setVibration(value: Boolean) = viewModelScope.launch { repository.setDefaultVibrationEnabled(value) }
     fun setEvidence(value: Boolean) = viewModelScope.launch { repository.setEvidenceEnabledByDefault(value) }
@@ -96,7 +97,7 @@ class SettingsViewModel @Inject constructor(
                 val settings = repository.settings.first()
                 val settingsPairs = listOf(
                     "retention" to settings.retention.name,
-                    "defaultSnoozeMinutes" to settings.defaultSnoozeMinutes.toString(),
+                    "defaultSnoozeMinutes" to ((settings.defaultSnooze as? SnoozePolicy.After)?.minutes?.toString() ?: "off"),
                     "maxSnoozes" to settings.maxSnoozes.toString(),
                     "defaultVibrationEnabled" to settings.defaultVibrationEnabled.toString(),
                     "evidenceEnabledByDefault" to settings.evidenceEnabledByDefault.toString(),

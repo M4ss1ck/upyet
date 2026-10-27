@@ -10,6 +10,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.encode
 import dev.upyet.core.directboot.AlarmMirror
 import dev.upyet.core.directboot.MirroredAlarm
 import dev.upyet.core.directboot.MirroredRecurrence
@@ -71,7 +72,7 @@ class AndroidAlarmScheduler @Inject constructor(
                     alarm.id,
                     kind,
                     triggerAt,
-                    alarm.snoozeMinutes,
+                    alarm.snooze.encode(),
                     alarm.vibrationEnabled,
                     alarm.soundUri,
                     alarm.time.toSecondOfDay() / 60,

@@ -3,6 +3,7 @@ package dev.upyet.alarm.playback
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,7 @@ data class RingingSession(
     val triggeredAt: Instant,
     val label: String?,
     val kind: AlarmOccurrenceKind,
-    val snoozeMinutes: Int,
+    val snooze: SnoozePolicy,
     val evidenceEnabled: Boolean,
     val isUserUnlocked: Boolean,
     val soundEnabled: Boolean = true,

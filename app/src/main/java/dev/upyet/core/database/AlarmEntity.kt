@@ -15,7 +15,8 @@ data class AlarmEntity(
     val soundUri: String?,
     @ColumnInfo(defaultValue = "1") val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean,
-    val snoozeMinutes: Int,
+    /** NULL means snooze is Off (issue #70); see [dev.upyet.alarm.domain.SnoozePolicy]. */
+    val snoozeMinutes: Int?,
     val evidenceEnabled: Boolean,
     val skipNextOnEpochDay: Long? = null,
     @ColumnInfo(defaultValue = "0") val voice: Boolean = false,

@@ -92,7 +92,7 @@ class ClockIntentHandler @Inject constructor(
                 soundUri = (intent.sound as? AlarmSound.Uri)?.value,
                 soundEnabled = intent.sound != AlarmSound.Silent,
                 vibrationEnabled = intent.vibrate ?: s.defaultVibrationEnabled,
-                snoozeMinutes = s.defaultSnoozeMinutes,
+                snooze = s.defaultSnooze,
                 evidenceEnabled = s.evidenceEnabledByDefault,
                 voice = intent.recurrence == Recurrence.OneTime,
                 createdAt = now,

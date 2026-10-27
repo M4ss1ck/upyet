@@ -54,6 +54,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.BuildConfig
 import dev.upyet.R
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
+import dev.upyet.alarm.ui.snoozeLabel
 import dev.upyet.core.ui.CameraGate
 import dev.upyet.core.ui.CameraGateHost
 import dev.upyet.core.ui.components.PrimaryButton
@@ -107,7 +109,7 @@ fun SettingsContent(
     state: SettingsUiState,
     onReliability: () -> Unit,
     onDataSources: () -> Unit,
-    onSnooze: (Int) -> Unit = {},
+    onSnooze: (SnoozePolicy) -> Unit = {},
     onMaxSnoozes: (Int) -> Unit = {},
     onVibration: (Boolean) -> Unit = {},
     onEvidence: (Boolean) -> Unit = {},
@@ -129,21 +131,21 @@ fun SettingsContent(
         SectionLabel(stringResource(R.string.settings_defaults), Modifier.padding(top = 16.dp, bottom = 2.dp))
         UpYetCard {
             var snoozeExpanded by remember { mutableStateOf(false) }
-            val snoozeMinutes = state.settings?.defaultSnoozeMinutes ?: DEFAULT_SNOOZE_MINUTES
+            val defaultSnooze = state.settings?.defaultSnooze ?: SnoozePolicy.After(DEFAULT_SNOOZE_MINUTES)
             Box {
                 SettingsRow(
                     title = stringResource(R.string.default_snooze),
                     icon = Icons.Filled.Snooze,
-                    value = pluralStringResource(R.plurals.snooze_option, snoozeMinutes, snoozeMinutes),
+                    value = snoozeLabel(defaultSnooze),
                     showChevron = true,
                     onClick = { snoozeExpanded = true },
                 )
                 DropdownMenu(snoozeExpanded, { snoozeExpanded = false }) {
-                    SNOOZE_OPTIONS.forEach { minutes ->
+                    SNOOZE_OPTIONS.forEach { choice ->
                         DropdownMenuItem(
-                            text = { Text(pluralStringResource(R.plurals.snooze_option, minutes, minutes)) },
+                            text = { Text(snoozeLabel(choice)) },
                             onClick = {
-                                onSnooze(minutes)
+                                onSnooze(choice)
                                 snoozeExpanded = false
                             },
                         )
@@ -375,7 +377,8 @@ private fun ReliabilityStatusCard(summary: ReliabilitySummary, onReliability: ()
 }
 
 private const val DEFAULT_SNOOZE_MINUTES = 9
-private val SNOOZE_OPTIONS = listOf(1, 5, 9, 10, 15, 20, 30)
+private val SNOOZE_OPTIONS: List<SnoozePolicy> =
+    listOf(SnoozePolicy.Off) + listOf(1, 5, 9, 10, 15, 20, 30).map { SnoozePolicy.After(it) }
 private val MAX_SNOOZE_OPTIONS = listOf(1, 3, 5, SnoozeBudget.UNLIMITED)
 
 private fun languageResource(language: AppLanguage): Int = when (language) {

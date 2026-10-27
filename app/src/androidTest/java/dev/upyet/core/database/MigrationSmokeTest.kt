@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -234,6 +235,51 @@ class MigrationSmokeTest {
             assert(cursor.getInt(0) == 0)
             assert(cursor.getString(1) == "Wake")
             assert(cursor.getString(2) == "content://ring")
+        }
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migratesFrom6To7KeepsSnoozeValuesAcceptsNullAndKeepsIdSequence() {
+        helper.createDatabase("migration-test-6-7", 6).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, voice, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'DAILY', 0, NULL, 1, 1, 10, 0, NULL, 0, 100, 200)",
+            )
+            // Id 2 is the newest alarm and is deleted before the migration; AUTOINCREMENT must never reissue it.
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, voice, createdAt, updatedAt) " +
+                    "VALUES (2, 300, 1, 'Gone', 'ONE_TIME', 0, NULL, 1, 1, 9, 0, NULL, 0, 100, 200)",
+            )
+            execSQL("DELETE FROM alarms WHERE id = 2")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate("migration-test-6-7", 7, true, *UpYetDatabase.MIGRATIONS)
+        // An existing snooze value survives the rebuild unchanged.
+        db.query("SELECT snoozeMinutes, label FROM alarms WHERE id = 1").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getInt(0)).isEqualTo(10)
+            assertThat(cursor.getString(1)).isEqualTo("Wake")
+        }
+        // NULL means snooze Off, so the rebuilt column must accept it.
+        db.execSQL("UPDATE alarms SET snoozeMinutes = NULL WHERE id = 1")
+        db.query("SELECT snoozeMinutes FROM alarms WHERE id = 1").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.isNull(0)).isTrue()
+        }
+        // The next alarm continues after the deleted id 2 instead of reusing it.
+        db.execSQL(
+            "INSERT INTO alarms (minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, voice, createdAt, updatedAt) " +
+                "VALUES (480, 1, 'Next', 'ONE_TIME', 0, NULL, 1, 1, NULL, 0, NULL, 0, 300, 300)",
+        )
+        db.query("SELECT id FROM alarms WHERE label = 'Next'").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getLong(0)).isEqualTo(3L)
         }
         db.close()
     }

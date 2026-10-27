@@ -5,6 +5,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
@@ -215,7 +216,7 @@ class HistoryGroupingTest {
         recurrence = Recurrence.OneTime,
         soundUri = null,
         vibrationEnabled = true,
-        snoozeMinutes = 9,
+        snooze = SnoozePolicy.After(9),
         evidenceEnabled = false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,

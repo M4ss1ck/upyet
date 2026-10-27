@@ -143,7 +143,7 @@ fun RingingScreen(state: RingingUiState, onDismiss: () -> Unit, onSnooze: () -> 
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = RingingPalette.onBackgroundMuted),
                     content = { Text(snoozeLabel, style = MaterialTheme.typography.titleLarge) },
                 )
-            } else {
+            } else if (state.snoozeOffered) {
                 Text(
                     stringResource(R.string.ringing_last_alarm),
                     style = MaterialTheme.typography.bodySmall,

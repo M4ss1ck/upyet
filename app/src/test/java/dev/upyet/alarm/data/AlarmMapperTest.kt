@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -32,7 +33,7 @@ class AlarmMapperTest {
                     null,
                     true,
                     true,
-                    9,
+                    SnoozePolicy.After(9),
                     false,
                     createdAt = Instant.ofEpochMilli(100),
                     updatedAt = Instant.ofEpochMilli(200),
@@ -54,7 +55,7 @@ class AlarmMapperTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             LocalDate.parse("2027-01-15"),
             voice = false,
@@ -77,7 +78,7 @@ class AlarmMapperTest {
             recurrence = Recurrence.OneTime,
             soundUri = null,
             vibrationEnabled = true,
-            snoozeMinutes = 9,
+            snooze = SnoozePolicy.After(9),
             evidenceEnabled = false,
             voice = true,
             createdAt = Instant.ofEpochMilli(100),
@@ -98,7 +99,7 @@ class AlarmMapperTest {
             recurrence = Recurrence.OneTime,
             soundUri = null,
             vibrationEnabled = true,
-            snoozeMinutes = 9,
+            snooze = SnoozePolicy.After(9),
             evidenceEnabled = false,
             createdAt = Instant.ofEpochMilli(100),
             updatedAt = Instant.ofEpochMilli(200),
@@ -119,7 +120,7 @@ class AlarmMapperTest {
             null,
             true,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             null,
             voice = false,
@@ -142,7 +143,7 @@ class AlarmMapperTest {
             "content://media/internal/audio/media/42",
             false,
             true,
-            9,
+            SnoozePolicy.After(9),
             false,
             LocalDate.parse("2027-01-15"),
             voice = false,
@@ -157,5 +158,47 @@ class AlarmMapperTest {
         assertThat(roundTripped.soundUri).isEqualTo("content://media/internal/audio/media/42")
         assertThat(alarm.toEntity().soundEnabled).isFalse()
         assertThat(alarm.toEntity().soundUri).isEqualTo("content://media/internal/audio/media/42")
+    }
+
+    @Test
+    fun snoozeOffIsStoredAsNullAndReadBackAsOff() {
+        val alarm = Alarm(
+            AlarmId(42),
+            LocalTime.of(7, 30),
+            true,
+            "Wake",
+            Recurrence.OneTime,
+            null,
+            true,
+            true,
+            SnoozePolicy.Off,
+            false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.toEntity().snoozeMinutes).isNull()
+        assertThat(alarm.toEntity().toDomain().snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
+    @Test
+    fun snoozeAfterIsStoredAsMinutes() {
+        val alarm = Alarm(
+            AlarmId(42),
+            LocalTime.of(7, 30),
+            true,
+            "Wake",
+            Recurrence.OneTime,
+            null,
+            true,
+            true,
+            SnoozePolicy.After(15),
+            false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.toEntity().snoozeMinutes).isEqualTo(15)
+        assertThat(alarm.toEntity().toDomain().snooze).isEqualTo(SnoozePolicy.After(15))
     }
 }

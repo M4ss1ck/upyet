@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
+import dev.upyet.alarm.domain.encode
 import dev.upyet.evidence.domain.StatsWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,7 +17,7 @@ import javax.inject.Singleton
 
 data class AppSettings(
     val retention: RetentionPolicy,
-    val defaultSnoozeMinutes: Int,
+    val defaultSnooze: SnoozePolicy,
     val defaultVibrationEnabled: Boolean,
     val evidenceEnabledByDefault: Boolean,
     val maxSnoozes: Int,
@@ -40,7 +42,7 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 preferences[Keys.retention]?.let { value ->
                     RetentionPolicy.entries.firstOrNull { it.name == value }
                 } ?: RetentionPolicy.SEVEN_DAYS,
-                defaultSnoozeMinutes = preferences[Keys.snoozeMinutes] ?: 9,
+                defaultSnooze = preferences[Keys.snoozeMinutes]?.let { SnoozePolicy.decode(it) } ?: SnoozePolicy.After(9),
                 defaultVibrationEnabled = preferences[Keys.vibrationEnabled] ?: true,
                 evidenceEnabledByDefault = preferences[Keys.evidenceEnabled] ?: true,
                 maxSnoozes = preferences[Keys.maxSnoozes] ?: SnoozeBudget.DEFAULT_MAX,
@@ -58,8 +60,8 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.retention] = retention.name }
     }
 
-    suspend fun setDefaultSnoozeMinutes(minutes: Int) {
-        dataStore.edit { it[Keys.snoozeMinutes] = minutes }
+    suspend fun setDefaultSnooze(policy: SnoozePolicy) {
+        dataStore.edit { it[Keys.snoozeMinutes] = policy.encode() }
     }
 
     suspend fun setDefaultVibrationEnabled(enabled: Boolean) {

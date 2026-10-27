@@ -104,6 +104,7 @@
     <string name="more_options">More options</string>
     <string name="recurrence">Recurrence</string>
     <plurals name="snooze_option"><item quantity="one">%1$d minute</item><item quantity="other">%1$d minutes</item></plurals>
+    <string name="alarm_no_snooze">No snooze</string>
     <string name="status_ok">OK</string>
     <string name="status_warning">Warning</string>
     <string name="status_blocked">Blocked</string>
@@ -166,6 +167,7 @@
     <string name="permission_onboarding_title">Before the camera turns on</string>
     <string name="permission_onboarding_explanation">UpYet records silent video from the front camera — no sound, ever — and only while UpYet\'s own alarm screen is on your display. Timers can record too, if you turn it on. It never records in the background. Clips are saved on this phone alone, are never sent anywhere, and are deleted automatically after the time you choose in Settings, where you can also turn recording off. Notifications let the alarm take over your lock screen.</string>
     <string name="default_snooze">Default snooze</string>
+    <string name="snooze_off">Off</string>
     <string name="max_snoozes">Maximum snoozes</string>
     <string name="max_snoozes_unlimited">Unlimited</string>
     <plurals name="max_snoozes_option"><item quantity="one">%1$d snooze</item><item quantity="other">%1$d snoozes</item></plurals>

@@ -62,6 +62,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.NextAlarmInfo
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.allowsSnooze
 import dev.upyet.core.ui.PermissionOnboardingCard
 import dev.upyet.core.ui.components.ClockText
 import dev.upyet.core.ui.components.PrimaryButton
@@ -403,6 +404,14 @@ private fun AlarmRow(
                 container = MaterialTheme.colorScheme.secondaryContainer,
                 content = MaterialTheme.colorScheme.onSecondaryContainer,
                 icon = Icons.Default.SkipNext,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+        if (!alarm.snooze.allowsSnooze) {
+            Text(
+                stringResource(R.string.alarm_no_snooze),
+                style = MaterialTheme.typography.bodySmall,
+                color = onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp),
             )
         }

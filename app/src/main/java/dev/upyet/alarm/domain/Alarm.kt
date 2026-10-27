@@ -13,7 +13,7 @@ data class Alarm(
     val soundUri: String?,
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean,
-    val snoozeMinutes: Int,
+    val snooze: SnoozePolicy,
     val evidenceEnabled: Boolean,
     val skipNextOn: LocalDate? = null,
     /** A one-time alarm an assistant created without its editor; deleted once dismissed (GLOSSARY.md, Voice alarm). */

@@ -86,7 +86,7 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    fun buildRingingNotification(alarmLabel: String?, isUserUnlocked: Boolean): Notification {
+    fun buildRingingNotification(alarmLabel: String?, isUserUnlocked: Boolean, snoozeAllowed: Boolean): Notification {
         val activityIntent = ringingScreenIntent()
         return NotificationCompat.Builder(context, CHANNEL_RINGING)
             .setSmallIcon(R.drawable.ic_alarm_notification)
@@ -108,11 +108,16 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
             .setContentIntent(activityIntent)
             // While the device is in use the platform shows this as a heads-up instead of launching the
             // full-screen intent, so the alarm has to be answerable from the notification itself.
-            .addAction(
-                0,
-                context.getString(R.string.alarm_notification_snooze),
-                command(AlarmPlaybackService.snoozeIntent(context), REQUEST_SNOOZE),
-            )
+            .apply {
+                // Off (issue #70) offers no Snooze here either, so a tap can never reach the service as a snooze.
+                if (snoozeAllowed) {
+                    addAction(
+                        0,
+                        context.getString(R.string.alarm_notification_snooze),
+                        command(AlarmPlaybackService.snoozeIntent(context), REQUEST_SNOOZE),
+                    )
+                }
+            }
             .addAction(
                 0,
                 context.getString(R.string.alarm_notification_dismiss),

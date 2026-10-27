@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.theme.UpYetTheme
 import org.junit.Rule
 import org.junit.Test
@@ -127,6 +128,32 @@ class AlarmEditorScreenTest {
             }
         }
         compose.onNodeWithText(context.getString(R.string.alarm_screen_only_warning)).assertDoesNotExist()
+    }
+
+    @Test fun snoozeRowReadsOffWhenNoSnoozeIsChosen() {
+        setSmallScreenEditor(AlarmEditorUiState(isLoaded = true, snooze = SnoozePolicy.Off))
+        compose.onNodeWithText("Off").performScrollTo().assertIsDisplayed()
+    }
+
+    /** Off is the first entry of the snooze dropdown, and choosing it reports SnoozePolicy.Off, not a length. */
+    @Test fun snoozeDropdownOffersOffFirstAndReportsIt() {
+        var chosen: SnoozePolicy? = null
+        compose.setContent {
+            UpYetTheme {
+                AlarmEditorContent(
+                    state = AlarmEditorUiState(isLoaded = true, snooze = SnoozePolicy.After(9)),
+                    isNewAlarm = true,
+                    onUpdate = { transform -> chosen = transform(AlarmEditorUiState(isLoaded = true)).snooze },
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Snooze minutes").performScrollTo().performClick()
+        compose.onNodeWithText("Off").assertIsDisplayed().performClick()
+
+        assertThat(chosen).isEqualTo(SnoozePolicy.Off)
     }
 
     /** The picker labels its own parts with Material's strings, so the test asks for them by resource. */

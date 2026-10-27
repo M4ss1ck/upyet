@@ -2,6 +2,7 @@ package dev.upyet.settings.data
 
 import androidx.datastore.preferences.core.emptyPreferences
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.testing.FakeDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -32,6 +33,23 @@ class SettingsRepositoryTest {
         assertThat(repository.settings.first().timerEvidenceByDefault).isTrue()
         repository.setTimerEvidenceByDefault(false)
         assertThat(repository.settings.first().timerEvidenceByDefault).isFalse()
+    }
+
+    @Test
+    fun defaultSnoozeIsNineMinutesWhenNothingIsStored() = runTest {
+        val repository = SettingsRepository(FakeDataStore(emptyPreferences()))
+
+        assertThat(repository.settings.first().defaultSnooze).isEqualTo(SnoozePolicy.After(9))
+    }
+
+    @Test
+    fun defaultSnoozeOffRoundTrips() = runTest {
+        val repository = SettingsRepository(FakeDataStore(emptyPreferences()))
+
+        repository.setDefaultSnooze(SnoozePolicy.Off)
+        assertThat(repository.settings.first().defaultSnooze).isEqualTo(SnoozePolicy.Off)
+        repository.setDefaultSnooze(SnoozePolicy.After(15))
+        assertThat(repository.settings.first().defaultSnooze).isEqualTo(SnoozePolicy.After(15))
     }
 
     @Test

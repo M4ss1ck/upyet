@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.rememberCameraGate
 import dev.upyet.core.ui.theme.UpYetTheme
 import dev.upyet.reliability.domain.ReliabilitySummary
@@ -76,7 +77,7 @@ class SettingsTimersTest {
                     state = SettingsUiState(
                         settings = AppSettings(
                             retention = RetentionPolicy.SEVEN_DAYS,
-                            defaultSnoozeMinutes = 9,
+                            defaultSnooze = SnoozePolicy.After(9),
                             defaultVibrationEnabled = true,
                             evidenceEnabledByDefault = true,
                             maxSnoozes = 3,

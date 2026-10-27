@@ -5,6 +5,7 @@ import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
@@ -342,7 +343,7 @@ class AlarmListViewModelTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
@@ -357,7 +358,7 @@ class AlarmListViewModelTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,

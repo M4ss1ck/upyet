@@ -1,6 +1,7 @@
 package dev.upyet.alarm.domain
 
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.alarm.domain.SnoozePolicy
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
@@ -124,7 +125,7 @@ class SkipNextTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         skipNextOn = skipNextOn,
         createdAt = Instant.EPOCH,
