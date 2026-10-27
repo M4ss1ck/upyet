@@ -152,5 +152,5 @@ text above leaves open. The numbers are the run's, recorded in the manifest.
   files under RU and `zone.tab` under UA, among them), `no_stable_id` 17, `duplicate_id` 4; the pinned budgets
   are 20, 80, 25 and 10. 5,664 rows are written; 752 resolved zones were `backward` links and are stored
   canonical. Amsterdam therefore resolves to `Europe/Brussels`, which tzdata 2026e makes it a link to.
-- *Size.* The assets are 382,656 bytes of TSV and 21,092 bytes of land, about 157 KB and 19961 bytes
+- *Size.* The assets are 382,656 bytes of TSV and 21,092 bytes of land, about 157 KB and 20 KB
   compressed: above the ~110 KB research estimate, and the decision does not change.
