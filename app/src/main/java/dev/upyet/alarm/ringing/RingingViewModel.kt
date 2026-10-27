@@ -9,6 +9,7 @@ import dagger.Lazy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.alarm.domain.OccurrenceId
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.playback.AlarmPlaybackService
 import dev.upyet.alarm.playback.RingingSessionRegistry
 import dev.upyet.core.time.TimeProvider
@@ -94,7 +95,7 @@ constructor(
                 session?.scheduledFor?.atZone(zone)?.toLocalTime()
                     ?: LocalTime.MIDNIGHT,
                 label = session?.label,
-                snoozeMinutes = session?.snoozeMinutes ?: RingingUiState.DEFAULT_SNOOZE_MINUTES,
+                snoozeMinutes = (session?.snooze as? SnoozePolicy.After)?.minutes ?: RingingUiState.DEFAULT_SNOOZE_MINUTES,
                 evidenceEnabled = session?.evidenceEnabled ?: false,
                 occurrenceId = session?.occurrenceId,
                 ringingNoteRes = session?.let { ringingNoteRes(it.soundEnabled, it.vibrationEnabled, it.isSilentAlarmStream) },

@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.theme.UpYetTheme
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.settings.data.AppLanguage
@@ -68,7 +69,7 @@ class DataSourcesScreenTest {
             UpYetTheme {
                 SettingsContent(
                     state = SettingsUiState(
-                        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, 9, true, true, 3),
+                        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, SnoozePolicy.After(9), true, true, 3),
                         reliabilitySummary = ReliabilitySummary(blockedCount = 0, totalCount = 5),
                         language = AppLanguage.SYSTEM,
                         languageSupported = false,

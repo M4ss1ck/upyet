@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.BuildConfig
 import dev.upyet.R
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.CameraGate
 import dev.upyet.core.ui.CameraGateHost
 import dev.upyet.core.ui.components.PrimaryButton
@@ -129,7 +130,7 @@ fun SettingsContent(
         SectionLabel(stringResource(R.string.settings_defaults), Modifier.padding(top = 16.dp, bottom = 2.dp))
         UpYetCard {
             var snoozeExpanded by remember { mutableStateOf(false) }
-            val snoozeMinutes = state.settings?.defaultSnoozeMinutes ?: DEFAULT_SNOOZE_MINUTES
+            val snoozeMinutes = (state.settings?.defaultSnooze as? SnoozePolicy.After)?.minutes ?: DEFAULT_SNOOZE_MINUTES
             Box {
                 SettingsRow(
                     title = stringResource(R.string.default_snooze),

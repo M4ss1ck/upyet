@@ -11,6 +11,7 @@ import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
 import dev.upyet.intents.AlarmPrefill
@@ -49,7 +50,7 @@ class AlarmEditorViewModelTest {
         val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler())
         advanceUntilIdle()
 
-        assertThat(viewModel.state.value.snoozeMinutes).isEqualTo(12)
+        assertThat(viewModel.state.value.snooze).isEqualTo(SnoozePolicy.After(12))
         assertThat(viewModel.state.value.vibration).isFalse()
         assertThat(viewModel.state.value.evidence).isFalse()
     }
@@ -154,7 +155,7 @@ class AlarmEditorViewModelTest {
         assertThat(state.label).isEqualTo("Gym")
         assertThat(state.soundEnabled).isFalse()
         assertThat(state.vibration).isTrue()
-        assertThat(state.snoozeMinutes).isEqualTo(12)
+        assertThat(state.snooze).isEqualTo(SnoozePolicy.After(12))
         assertThat(state.isLoaded).isTrue()
     }
 
@@ -233,7 +234,7 @@ class AlarmEditorViewModelTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         true,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,

@@ -6,6 +6,7 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.playback.RingingSession
 import dev.upyet.alarm.playback.RingingSessionRegistry
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
@@ -53,7 +54,7 @@ class ClockIntentHandlerTest {
         recurrence = recurrence,
         soundUri = null,
         vibrationEnabled = true,
-        snoozeMinutes = 9,
+        snooze = SnoozePolicy.After(9),
         evidenceEnabled = false,
         skipNextOn = skipNextOn,
         voice = voice,
@@ -164,7 +165,7 @@ class ClockIntentHandlerTest {
                 triggeredAt = now,
                 label = null,
                 kind = AlarmOccurrenceKind.MAIN,
-                snoozeMinutes = 9,
+                snooze = SnoozePolicy.After(9),
                 evidenceEnabled = false,
                 isUserUnlocked = true,
                 budget = SnoozeBudget(1),

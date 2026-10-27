@@ -18,6 +18,7 @@ import dev.upyet.alarm.domain.AutoSnoozeDecision
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.alarm.domain.SnoozeCalculator
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.domain.VolumeRamp
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
@@ -165,7 +166,7 @@ class AlarmPlaybackService : Service() {
                     triggeredAt = triggeredAt,
                     label = alarm?.label?.takeIf { unlocked },
                     kind = kind,
-                    snoozeMinutes = alarm?.snoozeMinutes ?: DEFAULT_SNOOZE_MINUTES,
+                    snooze = alarm?.snooze ?: SnoozePolicy.After(DEFAULT_SNOOZE_MINUTES),
                     evidenceEnabled = alarm?.evidenceEnabled ?: false,
                     isUserUnlocked = unlocked,
                     soundEnabled = soundOn,
@@ -285,7 +286,9 @@ class AlarmPlaybackService : Service() {
     /** Works before first unlock too: the alarm is then reconstructed from the device-protected mirror. */
     private suspend fun scheduleSnooze(session: RingingSession) {
         val alarm = resolveAlarm(session.alarmId, session.kind, session.isUserUnlocked) ?: return
-        val triggerAt = SnoozeCalculator.snoozeAt(timeProvider.now(), session.snoozeMinutes)
+        // Off has no snooze action (issue #70); the ringing-screen behaviour for Off lands in the next unit.
+        val minutes = (session.snooze as? SnoozePolicy.After)?.minutes ?: return
+        val triggerAt = SnoozeCalculator.snoozeAt(timeProvider.now(), minutes)
         val result = scheduler.schedule(
             alarm,
             triggerAt,

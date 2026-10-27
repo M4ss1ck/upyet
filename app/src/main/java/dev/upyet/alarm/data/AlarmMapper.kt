@@ -3,6 +3,7 @@ package dev.upyet.alarm.data
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.database.AlarmEntity
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -29,7 +30,7 @@ fun AlarmEntity.toDomain(): Alarm = Alarm(
     soundUri = soundUri,
     soundEnabled = soundEnabled,
     vibrationEnabled = vibrationEnabled,
-    snoozeMinutes = snoozeMinutes,
+    snooze = snoozeMinutes?.let { SnoozePolicy.decode(it) } ?: SnoozePolicy.Off,
     evidenceEnabled = evidenceEnabled,
     skipNextOn = skipNextOnEpochDay?.let(LocalDate::ofEpochDay),
     voice = voice,
@@ -55,7 +56,7 @@ fun Alarm.toEntity(): AlarmEntity {
         soundUri = soundUri,
         soundEnabled = soundEnabled,
         vibrationEnabled = vibrationEnabled,
-        snoozeMinutes = snoozeMinutes,
+        snoozeMinutes = (snooze as? SnoozePolicy.After)?.minutes,
         evidenceEnabled = evidenceEnabled,
         skipNextOnEpochDay = skipNextOn?.toEpochDay(),
         voice = voice,

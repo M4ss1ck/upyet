@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.theme.UpYetTheme
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.settings.data.AppLanguage
@@ -26,7 +27,7 @@ class SettingsLanguageTest {
     @get:Rule val compose = createComposeRule()
 
     private fun state(language: AppLanguage, languageSupported: Boolean) = SettingsUiState(
-        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, 9, true, true, SnoozeBudget.DEFAULT_MAX),
+        settings = AppSettings(RetentionPolicy.SEVEN_DAYS, SnoozePolicy.After(9), true, true, SnoozeBudget.DEFAULT_MAX),
         reliabilitySummary = ReliabilitySummary(blockedCount = 0, totalCount = 5),
         language = language,
         languageSupported = languageSupported,

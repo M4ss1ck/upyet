@@ -71,6 +71,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.R
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.core.ui.components.ClockText
 import dev.upyet.core.ui.components.PrimaryButton
 import dev.upyet.core.ui.components.RowDivider
@@ -88,6 +89,7 @@ import java.time.LocalTime
 import java.time.format.TextStyle
 
 private val SNOOZE_OPTIONS = listOf(5, 9, 10, 15, 30)
+private const val DEFAULT_SNOOZE_MINUTES = 9
 
 /** The ringtone row stays readable but inert while sound is switched off. */
 private const val DISABLED_ROW_ALPHA = 0.5f
@@ -319,12 +321,14 @@ private fun AlarmEditorForm(
                 },
             )
             RowDivider()
+            // Off has no snooze picker state until the No snooze UI lands (issue #70); it shows the default meanwhile.
+            val snoozeMinutes = (state.snooze as? SnoozePolicy.After)?.minutes ?: DEFAULT_SNOOZE_MINUTES
             var snoozeExpanded by remember { mutableStateOf(false) }
             Box {
                 SettingsRow(
                     title = stringResource(R.string.snooze_minutes),
                     icon = Icons.Filled.Snooze,
-                    value = pluralStringResource(R.plurals.snooze_option, state.snoozeMinutes, state.snoozeMinutes),
+                    value = pluralStringResource(R.plurals.snooze_option, snoozeMinutes, snoozeMinutes),
                     showChevron = true,
                     onClick = { snoozeExpanded = true },
                 )
@@ -333,7 +337,7 @@ private fun AlarmEditorForm(
                         DropdownMenuItem(
                             text = { Text(pluralStringResource(R.plurals.snooze_option, minutes, minutes)) },
                             onClick = {
-                                onUpdate { it.copy(snoozeMinutes = minutes) }
+                                onUpdate { it.copy(snooze = SnoozePolicy.After(minutes)) }
                                 snoozeExpanded = false
                             },
                         )

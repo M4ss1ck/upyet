@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.settings.data.SettingsRepository
 import dev.upyet.testing.FakeAlarmMirror
 import dev.upyet.testing.FakeAlarmRepository
@@ -131,7 +132,7 @@ class SkipNextOccurrenceTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
@@ -146,7 +147,7 @@ class SkipNextOccurrenceTest {
         null,
         true,
         true,
-        9,
+        SnoozePolicy.After(9),
         false,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,

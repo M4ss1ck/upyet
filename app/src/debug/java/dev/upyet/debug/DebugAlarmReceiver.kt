@@ -7,6 +7,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmScheduler
 import dev.upyet.core.logging.AlarmLog
@@ -40,7 +41,7 @@ class DebugAlarmReceiver : BroadcastReceiver() {
                     recurrence = Recurrence.OneTime,
                     soundUri = null,
                     vibrationEnabled = true,
-                    snoozeMinutes = 9,
+                    snooze = SnoozePolicy.After(9),
                     evidenceEnabled = intent.getBooleanExtra(EXTRA_EVIDENCE, true),
                     createdAt = now,
                     updatedAt = now,

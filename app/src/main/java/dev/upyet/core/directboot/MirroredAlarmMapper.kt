@@ -2,6 +2,7 @@ package dev.upyet.core.directboot
 
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.Recurrence
+import dev.upyet.alarm.domain.SnoozePolicy
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -42,7 +43,7 @@ fun MirroredAlarm.toAlarm(): Alarm = Alarm(
     soundUri = soundUri,
     soundEnabled = soundEnabled,
     vibrationEnabled = vibrationEnabled,
-    snoozeMinutes = snoozeMinutes,
+    snooze = SnoozePolicy.decode(snoozeMinutes),
     evidenceEnabled = false,
     skipNextOn = skipNextOnEpochDay?.let(LocalDate::ofEpochDay),
     createdAt = Instant.EPOCH,
