@@ -34,7 +34,7 @@ link, and storing a link id would make the stored data depend on how long tzdata
 `scripts/world-clock/generate.py` reads `scripts/world-clock/data-sources.lock`, which records the URL,
 SHA-256, version and retrieval date of each input, and writes the three committed artifacts:
 `app/src/main/res/raw/world_cities.tsv`, `app/src/main/res/raw/world_land.bin` and
-`app/src/main/res/raw/world-data.manifest.txt`. Nothing in `./gradlew assembleDebug` or in CI downloads
+`app/src/main/res/raw/world_data_manifest.txt`. Nothing in `./gradlew assembleDebug` or in CI downloads
 anything, which keeps the no-network rule of `AGENTS.md` §12 and the offline CI of §18 intact. A JVM test
 re-hashes the committed asset and asserts a set of acceptance rows, so the pin and the bytes cannot drift
 apart silently. The compressed cost is roughly 110 KB, which is a rounding error beside a single recorded
@@ -67,7 +67,7 @@ ring carries a hole flag. 1/100 degree keeps every vertex inside `int16` and is 
 this map size, and polygons are not clipped: the screen clips them.
 
 **The drop budget is a gate, not a print.** The script exits non-zero when drops from any rule exceed the
-pinned budget, and the per-rule fill counts land in `world-data.manifest.txt` so a refresh shows up as a
+pinned budget, and the per-rule fill counts land in `world_data_manifest.txt` so a refresh shows up as a
 reviewable diff of numbers rather than a diff of twenty thousand opaque rows. A pipeline that silently drops
 a ninth of the planet is worse than one that fails.
 
@@ -125,6 +125,10 @@ permission, no network, no dependency and no runtime failure mode that the invar
 
 Two implementation slices follow from this: the generator, assets and pinning test, and the world clock
 screen that consumes them. The screen is issue #15's design, not this ADR's.
+
+**Amendment, 2026-10-27 (issue #44).** The manifest was first named `world-data.manifest.txt`; Android's
+resource merger rejects a hyphen in a `res/raw` file name, so it ships as `world_data_manifest.txt` in the same
+directory. The format and the content are unchanged.
 
 Two claims are reasoned but unverified. The drop counts above come from the research measurements in issue
 #21, not from a run of the generator, so the first real generation may move the numbers and the pinned
