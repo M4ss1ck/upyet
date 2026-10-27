@@ -56,10 +56,22 @@ class TimerAlarmSync @Inject constructor(
             MissedNotice.Clear -> notices.clear()
             MissedNotice.Leave -> Unit
         }
+        showRunning(timers)
+        TimerSyncResult(alarm, arm)
+    }
+
+    /**
+     * A zone change (`TIMEZONE_CHANGED`): re-post only the running notice, so its ring time reads in the new zone.
+     * No alarm is armed or cancelled and no missed notice moves. Same lock as [sync], so the two cannot interleave.
+     */
+    suspend fun refreshRunningNotice(read: suspend () -> List<Timer>) = lock.withLock {
+        showRunning(read())
+    }
+
+    private fun showRunning(timers: List<Timer>) {
         when (val n = RunningNotice.decide(timers)) {
             is RunningNotice.Show -> running.show(n)
             RunningNotice.Cancel -> running.cancel()
         }
-        TimerSyncResult(alarm, arm)
     }
 }

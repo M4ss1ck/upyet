@@ -166,7 +166,7 @@ flowchart LR
   `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` alarm, fixed request code, for the earliest-ending
   timer, and posts or clears the `timer_missed` notice. `RoomTimerRepository` mirrors and re-arms on every
   write. A delivery carries the timer id and its wall-clock end; `Timer.onExpiry` rings only when that still
-  matches. `TimerReceiver` registers no `TIMEZONE_CHANGED`: both anchors are zone-free.
+  matches. `TimerReceiver` takes `TIMEZONE_CHANGED` only to re-post the running notice (`onZoneChanged`): both anchors are zone-free, so a zone change re-arms nothing.
 * Timer ringing (ADR 0008, AGENTS.md §8a) lives in `timer/playback/`. A validated expiry starts
   `TimerPlaybackService` (`mediaPlayback`, Direct-Boot aware), which runs its commands one at a time through
   `TimerRinging`: one sound, one vibration and one wake lock for every ringing timer, a set-holding

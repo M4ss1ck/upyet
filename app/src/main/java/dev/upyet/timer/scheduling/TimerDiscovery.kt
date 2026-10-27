@@ -31,7 +31,7 @@ enum class TimerExpiry {
 }
 
 /**
- * Every timer event that does not come from the user: boot, unlock, launch, expiry, a wall-clock change and a
+ * Every timer event that does not come from the user: boot, unlock, launch, expiry, a wall-clock or zone change and a
  * re-arm (AGENTS.md §6a, ADR 0008, ADR 0009). Each one runs against the store that is authoritative right now:
  * Room once the user is unlocked, after reconciling the mirror into it as [TimerMirrorReconciler] requires, and
  * the device-protected mirror before. Room sits behind [Lazy] and is built only on the unlocked path (§11).
@@ -95,6 +95,22 @@ class TimerDiscovery @Inject constructor(
             }
             val result = alarms.sync { opened.store.all() }
             AlarmLog.event("timer_wall_clock_changed", "reanchored" to changed, "armedFor" to result.alarm?.timerId?.value)
+        }
+    }
+
+    /**
+     * `TIMEZONE_CHANGED`: both anchors are zone-free, so no timer changes and nothing re-arms (AGENTS.md §6a). Only the
+     * running notice reads the zone, so it is re-posted. Before first unlock it is left as posted, like [onWallClockChanged].
+     */
+    suspend fun onZoneChanged() {
+        lock.withLock {
+            val opened = open()
+            if (opened.reconciliation == TimerReconciliation.Locked) {
+                AlarmLog.event("timer_zone_change_skipped", "reason" to "locked")
+                return@withLock
+            }
+            alarms.refreshRunningNotice { opened.store.all() }
+            AlarmLog.event("timer_zone_changed")
         }
     }
 

@@ -48,14 +48,19 @@ class TimerDiscoveryTest {
 
     private val roomNeverBuilt = Lazy<TimerRepository> { error("Room was built before first unlock") }
 
-    private fun discovery(mirror: FakeTimerMirror, repository: Lazy<TimerRepository>, unlocked: Boolean): TimerDiscovery {
+    private fun discovery(
+        mirror: FakeTimerMirror,
+        repository: Lazy<TimerRepository>,
+        unlocked: Boolean,
+        running: FakeTimerRunningNotices = FakeTimerRunningNotices(),
+    ): TimerDiscovery {
         val clock = { now }
         return TimerDiscovery(
             mirror = mirror,
             repository = repository,
             reconciler = TimerMirrorReconciler(mirror, repository, FakeUserUnlockState(unlocked), clock),
             clock = clock,
-            alarms = TimerAlarmSync(scheduler, notices, clock, FakeTimerRunningNotices()),
+            alarms = TimerAlarmSync(scheduler, notices, clock, running),
             handoff = { handedOff += it },
         )
     }
@@ -345,6 +350,36 @@ class TimerDiscoveryTest {
 
         assertThat(mirror.all()).isEqualTo(before)
         assertThat(scheduler.armed).isEmpty()
+    }
+
+    @Test
+    fun aZoneChangeRePostsTheRunningNoticeAndNeitherArmsNorCancelsTheAlarm() = runTest {
+        val (repository, mirror) = roomOf(running(1, Duration.ofMinutes(5)))
+        val before = repository.getTimer(TimerId(1))
+        val runningNotices = FakeTimerRunningNotices()
+
+        discovery(mirror, { repository }, unlocked = true, running = runningNotices).onZoneChanged()
+
+        assertThat(runningNotices.shown?.timer?.id).isEqualTo(TimerId(1))
+        assertThat(runningNotices.shown?.endsAt).isEqualTo(Instant.parse("2026-10-26T08:05:00Z"))
+        assertThat(scheduler.armed).isEmpty()
+        assertThat(scheduler.cancels).isEqualTo(0)
+        assertThat(repository.getTimer(TimerId(1))).isEqualTo(before)
+    }
+
+    @Test
+    fun aZoneChangeBeforeUnlockPostsNothingAndNeverBuildsRoom() = runTest {
+        val mirror = lockedMirrorOf(running(1, Duration.ofMinutes(15)))
+        val before = mirror.all()
+        val runningNotices = FakeTimerRunningNotices()
+
+        discovery(mirror, roomNeverBuilt, unlocked = false, running = runningNotices).onZoneChanged()
+
+        assertThat(runningNotices.shown).isNull()
+        assertThat(runningNotices.cancels).isEqualTo(0)
+        assertThat(scheduler.armed).isEmpty()
+        assertThat(scheduler.cancels).isEqualTo(0)
+        assertThat(mirror.all()).isEqualTo(before)
     }
 
     // User edits (TimerEditor). Timers are anchored at afterReboot so the elapsed clock reads consistently.

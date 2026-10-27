@@ -67,8 +67,7 @@ class AndroidTimerRunningNotices @Inject constructor(@ApplicationContext private
     /**
      * The ring time, the one thing a running timer shows that the chronometer does not: "Rings at 7:42", then the
      * other running timers joined with " · ". The zone is read now, so a re-post after `TIME_SET` shows the new
-     * local time; `TIMEZONE_CHANGED` re-posts nothing (no timer re-arm there, AGENTS.md §6a), so the shade keeps
-     * the old zone's time until the next timer change.
+     * local time; `TIMEZONE_CHANGED` re-posts it too, through `ZONE_CHANGED`, without re-arming (AGENTS.md §6a).
      */
     private fun contentText(notice: RunningNotice.Show): String {
         val locale = context.resources.configuration.locales[0]

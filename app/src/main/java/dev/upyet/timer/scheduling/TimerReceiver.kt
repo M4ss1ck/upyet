@@ -50,6 +50,8 @@ class TimerReceiver : BroadcastReceiver() {
 
                     TimerReceiverCommand.WALL_CLOCK_CHANGED -> discovery.onWallClockChanged()
 
+                    TimerReceiverCommand.ZONE_CHANGED -> discovery.onZoneChanged()
+
                     TimerReceiverCommand.PAUSE -> editRunning(intent, command) { timer, now -> timer.pause(now) }
 
                     TimerReceiverCommand.ADD_MINUTE -> editRunning(intent, command) { timer, now -> timer.addMinute(now) }
