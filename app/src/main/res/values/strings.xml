@@ -403,4 +403,18 @@
     <string name="timer_empty">No timers yet</string>
     <string name="timer_length">of %1$s</string>
     <string name="camera_disclosure_dismiss">Not now</string>
+
+    <!-- Assistant intents -->
+    <string name="intent_alarm_set">Alarm set for %1$s</string>
+    <string name="intent_alarm_skipped">Skipped the next %1$s alarm</string>
+    <string name="intent_alarm_turned_off">Alarm at %1$s turned off</string>
+    <string name="intent_alarm_snoozed">That alarm is snoozed. You can dismiss it when it rings again.</string>
+    <string name="intent_alarm_none_matched">No matching alarm</string>
+    <string name="intent_alarm_several_matched">More than one alarm matches. Choose one in Alarms.</string>
+    <string name="intent_timer_started">Timer started</string>
+    <string name="intent_timer_stopped">Timer stopped</string>
+    <string name="intent_timer_reset">Timer reset</string>
+    <string name="intent_timer_none_ringing">No timer is ringing</string>
+    <string name="intent_timer_not_found">That timer no longer exists</string>
+    <string name="intent_invalid_request">UpYet could not understand that request</string>
 </resources>
