@@ -7,12 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-27
+
+UpYet is now a full Clock replacement: Alarms, World clock, Timer and Stopwatch. The camera still records only
+while a ringing screen is visible; timers record only when you turn that on.
+
+### Changed
+- The app has four tabs at the bottom, Alarms, World clock, Timer and Stopwatch, and History, Settings and
+  Reliability moved into a menu: tap ☰ at the top left of any tab to open it. This replaces the three-tab
+  layout (Alarms, History, Settings). Tabs now change with a tap, not a swipe. When a reliability check needs
+  action, the ☰ button shows a red dot and the menu marks Reliability "Action needed". Back closes the menu,
+  then returns to Alarms, then leaves the app. History and Settings open as their own screens with a back
+  arrow, and the app version is still in Settings › About. Nothing is lost or reset by the move.
+
 ### Added
-- The world clock's offline place list (ADR 0011): about 5,700 cities with their Spanish names, each with a
-  time zone checked against the IANA list for its own country, plus a small world map outline, built into the
-  app so nothing is downloaded. Place data © GeoNames (CC BY 4.0), map and places made with Natural Earth,
-  time zone rules from the IANA Time Zone Database; the repository's `NOTICE` carries the attributions. The
-  world clock screen that uses them arrives separately.
+- The Timer tab: set a length with wheels or a preset, give the timer an optional label, and run several at
+  once. Each timer can be paused, resumed, reset or deleted, and a running timer shows one quiet notification
+  with its countdown, drawn by the system, with no background service and no wake lock.
+
+- Timers ring like alarms: on the lock screen, through Doze, after the app was closed. One sound, one
+  vibration and one notification serve every timer ringing at once ("2 timers ringing"). The timer ringing
+  screen shows the timer in focus with its overtime, big Stop and +1 min buttons, the other ringing timers as
+  chips, and Stop all when two or more ring. It never unlocks the phone. A timer never silences a ringing
+  alarm.
+
+- Timer evidence: a timer can record the same silent front-camera video an alarm does while its ringing
+  screen is up. It is off by default. Settings › Timers › "Record when a timer rings" sets the default for new
+  timers, and each timer has its own switch; changing the default never changes an existing timer. Turning
+  either on without camera permission shows the camera explanation first. Recording stops when the last
+  recording-on timer is stopped or given +1 min, even if others still ring, and Stop and +1 min always work,
+  camera or not.
+
+- History lists timer rings next to alarms, marked with a "Timer" badge and the outcome "Stopped", with no
+  extra filter. Timer rings never count as wake-ups and never enter wake-up stats. Deleting a timer keeps its
+  past evidence; deleting a History entry deletes its video, as for alarms.
+
+- The World clock tab: a world map with day and night, your home time, and the places you add, each with its
+  time, its offset from you and whether it is already tomorrow or still yesterday there. Add places by searching
+  about 5,700 cities (Spanish names included), drag to reorder, swipe to remove with undo. Everything works
+  offline (ADR 0011): the place list, its time zones, checked against the IANA list for each place's own country,
+  and the map outline are built into the app, so nothing is downloaded. Place data © GeoNames (CC BY 4.0), map
+  and places made with Natural Earth, time zone rules from the IANA Time Zone Database; Settings › Data sources
+  and the repository's `NOTICE` carry the attributions.
 
 - The Stopwatch tab: a large dial with a sweeping second hand and a minute sub-dial, big digits, round Lap,
   Start/Pause and Reset buttons, and a lap list (lap, split, total) oldest first. It keeps counting, laps
@@ -35,8 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer matches its timer (paused, reset, extended or deleted since) is dropped instead of ringing. A timer
   found more than a minute past its end after a reboot or force stop becomes Missed, never rings late, and
   posts a quiet "Timer missed" notice until it is reset or deleted. Changing the clock does not move a
-  running timer; changing the time zone changes nothing. Ringing itself arrives with the timer playback
-  service.
+  running timer; changing the time zone changes nothing.
 
 - Assistant intents: UpYet answers the platform `AlarmClock` intents, so an assistant or another app can set an
   alarm (`SET_ALARM`, with `SKIP_UI` to save it without opening the editor), set and start a timer (`SET_TIMER`),
@@ -47,11 +82,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes nothing. `SNOOZE_ALARM` is deliberately not supported, so an assistant cannot snooze a wake-up past the
   ringing screen (ADR 0007).
 
+- The store listing, privacy policy, README and site describe the clock tools, and the camera,
+  full-screen-intent and exact-alarm justifications name the timer path. Still no data collected or shared,
+  and no `INTERNET` permission.
+
 ### Fixed
-- Launching the app now reschedules every enabled alarm, so an alarm cancelled by a force stop (which the
-  platform does not announce) comes back the next time the app is opened instead of waiting for a reboot,
-  an unlock or another alarm to ring. Launch housekeeping also calls the timer re-arm seam, which does
-  nothing until timers exist.
+- Launching the app now reschedules every enabled alarm and re-arms timers, so an alarm or timer cancelled by
+  a force stop (which the platform does not announce) comes back the next time the app is opened instead of
+  waiting for a reboot, an unlock or another alarm to ring.
 
 ## [0.2.0] - 2026-10-07
 
