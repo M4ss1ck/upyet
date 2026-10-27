@@ -291,6 +291,14 @@ class ResolutionRuleTest(unittest.TestCase):
         self.assertEqual(stats["dropped"]["no_stable_id"], 1)
         self.assertEqual(rows, [])
 
+    def test_name_match_with_rejected_zone_still_supplies_the_id(self):
+        """The nearby namesake is the same place: its zone is refused, rule 3 fills the zone, its id is kept."""
+        rows, stats = rows_for([place("Utrecht", "NL", 52.09, 5.12)], geonames_zip((301, "Utrecht", "NL", "Europe/Brussels", 52.09, 5.12)))
+        self.assertEqual(stats["rejected"]["name_country"], 1)
+        self.assertEqual(stats["filled"]["single_zone_country"], 1)
+        self.assertEqual(rows[0][ZONE], "Europe/Amsterdam")
+        self.assertEqual(rows[0][GEONAMES_ID], 301)
+
     def test_cross_country_zone_is_rejected_and_row_dropped_unresolved(self):
         """A record whose zone belongs to another country's zone.tab entry is rejected; multi-zone RU has no fallback."""
         geonames = geonames_zip((301, "Simferopol", "RU", "Europe/Simferopol", 44.9521, 34.1024))

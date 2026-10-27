@@ -306,6 +306,8 @@ class Resolver:
         name_match_id = None
         for rule, zone, matched_id in self.candidates(place):
             if rule == "name_country" and matched_id is not None:
+                # Taken even when this record's zone is then rejected: same name, same country and within
+                # MAX_NAME_MATCH_KM is the same place, so the id is right even where GeoNames' zone is not.
                 name_match_id = matched_id
             if zone is None:
                 continue
