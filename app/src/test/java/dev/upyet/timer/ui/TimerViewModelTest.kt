@@ -85,6 +85,18 @@ class TimerViewModelTest {
         assertThat(h.repository.all.single().evidenceEnabled).isTrue()
     }
 
+    @Test fun turningGlobalOnLaterNeverTurnsAnExistingTimerOn() = runTest {
+        val h = Harness()
+        h.viewModel.onMinutes(5)
+
+        h.viewModel.onStart()
+        runCurrent()
+        h.settings.setTimerEvidenceByDefault(true)
+        runCurrent()
+
+        assertThat(h.repository.all.single().evidenceEnabled).isFalse()
+    }
+
     @Test fun explicitSwitchWinsOverGlobalAtCreation() = runTest {
         val h = Harness()
         h.settings.setTimerEvidenceByDefault(true)
