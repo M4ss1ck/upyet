@@ -132,7 +132,25 @@ name, and lint's `UnusedResources` (a build error here) rejects a raw resource n
 lives beside the lock as `scripts/world-clock/world-data.manifest.txt` and does not ship in the APK. Its format
 and content are unchanged.
 
-Two claims are reasoned but unverified. The drop counts above come from the research measurements in issue
-#21, not from a run of the generator, so the first real generation may move the numbers and the pinned
-budget with them. The ~110 KB figure is the research estimate for the compressed assets; if the build
-disagrees, the size changes and the decision does not.
+**Amendment, 2026-10-27 (issue #44): what the first generation decided.** The first run of the generator,
+against Natural Earth v5.1.2, GeoNames `cities5000` of 2026-10-27 and tzdata 2026e, settled four details the
+text above leaves open. The numbers are the run's, recorded in the manifest.
+
+- *The id key is filled where Natural Earth has none.* 225 of the 5,764 rows at the population floor carry no
+  `GEONAMESID` (-1, Sydney among them), so the `geonames_id` column is Natural Earth's `GEONAMESID` when it is
+  positive and otherwise the id of the GeoNames record the name rule matched (169 rows). That id is a GeoNames
+  id for the same place, so the persisted key stays in one id space. A row left with no positive id
+  (`no_stable_id`, 17) or repeating an id already written (`duplicate_id`, 4) is dropped and counted, because a
+  key that is not unique cannot be persisted.
+- *Every GeoNames match is guarded by distance.* The `GEONAMESID` rule refuses a record more than 75 km from the
+  Natural Earth point (Montevideo's id names a place in the United States); the name rule takes the nearest
+  record whose name, ASCII name or alternate name equals `NAMEASCII` or `NAME_ES` in the row's country, within
+  30 km, which is what separates Arlington, Texas from Arlington, Virginia. A refused candidate falls through to
+  the next rule. The `zone.tab` check alone could not catch either case, because both namesakes sit in a zone
+  their country uses.
+- *Four drop reasons, four budgets.* `unknown_country` 12, `unresolved_zone` 67 (Crimea, which Natural Earth
+  files under RU and `zone.tab` under UA, among them), `no_stable_id` 17, `duplicate_id` 4; the pinned budgets
+  are 20, 80, 25 and 10. 5,664 rows are written; 752 resolved zones were `backward` links and are stored
+  canonical. Amsterdam therefore resolves to `Europe/Brussels`, which tzdata 2026e makes it a link to.
+- *Size.* The assets are 382,656 bytes of TSV and 21,092 bytes of land, about 157 KB and 19961 bytes
+  compressed: above the ~110 KB research estimate, and the decision does not change.
