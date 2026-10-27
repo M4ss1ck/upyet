@@ -13,6 +13,9 @@ import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.Recurrence
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
+import dev.upyet.intents.AlarmPrefill
+import dev.upyet.intents.AlarmPrefillCodec
+import dev.upyet.intents.AlarmSound
 import dev.upyet.settings.data.SettingsRepository
 import dev.upyet.testing.FakeAlarmMirror
 import dev.upyet.testing.FakeAlarmRepository
@@ -32,6 +35,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
 
@@ -132,6 +136,71 @@ class AlarmEditorViewModelTest {
         assertThat(viewModel.state.value.errorRes).isEqualTo(R.string.alarm_scheduling_exact_unavailable)
         assertThat(repository.stored.single().enabled).isFalse()
     }
+
+    @Test fun prefillAppliesTimeRecurrenceLabelSilentAndVibrate() = runTest {
+        val prefill = AlarmPrefill(
+            LocalTime.of(7, 30),
+            Recurrence.Weekly(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)),
+            "Gym",
+            AlarmSound.Silent,
+            true,
+        )
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = prefillState(AlarmPrefillCodec.encode(prefill)))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertThat(state.time).isEqualTo(LocalTime.of(7, 30))
+        assertThat(state.recurrence).isEqualTo(prefill.recurrence)
+        assertThat(state.label).isEqualTo("Gym")
+        assertThat(state.soundEnabled).isFalse()
+        assertThat(state.vibration).isTrue()
+        assertThat(state.snoozeMinutes).isEqualTo(12)
+        assertThat(state.isLoaded).isTrue()
+    }
+
+    @Test fun prefillSoundUriIsKept() = runTest {
+        val prefill = AlarmPrefill(LocalTime.of(6, 0), Recurrence.OneTime, "", AlarmSound.Uri("content://x/1"), null)
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = prefillState(AlarmPrefillCodec.encode(prefill)))
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.soundUri).isEqualTo("content://x/1")
+        assertThat(viewModel.state.value.soundEnabled).isTrue()
+    }
+
+    @Test fun prefillVibrateNullFallsBackToTheSetting() = runTest {
+        val prefill = AlarmPrefill(LocalTime.of(7, 30), Recurrence.OneTime, "", AlarmSound.Default, null)
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = prefillState(AlarmPrefillCodec.encode(prefill)))
+        advanceUntilIdle()
+
+        // The settings fixture turns default vibration off.
+        assertThat(viewModel.state.value.vibration).isFalse()
+    }
+
+    @Test fun existingAlarmIgnoresPrefill() = runTest {
+        val existing = alarm(1, "Existing", LocalTime.of(6, 15))
+        val prefill = AlarmPrefill(LocalTime.of(7, 30), Recurrence.Daily, "Gym", AlarmSound.Silent, true)
+        val viewModel = viewModel(
+            FakeAlarmRepository(listOf(existing)),
+            FakeAlarmScheduler(),
+            savedState = SavedStateHandle(mapOf("id" to 1L, "prefill" to AlarmPrefillCodec.encode(prefill))),
+        )
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(6, 15))
+        assertThat(viewModel.state.value.label).isEqualTo("Existing")
+    }
+
+    @Test fun garbagePrefillFallsBackToDefaults() = runTest {
+        val viewModel =
+            viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), now = "2026-08-24T13:02:00Z", savedState = prefillState("!!not-a-token"))
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.time).isEqualTo(LocalTime.of(13, 5))
+        assertThat(viewModel.state.value.label).isEmpty()
+        assertThat(viewModel.state.value.soundEnabled).isTrue()
+    }
+
+    private fun prefillState(token: String) = SavedStateHandle(mapOf("id" to -1L, "prefill" to token))
 
     private fun viewModel(
         repository: FakeAlarmRepository,

@@ -13,4 +13,7 @@ abstract class IntentsModule {
 
     @Binds
     abstract fun bindSnoozedAlarms(snoozed: MirrorSnoozedAlarms): SnoozedAlarms
+
+    @Binds
+    abstract fun bindClockIntentHandling(handler: ClockIntentHandler): ClockIntentHandling
 }

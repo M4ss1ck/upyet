@@ -24,6 +24,11 @@ import java.time.Instant
 import java.time.LocalTime
 import javax.inject.Inject
 
+/** The seam the trampoline's ViewModel depends on, so the once-only guarantee is testable without the full handler. */
+fun interface ClockIntentHandling {
+    suspend fun handle(intent: ClockIntent): List<IntentEffect>
+}
+
 /**
  * Acts on a parsed [ClockIntent] and returns what the visible trampoline activity should do next. It owns the
  * ADR 0007 rules: an assistant never ends a wake-up (a ringing or snoozed alarm is left alone, a recording
@@ -42,8 +47,8 @@ class ClockIntentHandler @Inject constructor(
     private val settings: SettingsRepository,
     private val timeProvider: TimeProvider,
     private val timerClock: TimerClock,
-) {
-    suspend fun handle(intent: ClockIntent): List<IntentEffect> = when (intent) {
+) : ClockIntentHandling {
+    override suspend fun handle(intent: ClockIntent): List<IntentEffect> = when (intent) {
         is ClockIntent.SetAlarm -> setAlarm(intent)
         ClockIntent.ShowAlarms -> listOf(IntentEffect.OpenAlarms)
         ClockIntent.ShowTimers -> listOf(IntentEffect.OpenTimers)

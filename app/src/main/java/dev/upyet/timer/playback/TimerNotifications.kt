@@ -21,12 +21,7 @@ import javax.inject.Singleton
 @Singleton
 class TimerNotifications @Inject constructor(@ApplicationContext private val context: Context) {
     fun build(ringing: List<RingingTimer>): Notification {
-        val screen = PendingIntent.getActivity(
-            context,
-            AlarmNotifications.NOTIFICATION_ID_TIMER_RINGING,
-            screenIntent(),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+        val screen = ringingScreenIntent()
         val headsUp = TimerHeadsUp.of(ringing)
         val resources = context.resources
         val count = ringing.size
@@ -78,8 +73,17 @@ class TimerNotifications @Inject constructor(@ApplicationContext private val con
         return builder.build()
     }
 
-    /** The timer ringing screen; it shows over the keyguard and never dismisses it (AGENTS.md §7). */
-    private fun screenIntent(): Intent = Intent(context, TimerRingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /**
+     * The one PendingIntent that opens [TimerRingingActivity]; it shows over the keyguard and never dismisses it
+     * (AGENTS.md §7). The notification's full-screen and content intents
+     * and the assistant `DISMISS_TIMER` path (ADR 0007) all send this same object, so its identity cannot drift.
+     */
+    fun ringingScreenIntent(): PendingIntent = PendingIntent.getActivity(
+        context,
+        AlarmNotifications.NOTIFICATION_ID_TIMER_RINGING,
+        Intent(context, TimerRingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     /**
      * Only one heads-up variant shows at a time, so one request code per action is enough: the extras of the
