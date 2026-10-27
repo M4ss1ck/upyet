@@ -44,6 +44,9 @@ interface OccurrenceDao {
     )
     suspend fun complete(id: Long, dismissedAt: Long?, outcome: String)
 
+    @Query("UPDATE alarm_occurrences SET timerAttribution = :attribution WHERE id = :id")
+    suspend fun updateTimerAttribution(id: Long, attribution: String)
+
     @Query("DELETE FROM alarm_occurrences WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

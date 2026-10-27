@@ -10,6 +10,8 @@ import dev.upyet.evidence.domain.AlarmOccurrence
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.OccurrenceSource
+import dev.upyet.evidence.domain.TimerAttribution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -57,6 +59,26 @@ constructor(
                 parentOccurrenceId = parentOccurrenceId?.value,
             )
         return OccurrenceId(occurrenceDao.insert(entity))
+    }
+
+    override suspend fun createTimerOccurrence(timers: List<TimerAttribution>, scheduledFor: Instant, triggeredAt: Instant): OccurrenceId {
+        val entity =
+            AlarmOccurrenceEntity(
+                alarmId = AlarmOccurrenceEntity.NO_ALARM_ID,
+                scheduledFor = scheduledFor.toEpochMilli(),
+                triggeredAt = triggeredAt.toEpochMilli(),
+                activityVisibleAt = null,
+                dismissedAt = null,
+                outcome = OccurrenceOutcome.RINGING.name,
+                parentOccurrenceId = null,
+                source = OccurrenceSource.TIMER.name,
+                timerAttribution = TimerAttributionCodec.encode(timers),
+            )
+        return OccurrenceId(occurrenceDao.insert(entity))
+    }
+
+    override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) {
+        occurrenceDao.updateTimerAttribution(id.value, TimerAttributionCodec.encode(timers))
     }
 
     override suspend fun markActivityVisible(id: OccurrenceId, at: Instant) {

@@ -23,6 +23,12 @@ interface OccurrenceRepository : EvidenceSink {
         parentOccurrenceId: OccurrenceId?,
     ): OccurrenceId
 
+    /** Creates a ringing timer occurrence. The attribution is a snapshot; no alarm and no parent are involved. */
+    suspend fun createTimerOccurrence(timers: List<TimerAttribution>, scheduledFor: Instant, triggeredAt: Instant): OccurrenceId
+
+    /** Replaces the snapshot of recording-on timers while the showing that owns this occurrence is still open. */
+    suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>)
+
     suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome)
 
     suspend fun deleteOccurrence(id: OccurrenceId)

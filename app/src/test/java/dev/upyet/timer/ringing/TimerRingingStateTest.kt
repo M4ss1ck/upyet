@@ -1,6 +1,7 @@
 package dev.upyet.timer.ringing
 
 import com.google.common.truth.Truth.assertThat
+import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.evidence.camera.EvidenceRequest
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.playback.RingingTimer
@@ -77,11 +78,54 @@ class TimerRingingStateTest {
     @Test fun anyRecordingOnTimerTurnsRecordingOnForTheWholeShowing() {
         val timers = listOf(ringing(1, "Eggs", evidence = false), ringing(2, "Pasta", evidence = true))
 
-        val state = timerRingingState(timers, now, selected = TimerId(1), sessionSeen = true)
+        val state =
+            timerRingingState(timers, now, selected = TimerId(1), sessionSeen = true, occurrence = ShowingOccurrence.Open(OccurrenceId(5)))
 
         assertThat(state.recordingOn).isTrue()
-        // The occurrence id is slice #40's: until then nothing owns the recording, so it has no occurrence.
+        assertThat(state.evidenceRequest).isEqualTo(EvidenceRequest(occurrenceId = OccurrenceId(5), evidenceEnabled = true))
+    }
+
+    /** Recording waits for the row so the first segment attaches to it; nothing may start before the id exists. */
+    @Test fun recordingWaitsWhileTheOccurrenceIsBeingCreated() {
+        val timers = listOf(ringing(1, "Pasta", evidence = true))
+
+        val state = timerRingingState(timers, now, selected = null, sessionSeen = true, occurrence = ShowingOccurrence.Creating)
+
+        assertThat(state.evidenceRequest).isNull()
+    }
+
+    @Test fun noOccurrenceYetMeansNoRequest() {
+        val timers = listOf(ringing(1, "Pasta", evidence = true))
+
+        val state = timerRingingState(timers, now, selected = null, sessionSeen = true, occurrence = ShowingOccurrence.None)
+
+        assertThat(state.evidenceRequest).isNull()
+    }
+
+    /** Before first unlock the showing records without a row; the segments then have no occurrence to attach to. */
+    @Test fun anUnavailableOccurrenceStillRecordsWithoutAnId() {
+        val timers = listOf(ringing(1, "Pasta", evidence = true))
+
+        val state = timerRingingState(timers, now, selected = null, sessionSeen = true, occurrence = ShowingOccurrence.Unavailable)
+
         assertThat(state.evidenceRequest).isEqualTo(EvidenceRequest(occurrenceId = null, evidenceEnabled = true))
+    }
+
+    /** A recording-off showing never asks for recording, whatever occurrence it happens to hold. */
+    @Test fun aShowingWithNoRecordingOnTimerHasNoRequestEvenWithAnOpenOccurrence() {
+        val timers = listOf(ringing(1, "Eggs", evidence = false))
+
+        val state =
+            timerRingingState(timers, now, selected = null, sessionSeen = true, occurrence = ShowingOccurrence.Open(OccurrenceId(5)))
+
+        assertThat(state.evidenceRequest).isNull()
+    }
+
+    @Test fun anEndedShowingHasNoRequestEvenWhenItHoldsAnOccurrence() {
+        val state =
+            timerRingingState(emptyList(), now, selected = null, sessionSeen = true, occurrence = ShowingOccurrence.Open(OccurrenceId(5)))
+
+        assertThat(state.evidenceRequest).isNull()
     }
 
     /** Never touching the recorder is what keeps a recording-off showing from releasing an alarm's camera. */

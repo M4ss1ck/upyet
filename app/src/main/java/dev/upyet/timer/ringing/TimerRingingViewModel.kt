@@ -42,6 +42,8 @@ constructor(
     evidenceRecorder: EvidenceRecorder,
     // Lazy: this screen is Direct Boot aware, so it must not build credential-protected Room before unlock.
     occurrenceRepository: Lazy<OccurrenceRepository>,
+    // Process-scoped: the showing outlives this screen, so a relaunch joins the occurrence the first screen opened.
+    private val showing: TimerShowingOccurrence,
 ) : ViewModel() {
     // The registry starts empty while the service is still reading the timer, so only an empty showing that
     // followed a non-empty one has ended.
@@ -58,15 +60,17 @@ constructor(
     private val selected: Flow<TimerId?> = savedStateHandle.getStateFlow<Long?>(KEY_FOCUSED, null).map { it?.let(::TimerId) }
 
     val state: StateFlow<TimerRingingUiState> =
-        combine(registry.ringing, ticker, selected) { ringing, now, focused ->
+        combine(registry.ringing, ticker, selected, showing.state) { ringing, now, focused, occurrence ->
             if (ringing.isNotEmpty()) sessionSeen = true
-            timerRingingState(ringing, now, focused, sessionSeen)
+            timerRingingState(ringing, now, focused, sessionSeen, occurrence)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TimerRingingUiState())
 
     // Lives as long as this ViewModel, like the alarm screen's, so one showing keeps one evidence session.
     val evidence = EvidenceSession(evidenceRecorder, DeferredEvidenceSink(occurrenceRepository), viewModelScope, timeProvider)
 
     init {
+        viewModelScope.launch { registry.ringing.collect { showing.onRinging(it) } }
+
         // Invariant 13: recording stops when the last recording-on timer leaves the showing, however it left (Stop,
         // +1 min, Stop all, or a delete elsewhere), even while recording-off timers still ring. Only that transition
         // stops the recorder: the coordinator is shared with the alarm path, and a showing that never recorded must
@@ -83,7 +87,8 @@ constructor(
     /** Read live, never from a composed snapshot, so a resume after the showing ended records nothing. */
     fun currentEvidenceRequest(): EvidenceRequest? =
         // The request is null whenever nothing rings, whatever the phase, so this reads no state the flow writes.
-        timerRingingState(registry.ringing.value, timeProvider.now(), selected = null, sessionSeen = true).evidenceRequest
+        timerRingingState(registry.ringing.value, timeProvider.now(), selected = null, sessionSeen = true, occurrence = showing.state.value)
+            .evidenceRequest
 
     fun focus(id: TimerId) {
         savedStateHandle[KEY_FOCUSED] = id.value

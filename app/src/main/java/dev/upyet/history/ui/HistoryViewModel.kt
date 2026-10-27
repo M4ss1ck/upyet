@@ -11,6 +11,7 @@ import dev.upyet.evidence.data.EvidenceThumbnailCache
 import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceRepository
+import dev.upyet.evidence.domain.OccurrenceSource
 import dev.upyet.evidence.domain.StatsWindow
 import dev.upyet.evidence.domain.WakeUpStats
 import dev.upyet.evidence.domain.buildOccurrenceChains
@@ -53,6 +54,7 @@ class HistoryViewModel @Inject constructor(
         val segmentsByOccurrence: Map<OccurrenceId, List<EvidenceSegment>>,
     ) {
         val allSegments: List<EvidenceSegment> = chain.links.flatMap { segmentsByOccurrence[it.id] ?: emptyList() }
+        val isTimer: Boolean get() = chain.root.source == OccurrenceSource.TIMER
     }
 
     private val filter = MutableStateFlow(HistoryFilter.ALL)
@@ -73,7 +75,7 @@ class HistoryViewModel @Inject constructor(
                     occurrences.mapIndexed { index, occurrence -> occurrence.id to segmentLists[index].toList() }.toMap()
                 val chains = buildOccurrenceChains(occurrences)
                 chains.map { chain ->
-                    val label = alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""
+                    val label = historyLabel(chain, alarms)
                     val chainSegments = chain.links.associate { it.id to (segmentsByOccurrence[it.id] ?: emptyList()) }
                     HistoryItem(chain, label, chainSegments)
                 }

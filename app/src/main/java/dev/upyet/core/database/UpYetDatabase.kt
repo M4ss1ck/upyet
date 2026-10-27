@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [AlarmEntity::class, AlarmOccurrenceEntity::class, EvidenceSegmentEntity::class, TimerEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -45,6 +45,14 @@ abstract class UpYetDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     // A new table only: no existing row is read or rewritten.
                     db.execSQL(CREATE_TIMERS)
+                }
+            },
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Two added columns, no existing row read or rewritten. Every existing row reads back as an
+                    // alarm occurrence because the source defaults to ALARM and the attribution stays NULL.
+                    db.execSQL("ALTER TABLE alarm_occurrences ADD COLUMN source TEXT NOT NULL DEFAULT 'ALARM'")
+                    db.execSQL("ALTER TABLE alarm_occurrences ADD COLUMN timerAttribution TEXT")
                 }
             },
         )

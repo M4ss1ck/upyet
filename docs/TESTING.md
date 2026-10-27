@@ -60,6 +60,11 @@ precisely which environment and why.
   labelled "Last snooze", a silenced stream is explained on the ringing screen, the maximum-snoozes
   setting renders and reports every option including Unlimited, and a snooze chain collapses into one
   history row carrying its count, its elapsed time and its final outcome.
+* The occurrence-source migration (`MigrationSmokeTest`, 4 → 5): an existing alarm occurrence and its segment
+  read back unchanged with source `ALARM` and no timer attribution; a timer occurrence round-trips its source and
+  attribution and deleting it cascades its segments (`UpYetDatabaseTest`).
+* Compose, History "Timer" badge (`HistoryScreenTest`): a timer occurrence's row carries the "Timer" badge and its
+  recording-on timers' labels, an alarm row carries none, and the filter row gains no source filter.
 * Compose, timer ringing (`TimerRingingScreenTest`): Stop, +1 min and Stop all present, enabled and wired to the
   focused timer in every camera state (unavailable, in use, permission denied, before first unlock, preparing,
   recording), the recording badge's wording per state with the dot and elapsed time while recording, no badge when
@@ -141,8 +146,11 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timer-reboot-unlocked` | either | adb | reboot while a timer runs and unlock: it rings at its end |
 | `timer-reboot-no-unlock` | physical | adb | reboot while a timer runs and never unlock: it rings at its end above the keyguard; Stop and +1 min work. The evidence-status half (`DIRECT_BOOT_UNAVAILABLE` for a recording-on timer) completes with slice #41 |
 | `timer-boot-grace-window` | either | adb | with `FGS_BOOT_COMPLETED_RESTRICTIONS` enabled as the negative control, a timer due 0 to 60 s before boot completes rings through the immediate exact alarm discovery arms (`timer_expired` after `timer_discovery trigger=boot`), never from the boot receiver |
-| `timer-concurrent` | either | adb | two timers ringing at once: one notification (id 1101, title "2 timers ringing"), one sound, one wake lock (`dumpsys power` lists one `UpYet:timer_ringing`), and Stop all offered. The "one screen" half needs `TimerRingingActivity` (slice #38) and the "one showing produces one occurrence" half cannot pass before slice #40; both are recorded as skipped with that reason and re-run at slice #40 |
+| `timer-concurrent` | either | adb | two timers ringing at once: one notification (id 1101, title "2 timers ringing"), one sound, one wake lock (`dumpsys power` lists one `UpYet:timer_ringing`), and Stop all offered. The "one showing produces one occurrence" half: with Timer evidence on for both, History gains exactly one "Timer" entry listing both labels |
 | `timer-notification-actions` | physical | human-eyes | with the phone in use, the heads-up for one ringing timer offers Stop and +1 min, for several Stop all, and when any ringing timer has Timer evidence on, no action at all, only "Tap to open" |
+| `timer-core-path` | physical | human-eyes | a timer with Timer evidence on, set for +2 minutes; close the app and lock the screen. It rings at its end, the screen wakes, `TimerRingingActivity` shows above the keyguard with the recording badge, Stop ends the ring and finalizes the clip, and the phone stays locked. After unlocking, History shows the occurrence with the "Timer" badge, the outcome "Stopped" and a playable clip. Joins the every-release smoke subset at slice #48 |
+| `timer-evidence-mixed` | either | human-eyes | two timers ring together, one with Timer evidence on and one off: recording runs while the recording-on timer rings and stops when it is stopped, while the other keeps ringing; the showing leaves exactly one History entry ("Timer" badge, labelled with the recording-on timer only) whose outcome is set when the last timer stops. A showing where every ringing timer has Timer evidence off leaves nothing in History |
+| `timer-plus-one-mid-showing` | either | human-eyes | with a recording-on timer and a recording-off timer ringing, give the recording-on one +1 min: recording stops and the occurrence stays open. When it rings again a minute later, while the other still rings, it rejoins the same showing: a second segment on the same History entry, not a new entry. Once both are stopped, a later ring is a new entry |
 | `fsi-unavailable` | physical | human-eyes | notification still routes to the ringing screen |
 | `notifications-disabled` | either | adb | reliability screen warns with a settings action |
 | `low-storage` | emulator-ok | adb | evidence status `Storage error`, alarm unaffected |
@@ -241,6 +249,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
 | Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window` |
 | Timer playback (`TimerPlaybackService`, `TimerRinging`, `TimerRingingRegistry`, `TimerNotifications`, wake lock) | `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window`, `timer-concurrent`, `timer-notification-actions`; the channel ids are checked with the notification-channels recipe in §5 |
+| Timer evidence (`TimerShowingOccurrence`, `TimerRingingViewModel`, occurrence source and attribution, History "Timer" badge) | `timer-core-path`, `timer-evidence-mixed`, `timer-plus-one-mid-showing`, `timer-concurrent`, `delete-occurrence`, `retention-cleanup` |
 | Timer tab (`TimerScreen`, `TimerViewModel`, `TimerEditor`, running-timer notification) | `timer-missed` (its Reset half), the running-timer recipe in §5 |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 

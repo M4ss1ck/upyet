@@ -2,8 +2,10 @@ package dev.upyet.history.ui
 
 import androidx.annotation.StringRes
 import dev.upyet.R
+import dev.upyet.alarm.domain.Alarm
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.OccurrenceSource
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,10 +24,27 @@ enum class HistoryFilter {
 
     fun matches(chain: OccurrenceChain): Boolean = when (this) {
         ALL -> true
-        DISMISSED -> chain.finalOutcome == OccurrenceOutcome.DISMISSED
-        SNOOZED -> chain.containsSnooze
-        MISSED -> chain.finalOutcome == OccurrenceOutcome.TIMED_OUT || chain.finalOutcome == OccurrenceOutcome.INTERRUPTED
+
+        // Wake-up filters are alarm-only: a timer occurrence never snoozes and is never a wake-up (AGENTS.md §2, invariant 11).
+        DISMISSED -> chain.root.source == OccurrenceSource.ALARM && chain.finalOutcome == OccurrenceOutcome.DISMISSED
+
+        SNOOZED -> chain.root.source == OccurrenceSource.ALARM && chain.containsSnooze
+
+        MISSED ->
+            chain.root.source == OccurrenceSource.ALARM &&
+                (chain.finalOutcome == OccurrenceOutcome.TIMED_OUT || chain.finalOutcome == OccurrenceOutcome.INTERRUPTED)
     }
+}
+
+/**
+ * The name a history row shows. A timer occurrence is named by the labels of the recording-on timers it covered,
+ * blank ones skipped; an alarm occurrence by its alarm. Empty means "no name": the caller supplies the fallback,
+ * which differs between the two sources.
+ */
+fun historyLabel(chain: OccurrenceChain, alarms: List<Alarm>): String = if (chain.root.source == OccurrenceSource.TIMER) {
+    chain.root.timers.map { it.label }.filter { it.isNotBlank() }.joinToString(", ")
+} else {
+    alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""
 }
 
 /** The three day buckets a history row can fall into, relative to today in the current zone. */

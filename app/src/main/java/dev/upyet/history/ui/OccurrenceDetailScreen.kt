@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +80,7 @@ import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
+import dev.upyet.evidence.domain.OccurrenceSource
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -101,6 +103,7 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
     val context = LocalContext.current
+    val isTimer = item?.chain?.root?.source == OccurrenceSource.TIMER
 
     fun requestShare(action: () -> Unit) {
         if (!shareExplainerShown) {
@@ -114,10 +117,18 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
     item?.let { detail ->
         Column(Modifier.fillMaxSize()) {
             UpYetTopBar(
-                title = detail.label.ifBlank { stringResource(R.string.unnamed_alarm) },
+                title = detail.label.ifBlank { stringResource(if (isTimer) R.string.timer_untitled else R.string.unnamed_alarm) },
                 onBack = onBack,
                 subtitle = dateFormatter.format(detail.chain.root.scheduledFor),
                 actions = {
+                    if (isTimer) {
+                        StatusBadge(
+                            text = stringResource(R.string.history_timer_badge),
+                            container = MaterialTheme.colorScheme.secondaryContainer,
+                            content = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(end = 8.dp).testTag(HISTORY_TIMER_BADGE_TAG),
+                        )
+                    }
                     val (container, content) = outcomeBadgeColors(detail.chain.finalOutcome)
                     StatusBadge(
                         text = stringResource(outcomeResource(detail.chain.finalOutcome)),
@@ -231,9 +242,11 @@ private fun shareSummary(detail: OccurrenceDetailViewModel.OccurrenceDetail, cli
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
     val header = stringResource(R.string.share_summary_header, dateFormatter.format(detail.chain.root.scheduledFor))
-    val label = detail.label.ifBlank { stringResource(R.string.unnamed_alarm) }
+    val isTimer = detail.chain.root.source == OccurrenceSource.TIMER
+    val label = detail.label.ifBlank { stringResource(if (isTimer) R.string.timer_untitled else R.string.unnamed_alarm) }
     val outcomeText = stringResource(outcomeResource(detail.chain.finalOutcome))
-    val line2Base = stringResource(R.string.share_summary_alarm, label) + " · " + outcomeText
+    val sourceLine = if (isTimer) R.string.share_summary_timer else R.string.share_summary_alarm
+    val line2Base = stringResource(sourceLine, label) + " · " + outcomeText
     val line2 = if (detail.chain.containsSnooze) {
         val countText = pluralStringResource(
             R.plurals.history_snooze_count,

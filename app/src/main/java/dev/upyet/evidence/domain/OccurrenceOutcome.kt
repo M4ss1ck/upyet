@@ -7,4 +7,7 @@ enum class OccurrenceOutcome {
     INTERRUPTED,
     TIMED_OUT,
     ERROR,
+
+    /** A timer occurrence the user ended from the ringing screen, by Stop or +1 min. */
+    STOPPED,
 }

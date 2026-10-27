@@ -39,14 +39,30 @@ class TimerRingingRegistry @Inject constructor() {
     private val _ringing = MutableStateFlow<List<RingingTimer>>(emptyList())
     val ringing: StateFlow<List<RingingTimer>> = _ringing.asStateFlow()
 
+    private val _showing = MutableStateFlow(0L)
+
+    /**
+     * The number of the current showing, 0 before any ring. It changes only when a ring starts while nothing rang, so a
+     * screen relaunched mid-showing sees the same number and a ring after the list emptied sees a new one. It is
+     * published before the list that starts the showing, so a collector of [ringing] never pairs a new showing's
+     * timers with the old number.
+     */
+    val showing: StateFlow<Long> = _showing.asStateFlow()
+
+    // Synchronized so the empty check and the add are one step: two rings starting together on an empty list must
+    // open one showing, not two.
+    @Synchronized
     internal fun add(timer: RingingTimer) {
+        if (_ringing.value.isEmpty()) _showing.update { it + 1 }
         _ringing.update { current -> if (current.any { it.id == timer.id }) current else current + timer }
     }
 
+    @Synchronized
     internal fun remove(id: TimerId) {
         _ringing.update { current -> current.filterNot { it.id == id } }
     }
 
+    @Synchronized
     internal fun clear() {
         _ringing.value = emptyList()
     }

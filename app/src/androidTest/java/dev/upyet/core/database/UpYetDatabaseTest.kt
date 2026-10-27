@@ -135,6 +135,85 @@ class UpYetDatabaseTest {
     }
 
     @Test
+    fun aTimerOccurrenceReadsBackWithItsAttributionAndDeletesItsSegments() = runBlocking<Unit> {
+        val occurrenceId =
+            database.occurrenceDao().insert(
+                AlarmOccurrenceEntity(
+                    id = 0,
+                    alarmId = AlarmOccurrenceEntity.NO_ALARM_ID,
+                    scheduledFor = 3,
+                    triggeredAt = 3,
+                    activityVisibleAt = null,
+                    dismissedAt = null,
+                    outcome = "RINGING",
+                    parentOccurrenceId = null,
+                    source = "TIMER",
+                    timerAttribution = "1:4:Pasta",
+                ),
+            )
+        database.evidenceSegmentDao().insert(
+            EvidenceSegmentEntity(0, occurrenceId, 4, null, null, null, "timer.mp4", null, null, "RECORDED", null),
+        )
+
+        val read = database.occurrenceDao().observeById(occurrenceId).first()
+        assertThat(read?.source).isEqualTo("TIMER")
+        assertThat(read?.alarmId).isEqualTo(AlarmOccurrenceEntity.NO_ALARM_ID)
+        assertThat(read?.timerAttribution).isEqualTo("1:4:Pasta")
+
+        database.occurrenceDao().updateTimerAttribution(occurrenceId, "1:4:Pasta2:3:Tea")
+        assertThat(database.occurrenceDao().observeById(occurrenceId).first()?.timerAttribution).isEqualTo("1:4:Pasta2:3:Tea")
+
+        database.occurrenceDao().deleteById(occurrenceId)
+        assertThat(database.evidenceSegmentDao().observeForOccurrence(occurrenceId).first()).isEmpty()
+    }
+
+    /** Deleting a timer forgets the timer, not its evidence: attribution is text, so nothing cascades (AGENTS.md §10, §12). */
+    @Test
+    fun deletingATimerKeepsItsTimerOccurrences() = runBlocking<Unit> {
+        val timerId =
+            database.timerDao().upsert(
+                TimerEntity(
+                    id = 0,
+                    lengthMillis = 600_000,
+                    label = "Pasta",
+                    ringtoneUri = null,
+                    evidenceEnabled = true,
+                    runState = "IDLE",
+                    remainingAtAnchorMillis = null,
+                    anchorElapsedRealtimeMillis = null,
+                    anchorWallClockMillis = null,
+                    createdAt = 7,
+                ),
+            )
+        val occurrenceId =
+            database.occurrenceDao().insert(
+                AlarmOccurrenceEntity(
+                    id = 0,
+                    alarmId = AlarmOccurrenceEntity.NO_ALARM_ID,
+                    scheduledFor = 3,
+                    triggeredAt = 3,
+                    activityVisibleAt = null,
+                    dismissedAt = null,
+                    outcome = "STOPPED",
+                    parentOccurrenceId = null,
+                    source = "TIMER",
+                    timerAttribution = "$timerId:4:Pasta",
+                ),
+            )
+        database.evidenceSegmentDao().insert(
+            EvidenceSegmentEntity(0, occurrenceId, 4, null, null, null, "timer.mp4", null, null, "RECORDED", null),
+        )
+
+        database.timerDao().deleteById(timerId)
+
+        assertThat(database.timerDao().findById(timerId)).isNull()
+        val kept = database.occurrenceDao().observeById(occurrenceId).first()
+        assertThat(kept?.source).isEqualTo("TIMER")
+        assertThat(kept?.timerAttribution).isEqualTo("$timerId:4:Pasta")
+        assertThat(database.evidenceSegmentDao().observeForOccurrence(occurrenceId).first()).hasSize(1)
+    }
+
+    @Test
     fun aTimerRoundTripsThroughTheRepositoryInEveryRunState() = runBlocking<Unit> {
         val repository = timerRepository()
         val createdAt = Instant.parse("2026-10-26T07:00:00Z")
