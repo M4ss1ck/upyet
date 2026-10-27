@@ -25,6 +25,11 @@ class FakeOccurrenceRepository : OccurrenceRepository {
     val completed = mutableListOf<Completed>()
     val visible = mutableListOf<OccurrenceId>()
 
+    /** Every write in order, so a test can assert the sweep runs before the create. */
+    val calls = mutableListOf<String>()
+    var sweeps = 0
+    var sweepFailure: Throwable? = null
+
     var createFailure: Throwable? = null
     var updateFailure: Throwable? = null
 
@@ -34,7 +39,14 @@ class FakeOccurrenceRepository : OccurrenceRepository {
         createFailure?.let { throw it }
         val id = OccurrenceId(nextId++)
         created += Created(id, timers, scheduledFor, triggeredAt)
+        calls += "create"
         return id
+    }
+
+    override suspend fun interruptOrphanedTimerOccurrences() {
+        sweepFailure?.let { throw it }
+        sweeps++
+        calls += "sweep"
     }
 
     override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) {

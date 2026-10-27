@@ -47,6 +47,10 @@ interface OccurrenceDao {
     @Query("UPDATE alarm_occurrences SET timerAttribution = :attribution WHERE id = :id")
     suspend fun updateTimerAttribution(id: Long, attribution: String)
 
+    /** Closes every timer ring still marked RINGING; returns how many rows it closed. */
+    @Query("UPDATE alarm_occurrences SET outcome = 'INTERRUPTED' WHERE source = 'TIMER' AND outcome = 'RINGING'")
+    suspend fun interruptRingingTimerOccurrences(): Int
+
     @Query("DELETE FROM alarm_occurrences WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

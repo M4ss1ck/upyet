@@ -13,7 +13,7 @@ data class WakeUpStats(val firstTry: Int, val finished: Int, val snoozes: Int, v
 fun wakeUpStats(chains: List<OccurrenceChain>, window: StatsWindow, now: Instant): WakeUpStats {
     // AGENTS.md §2 invariant 11: wake-up stats are alarm-only. A timer chain never snoozes, so counting it would
     // inflate "finished" and "first try" without being a wake-up at all.
-    val alarmChains = chains.filter { it.root.source == OccurrenceSource.ALARM }
+    val alarmChains = chains.filter { it.isAlarm }
     val inWindow = if (window.days == null) {
         alarmChains
     } else {

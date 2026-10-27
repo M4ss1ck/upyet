@@ -5,7 +5,6 @@ import dev.upyet.R
 import dev.upyet.alarm.domain.Alarm
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
-import dev.upyet.evidence.domain.OccurrenceSource
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -26,12 +25,12 @@ enum class HistoryFilter {
         ALL -> true
 
         // Wake-up filters are alarm-only: a timer occurrence never snoozes and is never a wake-up (AGENTS.md §2, invariant 11).
-        DISMISSED -> chain.root.source == OccurrenceSource.ALARM && chain.finalOutcome == OccurrenceOutcome.DISMISSED
+        DISMISSED -> chain.isAlarm && chain.finalOutcome == OccurrenceOutcome.DISMISSED
 
-        SNOOZED -> chain.root.source == OccurrenceSource.ALARM && chain.containsSnooze
+        SNOOZED -> chain.isAlarm && chain.containsSnooze
 
         MISSED ->
-            chain.root.source == OccurrenceSource.ALARM &&
+            chain.isAlarm &&
                 (chain.finalOutcome == OccurrenceOutcome.TIMED_OUT || chain.finalOutcome == OccurrenceOutcome.INTERRUPTED)
     }
 }
@@ -41,7 +40,7 @@ enum class HistoryFilter {
  * blank ones skipped; an alarm occurrence by its alarm. Empty means "no name": the caller supplies the fallback,
  * which differs between the two sources.
  */
-fun historyLabel(chain: OccurrenceChain, alarms: List<Alarm>): String = if (chain.root.source == OccurrenceSource.TIMER) {
+fun historyLabel(chain: OccurrenceChain, alarms: List<Alarm>): String = if (!chain.isAlarm) {
     chain.root.timers.map { it.label }.filter { it.isNotBlank() }.joinToString(", ")
 } else {
     alarms.firstOrNull { it.id == chain.root.alarmId }?.label ?: ""

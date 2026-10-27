@@ -80,7 +80,6 @@ import dev.upyet.evidence.domain.EvidenceSegment
 import dev.upyet.evidence.domain.EvidenceStatus
 import dev.upyet.evidence.domain.OccurrenceChain
 import dev.upyet.evidence.domain.OccurrenceOutcome
-import dev.upyet.evidence.domain.OccurrenceSource
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -103,7 +102,7 @@ fun OccurrenceDetailScreen(onBack: () -> Unit, viewModel: OccurrenceDetailViewMo
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
     val context = LocalContext.current
-    val isTimer = item?.chain?.root?.source == OccurrenceSource.TIMER
+    val isTimer = item?.chain?.isAlarm == false
 
     fun requestShare(action: () -> Unit) {
         if (!shareExplainerShown) {
@@ -242,7 +241,7 @@ private fun shareSummary(detail: OccurrenceDetailViewModel.OccurrenceDetail, cli
     val dateFormatter =
         rememberLocalized { locale -> DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zone) }
     val header = stringResource(R.string.share_summary_header, dateFormatter.format(detail.chain.root.scheduledFor))
-    val isTimer = detail.chain.root.source == OccurrenceSource.TIMER
+    val isTimer = !detail.chain.isAlarm
     val label = detail.label.ifBlank { stringResource(if (isTimer) R.string.timer_untitled else R.string.unnamed_alarm) }
     val outcomeText = stringResource(outcomeResource(detail.chain.finalOutcome))
     val sourceLine = if (isTimer) R.string.share_summary_timer else R.string.share_summary_alarm

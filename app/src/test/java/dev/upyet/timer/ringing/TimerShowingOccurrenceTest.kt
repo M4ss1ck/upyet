@@ -50,6 +50,28 @@ class TimerShowingOccurrenceTest {
         assertThat(showing.state.value).isEqualTo(ShowingOccurrence.Open(OccurrenceId(1)))
     }
 
+    @Test fun openingAShowingFirstInterruptsTimerOccurrencesADeadProcessLeftRinging() = runTest {
+        showing.onRinging(listOf(ringing(1, evidence = true)))
+
+        assertThat(repository.calls).containsExactly("sweep", "create").inOrder()
+    }
+
+    @Test fun aFailedSweepStillOpensTheOccurrence() = runTest {
+        repository.sweepFailure = IllegalStateException("disk")
+
+        showing.onRinging(listOf(ringing(1, evidence = true)))
+
+        assertThat(showing.state.value).isEqualTo(ShowingOccurrence.Open(OccurrenceId(1)))
+    }
+
+    @Test fun joiningAndClosingNeverSweepTheOpenOccurrence() = runTest {
+        showing.onRinging(listOf(ringing(1, evidence = true)))
+        showing.onRinging(listOf(ringing(1, evidence = true), ringing(2, evidence = true)))
+        showing.onRinging(emptyList())
+
+        assertThat(repository.sweeps).isEqualTo(1)
+    }
+
     @Test fun aRecordingOnTimerJoiningUpdatesTheAttributionOnceAndCreatesNothingMore() = runTest {
         showing.onRinging(listOf(ringing(1, evidence = true)))
 

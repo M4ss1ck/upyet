@@ -167,6 +167,33 @@ class UpYetDatabaseTest {
         assertThat(database.evidenceSegmentDao().observeForOccurrence(occurrenceId).first()).isEmpty()
     }
 
+    /** The orphan sweep closes only timer rings a dead process left open: alarms and finished timers stay as they are. */
+    @Test
+    fun interruptRingingTimerOccurrencesLeavesAlarmsAndFinishedTimersAlone() = runBlocking<Unit> {
+        val dao = database.occurrenceDao()
+        fun row(source: String, outcome: String, alarmId: Long) = AlarmOccurrenceEntity(
+            alarmId = alarmId,
+            scheduledFor = 1_000,
+            triggeredAt = 1_000,
+            activityVisibleAt = null,
+            dismissedAt = null,
+            outcome = outcome,
+            parentOccurrenceId = null,
+            source = source,
+            timerAttribution = if (source == "TIMER") "1:3:Tea" else null,
+        )
+        val orphan = dao.insert(row("TIMER", "RINGING", AlarmOccurrenceEntity.NO_ALARM_ID))
+        val ringingAlarm = dao.insert(row("ALARM", "RINGING", 1))
+        val stoppedTimer = dao.insert(row("TIMER", "STOPPED", AlarmOccurrenceEntity.NO_ALARM_ID))
+
+        assertThat(dao.interruptRingingTimerOccurrences()).isEqualTo(1)
+
+        assertThat(dao.observeById(orphan).first()?.outcome).isEqualTo("INTERRUPTED")
+        assertThat(dao.observeById(orphan).first()?.dismissedAt).isNull()
+        assertThat(dao.observeById(ringingAlarm).first()?.outcome).isEqualTo("RINGING")
+        assertThat(dao.observeById(stoppedTimer).first()?.outcome).isEqualTo("STOPPED")
+    }
+
     /** Deleting a timer forgets the timer, not its evidence: attribution is text, so nothing cascades (AGENTS.md §10, §12). */
     @Test
     fun deletingATimerKeepsItsTimerOccurrences() = runBlocking<Unit> {

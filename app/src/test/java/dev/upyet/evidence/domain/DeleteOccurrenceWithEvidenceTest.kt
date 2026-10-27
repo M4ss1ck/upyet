@@ -65,6 +65,8 @@ class DeleteOccurrenceWithEvidenceTest {
 
         override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) = error("unexpected")
 
+        override suspend fun interruptOrphanedTimerOccurrences() = error("unexpected")
+
         override suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome) = Unit
         override suspend fun insertSegment(segment: EvidenceSegment) = 1L
         override suspend fun updateSegment(segment: EvidenceSegment) = Unit

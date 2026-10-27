@@ -80,6 +80,8 @@ class DeferredEvidenceSinkTest {
 
         override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) = error("unexpected")
 
+        override suspend fun interruptOrphanedTimerOccurrences() = error("unexpected")
+
         override suspend fun completeOccurrence(id: OccurrenceId, dismissedAt: Instant?, outcome: OccurrenceOutcome) = error("unexpected")
 
         override suspend fun deleteOccurrence(id: OccurrenceId) = error("unexpected")

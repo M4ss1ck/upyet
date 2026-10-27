@@ -111,9 +111,12 @@ class TimerShowingOccurrence @Inject constructor(
             mutableState.value = ShowingOccurrence.Unavailable
             return
         }
-        val timers = recordingOn.map { TimerAttribution(it.id, it.label) }
+        val timers = recordingOn.map { it.toAttribution() }
         val triggeredAt = recordingOn.minOf { it.ringingSince }
         mutableState.value = ShowingOccurrence.Creating
+        // open is reached only from None, so this process holds no open occurrence and every timer ring still RINGING
+        // belongs to a showing whose process died. A failed sweep must not stop this showing from recording.
+        attempt("sweep") { repository.get().interruptOrphanedTimerOccurrences() }
         val id = attempt("create") { repository.get().createTimerOccurrence(timers, triggeredAt, triggeredAt) }
         if (id == null) {
             mutableState.value = ShowingOccurrence.Unavailable
@@ -146,7 +149,7 @@ class TimerShowingOccurrence @Inject constructor(
     /** Only a timer not yet listed is added, so a timer ringing again keeps its place. A failed write is retried next time. */
     private suspend fun join(id: OccurrenceId, recordingOn: List<RingingTimer>) {
         val joined = recordingOn
-            .map { TimerAttribution(it.id, it.label) }
+            .map { it.toAttribution() }
             .filter { timer -> attributed.none { it.timerId == timer.timerId } }
         if (joined.isEmpty()) return
         val full = attributed + joined
@@ -162,4 +165,6 @@ class TimerShowingOccurrence @Inject constructor(
         AlarmLog.event("timer_occurrence_error", "step" to step, "error" to failure::class.simpleName)
         null
     }
+
+    private fun RingingTimer.toAttribution() = TimerAttribution(id, label)
 }

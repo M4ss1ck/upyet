@@ -77,6 +77,10 @@ constructor(
         return OccurrenceId(occurrenceDao.insert(entity))
     }
 
+    override suspend fun interruptOrphanedTimerOccurrences() {
+        occurrenceDao.interruptRingingTimerOccurrences()
+    }
+
     override suspend fun updateTimerAttribution(id: OccurrenceId, timers: List<TimerAttribution>) {
         occurrenceDao.updateTimerAttribution(id.value, TimerAttributionCodec.encode(timers))
     }
