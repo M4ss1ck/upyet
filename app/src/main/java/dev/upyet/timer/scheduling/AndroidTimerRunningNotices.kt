@@ -19,7 +19,8 @@ import javax.inject.Singleton
  * Its countdown is drawn from the anchored end instant, so nothing here counts time, and it has no service and
  * no wake lock (AGENTS.md §5a). It touches no Room, because discovery posts it before first unlock too, and it
  * never cancels the upcoming-alarm notice: a running timer says nothing about the next alarm. It is never
- * grouped, so the platform cannot fold it into another notice.
+ * grouped, so the platform cannot fold it into another notice; that is also why it does not call `setSilent`,
+ * whose compat implementation sets a group key. The low-importance channel keeps it quiet.
  */
 @Singleton
 class AndroidTimerRunningNotices @Inject constructor(@ApplicationContext private val context: Context) : TimerRunningNotices {
@@ -33,7 +34,6 @@ class AndroidTimerRunningNotices @Inject constructor(@ApplicationContext private
             .setContentTitle(label)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setSilent(true)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setUsesChronometer(true)

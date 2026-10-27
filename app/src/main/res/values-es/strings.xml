@@ -348,9 +348,5 @@
     <string name="timer_untitled">Temporizador</string>
     <string name="timer_empty">Aún no hay temporizadores</string>
     <string name="timer_length">de %1$s</string>
-    <string name="timer_running_title_untitled">Temporizador</string>
-    <plurals name="timer_running_others"><item quantity="one">%d temporizador más en marcha</item><item quantity="many">%d temporizadores más en marcha</item><item quantity="other">%d temporizadores más en marcha</item></plurals>
-    <string name="timer_notification_pause">Pausar</string>
-    <string name="timer_notification_reset">Reiniciar</string>
     <string name="camera_disclosure_dismiss">Ahora no</string>
 </resources>

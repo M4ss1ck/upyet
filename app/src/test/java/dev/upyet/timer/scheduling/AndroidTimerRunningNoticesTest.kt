@@ -52,9 +52,9 @@ class AndroidTimerRunningNoticesTest {
         assertThat(posted.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
         assertThat(posted.`when`).isEqualTo(endsAt.toEpochMilli())
         assertThat(posted.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
-        // setSilent(true) makes the compat builder write the "silent" group key. The app calls no setGroup and
-        // posts no summary, so nothing collapses; ADR 0012 forbids grouping, which is why this is pinned.
-        assertThat(posted.group).isEqualTo("silent")
+        // ADR 0012: never grouped. Not even setSilent, whose compat implementation writes a "silent" group key;
+        // the low-importance channel is what keeps it quiet.
+        assertThat(posted.group).isNull()
         assertThat(posted.category).isEqualTo(Notification.CATEGORY_STOPWATCH)
         assertThat(posted.extras.getString(Notification.EXTRA_TITLE)).isEqualTo("Tea")
         assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT)).isNull()

@@ -338,9 +338,5 @@
     <string name="timer_untitled">Timer</string>
     <string name="timer_empty">No timers yet</string>
     <string name="timer_length">of %1$s</string>
-    <string name="timer_running_title_untitled">Timer</string>
-    <plurals name="timer_running_others"><item quantity="one">%d more timer running</item><item quantity="other">%d more timers running</item></plurals>
-    <string name="timer_notification_pause">Pause</string>
-    <string name="timer_notification_reset">Reset</string>
     <string name="camera_disclosure_dismiss">Not now</string>
 </resources>
