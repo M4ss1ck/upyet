@@ -129,6 +129,9 @@ internal fun ClockShell(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        // World clock rows are removed by a start-to-end swipe, the drawer's own opening gesture, and one swipe did
+        // both. On that tab the menu button opens the drawer; an open drawer still closes with a swipe.
+        gesturesEnabled = drawerState.isOpen || tab != ClockTab.WORLD_CLOCK,
         drawerContent = {
             ModalDrawerSheet {
                 DrawerHeader()

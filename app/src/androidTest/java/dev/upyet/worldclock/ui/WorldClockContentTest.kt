@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -185,6 +186,39 @@ class WorldClockContentTest {
         assertThat(recorder.reordered).containsExactly(listOf(2L, 1L, 3L))
     }
 
+    /**
+     * A press held on the handle past the long-press timeout starts the handle's detector and the row's. On an
+     * emulator that threw the drag away on release (the row's detector saw the handle consume the slop event and
+     * cancelled). This harness does not reproduce that timing: these two tests pass on the old code too, so they pin
+     * the behaviour only. The ownership rule is pinned by ReorderStateTest; the gesture fix was verified on the
+     * emulator with `adb shell input motionevent`.
+     */
+    @Test fun handleHeldPastLongPressThenDraggedStillReorders() {
+        dragHandleOfFirstRow(holdMillis = LONG_PRESS_HOLD_MILLIS)
+    }
+
+    @Test fun handleDraggedImmediatelyReorders() {
+        dragHandleOfFirstRow(holdMillis = 0)
+    }
+
+    private fun dragHandleOfFirstRow(holdMillis: Long) {
+        val recorder = Recorder()
+        show(ready(listOf(1, 2, 3)), recorder)
+        val rowHeight = compose.onNodeWithTag("world_clock_row_1").fetchSemanticsNode().size.height
+        val handle = compose.onAllNodesWithContentDescription(string(R.string.world_clock_drag_handle), useUnmergedTree = true)[0]
+        handle.performTouchInput { down(center) }
+        // The finger rests on the handle before moving (see the KDoc above for what this does and does not reproduce).
+        compose.mainClock.advanceTimeBy(holdMillis)
+        handle.performTouchInput {
+            advanceEventTime(holdMillis)
+            // Many small moves, as a finger produces, rather than a few jumps.
+            repeat(12) { moveBy(androidx.compose.ui.geometry.Offset(0f, rowHeight * 0.1f)) }
+            up()
+        }
+        compose.waitForIdle()
+        assertThat(recorder.reordered).containsExactly(listOf(2L, 1L, 3L))
+    }
+
     @Test fun removeAffordanceSitsLeftOfTheTimeSoASwipeNeverRevealsItUnderneath() {
         show(ready(listOf(1)))
         val label = compose.onNodeWithTag("world_clock_remove_background_1", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -265,3 +299,6 @@ class WorldClockContentTest {
         compose.onNodeWithText(string(R.string.world_clock_picker_no_results)).assertIsDisplayed()
     }
 }
+
+/** Comfortably past the platform long-press timeout (400 ms by default). */
+private const val LONG_PRESS_HOLD_MILLIS = 800L

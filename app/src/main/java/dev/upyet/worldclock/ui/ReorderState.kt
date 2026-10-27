@@ -13,6 +13,11 @@ import androidx.compose.runtime.setValue
  * While a drag runs, [order] is the local truth: the dragged row follows the finger through [dragOffset] and swaps
  * with a neighbour once its centre crosses that neighbour's centre. The ViewModel hears about it once, from [end],
  * so a drag that wanders and comes back writes nothing.
+ *
+ * Two detectors can start a drag on the same row: the handle's (immediate) and the row's (after a long press). A
+ * press held on the handle starts both. Only the [DragSource] that started a drag may move, end or cancel it, and a
+ * detector consumes a move only when [drag] says it owns the drag: otherwise the owner would see consumed events,
+ * cancel, and throw the drag away on release.
  */
 internal class ReorderState(private val listState: LazyListState, private val commit: (List<Long>) -> Unit) {
     var order by mutableStateOf<List<Long>>(emptyList())
@@ -23,20 +28,29 @@ internal class ReorderState(private val listState: LazyListState, private val co
         private set
 
     private var startOrder: List<Long> = emptyList()
+    private var owner: DragSource? = null
 
     /** Adopts the stored order, except in the middle of a drag, which owns the order until it ends. */
     fun sync(ids: List<Long>) {
         if (draggedId == null && order != ids) order = ids
     }
 
-    fun start(id: Long) {
+    fun start(id: Long, source: DragSource) {
         if (draggedId != null) return
         startOrder = order
         draggedId = id
+        owner = source
         dragOffset = 0f
     }
 
-    fun drag(deltaY: Float) {
+    /** Returns whether [source] owns the drag, which is when the caller should consume the move. */
+    fun drag(source: DragSource, deltaY: Float): Boolean {
+        if (owner != source) return false
+        moveBy(deltaY)
+        return true
+    }
+
+    private fun moveBy(deltaY: Float) {
         val id = draggedId ?: return
         dragOffset += deltaY
         val rows = listState.layoutInfo.visibleItemsInfo.filter { it.key is Long }
@@ -60,16 +74,22 @@ internal class ReorderState(private val listState: LazyListState, private val co
         dragOffset += if (to > from) -target.size else target.size
     }
 
-    fun end() {
+    fun end(source: DragSource) {
+        if (owner != source) return
         val finished = order
-        draggedId = null
-        dragOffset = 0f
+        release()
         if (finished != startOrder) commit(finished)
     }
 
-    fun cancel() {
+    fun cancel(source: DragSource) {
+        if (owner != source) return
         order = startOrder
+        release()
+    }
+
+    private fun release() {
         draggedId = null
+        owner = null
         dragOffset = 0f
     }
 
@@ -80,3 +100,6 @@ internal class ReorderState(private val listState: LazyListState, private val co
         return below ?: above
     }
 }
+
+/** Which detector started a drag: the handle's immediate one or the row's long-press one. */
+internal enum class DragSource { Handle, Row }

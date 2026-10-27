@@ -2,8 +2,11 @@ package dev.upyet.worldclock.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +35,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -165,13 +169,12 @@ private fun PlaceRow(item: WorldClockRowUi, selected: Boolean, position: RowPosi
             }
             .pointerInput(id) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = { actions.reorder.start(id) },
+                    onDragStart = { actions.reorder.start(id, DragSource.Row) },
                     onDrag = { change, amount ->
-                        change.consume()
-                        actions.reorder.drag(amount.y)
+                        if (actions.reorder.drag(DragSource.Row, amount.y)) change.consume()
                     },
-                    onDragEnd = actions.reorder::end,
-                    onDragCancel = actions.reorder::cancel,
+                    onDragEnd = { actions.reorder.end(DragSource.Row) },
+                    onDragCancel = { actions.reorder.cancel(DragSource.Row) },
                 )
             }
             .clickable { actions.onSelect(id) },
@@ -212,15 +215,22 @@ private fun DragHandle(id: Long, reorder: ReorderState) {
             .size(48.dp)
             .padding(12.dp)
             .pointerInput(id) {
-                detectDragGestures(
-                    onDragStart = { reorder.start(id) },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        reorder.drag(amount.y)
-                    },
-                    onDragEnd = reorder::end,
-                    onDragCancel = reorder::cancel,
-                )
+                // Not detectDragGestures: it consumes the event that crosses touch slop unconditionally, and when a
+                // press held on the handle has already started the row's long-press drag, that one consumed event
+                // makes the row's detector cancel and drop the drag on release. Here the handle consumes nothing
+                // unless it owns the drag.
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val slop = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                        if (reorder.draggedId == null) change.consume()
+                    } ?: return@awaitEachGesture
+                    reorder.start(id, DragSource.Handle)
+                    reorder.drag(DragSource.Handle, slop.positionChange().y)
+                    val completed = drag(slop.id) { change ->
+                        if (reorder.drag(DragSource.Handle, change.positionChange().y)) change.consume()
+                    }
+                    if (completed) reorder.end(DragSource.Handle) else reorder.cancel(DragSource.Handle)
+                }
             },
     )
 }
