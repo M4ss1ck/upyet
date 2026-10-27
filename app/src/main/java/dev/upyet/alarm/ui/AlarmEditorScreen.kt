@@ -88,8 +88,15 @@ import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.TextStyle
 
-private val SNOOZE_OPTIONS = listOf(5, 9, 10, 15, 30)
-private const val DEFAULT_SNOOZE_MINUTES = 9
+private val SNOOZE_OPTIONS: List<SnoozePolicy> =
+    listOf(SnoozePolicy.Off) + listOf(5, 9, 10, 15, 30).map { SnoozePolicy.After(it) }
+
+/** The word or length a snooze choice reads as, in both the editor and the Settings default row. */
+@Composable
+internal fun snoozeLabel(policy: SnoozePolicy): String = when (policy) {
+    SnoozePolicy.Off -> stringResource(R.string.snooze_off)
+    is SnoozePolicy.After -> pluralStringResource(R.plurals.snooze_option, policy.minutes, policy.minutes)
+}
 
 /** The ringtone row stays readable but inert while sound is switched off. */
 private const val DISABLED_ROW_ALPHA = 0.5f
@@ -321,23 +328,21 @@ private fun AlarmEditorForm(
                 },
             )
             RowDivider()
-            // Off has no snooze picker state until the No snooze UI lands (issue #70); it shows the default meanwhile.
-            val snoozeMinutes = (state.snooze as? SnoozePolicy.After)?.minutes ?: DEFAULT_SNOOZE_MINUTES
             var snoozeExpanded by remember { mutableStateOf(false) }
             Box {
                 SettingsRow(
                     title = stringResource(R.string.snooze_minutes),
                     icon = Icons.Filled.Snooze,
-                    value = pluralStringResource(R.plurals.snooze_option, snoozeMinutes, snoozeMinutes),
+                    value = snoozeLabel(state.snooze),
                     showChevron = true,
                     onClick = { snoozeExpanded = true },
                 )
                 DropdownMenu(snoozeExpanded, { snoozeExpanded = false }) {
-                    SNOOZE_OPTIONS.forEach { minutes ->
+                    SNOOZE_OPTIONS.forEach { choice ->
                         DropdownMenuItem(
-                            text = { Text(pluralStringResource(R.plurals.snooze_option, minutes, minutes)) },
+                            text = { Text(snoozeLabel(choice)) },
                             onClick = {
-                                onUpdate { it.copy(snooze = SnoozePolicy.After(minutes)) }
+                                onUpdate { it.copy(snooze = choice) }
                                 snoozeExpanded = false
                             },
                         )

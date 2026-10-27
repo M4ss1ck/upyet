@@ -201,6 +201,49 @@ class AlarmEditorViewModelTest {
         assertThat(viewModel.state.value.soundEnabled).isTrue()
     }
 
+    @Test fun choosingNoSnoozeSurvivesProcessDeathInTheDraft() = runTest {
+        val savedState = SavedStateHandle(mapOf("id" to -1L))
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = savedState)
+        advanceUntilIdle()
+        viewModel.update { it.copy(snooze = SnoozePolicy.Off) }
+
+        // A recreated ViewModel over the same SavedStateHandle is what process death looks like to the editor.
+        val restored = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = savedState)
+        advanceUntilIdle()
+
+        assertThat(restored.state.value.snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
+    @Test fun draftWithStoredOffEncodingRestoresNoSnooze() = runTest {
+        val savedState = SavedStateHandle(
+            mapOf("id" to -1L, "draft" to true, "draft_minute_of_day" to 6 * 60 + 15, "draft_snooze_minutes" to SnoozePolicy.OFF_ENCODED),
+        )
+        val viewModel = viewModel(FakeAlarmRepository(), FakeAlarmScheduler(), savedState = savedState)
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
+    @Test fun saveStoresNoSnoozeOnTheAlarm() = runTest {
+        val repository = FakeAlarmRepository()
+        val viewModel = viewModel(repository, FakeAlarmScheduler())
+        advanceUntilIdle()
+        viewModel.update { it.copy(snooze = SnoozePolicy.Off) }
+
+        viewModel.save {}
+        advanceUntilIdle()
+
+        assertThat(repository.stored.single().snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
+    @Test fun editingAnAlarmWithNoSnoozeLoadsOff() = runTest {
+        val existing = alarm(1, "Existing", LocalTime.of(6, 15)).copy(snooze = SnoozePolicy.Off)
+        val viewModel = viewModel(FakeAlarmRepository(listOf(existing)), FakeAlarmScheduler(), 1L)
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.snooze).isEqualTo(SnoozePolicy.Off)
+    }
+
     private fun prefillState(token: String) = SavedStateHandle(mapOf("id" to -1L, "prefill" to token))
 
     private fun viewModel(

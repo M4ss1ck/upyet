@@ -48,6 +48,18 @@ class AlarmListScreenTest {
         compose.onNodeWithText("Wake up").assertIsDisplayed()
     }
 
+    @Test fun noSnoozeAlarmShowsNoSnoozeLabel() {
+        val alarm = recurring().copy(snooze = SnoozePolicy.Off)
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithText("No snooze").assertIsDisplayed()
+    }
+
+    @Test fun snoozeAlarmShowsNoNoSnoozeLabel() {
+        val alarm = recurring().copy(snooze = SnoozePolicy.After(9))
+        compose.setContent { UpYetTheme { AlarmListContent(AlarmListUiState(listOf(alarm)), {}, {}) } }
+        compose.onNodeWithText("No snooze").assertDoesNotExist()
+    }
+
     @Test fun skipNextMenuItemAppearsForRecurringEnabledAlarm() {
         val alarm = Alarm(
             AlarmId(1),

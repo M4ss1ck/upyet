@@ -107,6 +107,7 @@
     <string name="more_options">Más opciones</string>
     <string name="recurrence">Repetición</string>
     <plurals name="snooze_option"><item quantity="one">%1$d minuto</item><item quantity="many">%1$d minutos</item><item quantity="other">%1$d minutos</item></plurals>
+    <string name="alarm_no_snooze">Sin posposición</string>
     <string name="status_ok">Correcto</string>
     <string name="status_warning">Aviso</string>
     <string name="status_blocked">Bloqueado</string>
@@ -169,6 +170,7 @@
     <string name="permission_onboarding_title">Antes de encender la cámara</string>
     <string name="permission_onboarding_explanation">UpYet graba vídeo sin sonido con la cámara frontal —nunca audio— y solo mientras la pantalla de alarma de UpYet está visible. Los temporizadores también pueden grabar, si lo activas. Nunca graba en segundo plano. Los clips se guardan únicamente en este teléfono, no se envían a ninguna parte y se borran automáticamente pasado el tiempo que elijas en Ajustes, donde también puedes desactivar la grabación. Las notificaciones permiten que la alarma tome tu pantalla de bloqueo.</string>
     <string name="default_snooze">Posposición predeterminada</string>
+    <string name="snooze_off">Desactivada</string>
     <string name="max_snoozes">Posposiciones máximas</string>
     <string name="max_snoozes_unlimited">Sin límite</string>
     <plurals name="max_snoozes_option"><item quantity="one">%1$d posposición</item><item quantity="many">%1$d posposiciones</item><item quantity="other">%1$d posposiciones</item></plurals>
