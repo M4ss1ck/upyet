@@ -33,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,8 +50,12 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.R
+import dev.upyet.core.ui.CameraGateHost
 import dev.upyet.core.ui.components.UpYetCard
+import dev.upyet.core.ui.rememberCameraGate
 import dev.upyet.core.ui.theme.ControlHeight
 import dev.upyet.core.ui.theme.MinTouchTarget
 import dev.upyet.timer.domain.TimerId
@@ -80,6 +86,40 @@ data class TimerCallbacks(
     val onDelete: (TimerId) -> Unit = {},
     val onEvidence: (TimerId, Boolean) -> Unit = { _, _ -> },
 )
+
+/**
+ * The Timer tab. Turning Timer evidence on, for the new timer or on a row, goes through the ADR 0006 disclosure
+ * while `CAMERA` is not granted, so the system camera dialog is never the first thing the user sees (AGENTS.md
+ * §10); turning it off never asks for anything.
+ */
+@Composable
+fun TimerScreen(viewModel: TimerViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val gate = rememberCameraGate()
+    CameraGateHost(gate)
+    val callbacks = remember(viewModel, gate) {
+        TimerCallbacks(
+            onHours = viewModel::onHours,
+            onMinutes = viewModel::onMinutes,
+            onSeconds = viewModel::onSeconds,
+            onPreset = viewModel::onPreset,
+            onLabel = viewModel::onLabel,
+            onRecordNewTimer = { on ->
+                if (on) gate.whenGranted { viewModel.onRecordNewTimer(true) } else viewModel.onRecordNewTimer(false)
+            },
+            onStart = viewModel::onStart,
+            onStartTimer = viewModel::onStartTimer,
+            onPause = viewModel::onPause,
+            onResume = viewModel::onResume,
+            onStop = viewModel::onStop,
+            onAddMinute = viewModel::onAddMinute,
+            onReset = viewModel::onReset,
+            onDelete = viewModel::onDelete,
+            onEvidence = { id, on -> if (on) gate.whenGranted { viewModel.onEvidence(id, true) } else viewModel.onEvidence(id, false) },
+        )
+    }
+    TimerContent(state, callbacks)
+}
 
 /** The Timer tab, stateless: it renders [state] and raises [callbacks], nothing else. */
 @Composable

@@ -22,7 +22,7 @@
     <string name="timer_notification_add_minute">+1 min</string>
     <string name="timer_notification_stop_all">Detener todos</string>
     <string name="timer_running_title_untitled">Temporizador</string>
-    <plurals name="timer_running_others"><item quantity="one">%d temporizador más en marcha</item><item quantity="other">%d temporizadores más en marcha</item></plurals>
+    <plurals name="timer_running_others"><item quantity="one">%d temporizador más en marcha</item><item quantity="many">%d temporizadores más en marcha</item><item quantity="other">%d temporizadores más en marcha</item></plurals>
     <string name="timer_notification_pause">Pausar</string>
     <string name="timer_notification_reset">Restablecer</string>
     <string name="timer_ringing_length">Temporizador de %1$s</string>
