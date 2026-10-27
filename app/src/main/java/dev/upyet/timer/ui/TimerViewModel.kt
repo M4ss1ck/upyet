@@ -36,8 +36,12 @@ private const val KEY_LABEL = "label"
 /** Absent means "follow the global default"; present means the user flipped the switch for this new timer. */
 private const val KEY_RECORD = "record"
 
-/** Only a display refresh for the remaining time. It never schedules anything: the exact alarm is TimerScheduler's. */
-private const val DISPLAY_TICK_MS = 1_000L
+/**
+ * Only a display refresh for the remaining time. It never schedules anything: the exact alarm is TimerScheduler's.
+ * A quarter second, not one: each running timer crosses its whole seconds at its own phase, and a 1 s refresh
+ * that is not aligned with that phase visibly skips a second now and then.
+ */
+private const val DISPLAY_TICK_MS = 250L
 
 private const val MAX_HOURS = 23
 private const val MAX_MINUTES_OR_SECONDS = 59

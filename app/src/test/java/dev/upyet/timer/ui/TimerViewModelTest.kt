@@ -223,7 +223,7 @@ class TimerViewModelTest {
         assertThat(h.editor.commands).containsExactly("pause", "start", "reset", "delete").inOrder()
     }
 
-    @Test fun countdownRefreshesEverySecondOnlyWhileSomethingRuns() = runTest {
+    @Test fun countdownRefreshesWhileATimerRuns() = runTest {
         val h = Harness(listOf(timer(1, TimerRunState.Running(Duration.ofMinutes(10), h0))))
         val observer = launch { h.viewModel.state.collect {} }
         runCurrent()
