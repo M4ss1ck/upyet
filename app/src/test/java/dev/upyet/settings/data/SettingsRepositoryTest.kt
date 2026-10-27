@@ -18,6 +18,23 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun timerEvidenceByDefaultIsFalse() = runTest {
+        val repository = SettingsRepository(FakeDataStore(emptyPreferences()))
+
+        assertThat(repository.settings.first().timerEvidenceByDefault).isFalse()
+    }
+
+    @Test
+    fun timerEvidenceByDefaultRoundTrips() = runTest {
+        val repository = SettingsRepository(FakeDataStore(emptyPreferences()))
+
+        repository.setTimerEvidenceByDefault(true)
+        assertThat(repository.settings.first().timerEvidenceByDefault).isTrue()
+        repository.setTimerEvidenceByDefault(false)
+        assertThat(repository.settings.first().timerEvidenceByDefault).isFalse()
+    }
+
+    @Test
     fun roundTripsWrittenValue() = runTest {
         val repository = SettingsRepository(FakeDataStore(emptyPreferences()))
 

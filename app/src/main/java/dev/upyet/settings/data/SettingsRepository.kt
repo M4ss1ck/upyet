@@ -22,6 +22,11 @@ data class AppSettings(
     val upcomingAlarmLeadMinutes: Int = 60,
     val shareExplainerShown: Boolean = false,
     val statsWindow: StatsWindow = StatsWindow.SEVEN_DAYS,
+    /**
+     * Stored default for a new timer's Timer evidence (ADR 0010, AGENTS.md §2 inv. 12). Read only at timer
+     * creation; changing it never edits an existing timer.
+     */
+    val timerEvidenceByDefault: Boolean = false,
 )
 
 @Singleton
@@ -45,6 +50,7 @@ constructor(private val dataStore: DataStore<Preferences>) {
                 preferences[Keys.statsWindow]?.let { value ->
                     StatsWindow.entries.firstOrNull { it.name == value }
                 } ?: StatsWindow.SEVEN_DAYS,
+                timerEvidenceByDefault = preferences[Keys.timerEvidenceByDefault] ?: false,
             )
         }
 
@@ -80,6 +86,10 @@ constructor(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.statsWindow] = window.name }
     }
 
+    suspend fun setTimerEvidenceByDefault(enabled: Boolean) {
+        dataStore.edit { it[Keys.timerEvidenceByDefault] = enabled }
+    }
+
     private object Keys {
         val retention = stringPreferencesKey("retention")
         val snoozeMinutes = intPreferencesKey("default_snooze_minutes")
@@ -89,5 +99,6 @@ constructor(private val dataStore: DataStore<Preferences>) {
         val upcomingLeadMinutes = intPreferencesKey("upcoming_alarm_lead_minutes")
         val shareExplainerShown = booleanPreferencesKey("share_explainer_shown")
         val statsWindow = stringPreferencesKey("stats_window")
+        val timerEvidenceByDefault = booleanPreferencesKey("timer_evidence_by_default")
     }
 }
