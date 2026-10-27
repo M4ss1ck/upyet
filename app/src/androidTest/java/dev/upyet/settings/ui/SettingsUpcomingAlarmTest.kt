@@ -48,6 +48,7 @@ class SettingsUpcomingAlarmTest {
                         languageSupported = false,
                     ),
                     onReliability = {},
+                    onDataSources = {},
                     onUpcomingAlarmLead = onUpcoming,
                 )
             }

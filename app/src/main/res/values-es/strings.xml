@@ -305,6 +305,20 @@
     <string name="language_spanish">Español</string>
     <string name="diagnostic_report">Compartir un informe de diagnóstico</string>
     <string name="diagnostic_report_summary">Lo que hicieron las alarmas, con tu dispositivo y ajustes. Sin nombres de alarmas, y no se envía nada automáticamente.</string>
+    <string name="settings_data_sources">Fuentes de datos</string>
+    <string name="settings_data_sources_summary">De dónde salen los nombres de lugares, las zonas horarias y el contorno del mapa, y sus licencias</string>
+    <string name="data_sources_intro">El reloj mundial usa estos datos, incluidos dentro de la aplicación. No se descarga nada mientras la usas.</string>
+    <string name="data_sources_geonames_name">Datos de lugares © GeoNames</string>
+    <string name="data_sources_geonames_supplies">La zona horaria de cada lugar.</string>
+    <string name="data_sources_geonames_licence">Licencia: Creative Commons Atribución 4.0 (CC BY 4.0)</string>
+    <string name="data_sources_geonames_changes">Cambios realizados: los registros se emparejaron con los lugares de Natural Earth por id, o por nombre, país y distancia. Las zonas se normalizaron a su forma canónica mediante los enlaces backward de IANA y se validaron contra zone.tab de IANA. No se conservó ningún otro campo de GeoNames.</string>
+    <string name="data_sources_natural_earth_name">Hecho con Natural Earth. Datos libres de mapas vectoriales y ráster @ naturalearthdata.com</string>
+    <string name="data_sources_natural_earth_supplies">Nombres de lugares, coordenadas y población, y el contorno de tierra del mapa mundial.</string>
+    <string name="data_sources_natural_earth_licence">Licencia: Dominio público</string>
+    <string name="data_sources_iana_name">Base de datos de zonas horarias de IANA</string>
+    <string name="data_sources_iana_supplies">Reglas de zonas horarias: zone.tab y backward.</string>
+    <string name="data_sources_iana_licence">Licencia: Dominio público</string>
+    <string name="world_clock_attribution">Datos de lugares © GeoNames, CC BY 4.0. Hecho con Natural Earth.</string>
 
     <!-- Reliability -->
     <string name="reliability_checks">Comprobaciones</string>

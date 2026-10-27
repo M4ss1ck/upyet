@@ -87,6 +87,7 @@ class SettingsTimersTest {
                         languageSupported = false,
                     ),
                     onReliability = {},
+                    onDataSources = {},
                     onTimerEvidence = onTimerEvidence,
                     cameraGate = rememberCameraGate(isGranted = { cameraGranted }),
                 )
