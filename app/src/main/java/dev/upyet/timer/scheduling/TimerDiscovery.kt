@@ -9,6 +9,7 @@ import dev.upyet.core.directboot.toTimer
 import dev.upyet.core.logging.AlarmLog
 import dev.upyet.core.time.TimerClock
 import dev.upyet.timer.domain.Timer
+import dev.upyet.timer.domain.TimerAnchor
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRepository
 import dev.upyet.timer.domain.TimerRunState
@@ -39,8 +40,9 @@ enum class TimerExpiry {
  * first unlock alike, so those two never touch Room from a Direct Boot path either.
  *
  * One lock serialises these events, so an expiry cannot interleave with a boot pass, a Stop or a +1 min over
- * the same timer. User edits through `TimerRepository` do not take it yet; the Timer tab (slice #39) must route
- * its read-modify-write through here, or an edit landing between an expiry's read and write would be overwritten.
+ * the same timer. User edits go through [TimerEditor], which takes the same lock: the Timer tab and the
+ * running-timer notification both route their read-modify-write through here, so an edit cannot land between
+ * an expiry's read and its write and be overwritten.
  */
 @Singleton
 class TimerDiscovery @Inject constructor(
@@ -51,7 +53,8 @@ class TimerDiscovery @Inject constructor(
     private val alarms: TimerAlarmSync,
     private val handoff: TimerRingingHandoff,
 ) : TimerRearm,
-    TimerRingingStore {
+    TimerRingingStore,
+    TimerEditor {
     private val lock = Mutex()
 
     /** `LOCKED_BOOT_COMPLETED` and `BOOT_COMPLETED`: elapsed realtime restarted, so measure on the wall clock. */
@@ -139,6 +142,66 @@ class TimerDiscovery @Inject constructor(
         alarms.sync { store.all() }
     }
 
+    /**
+     * A user creates a timer. Only ever called from the UI, which runs after first unlock: Room is the store, and
+     * [RoomTimerRepository] mirrors and re-arms the write itself, so the sync here only covers the list as a whole.
+     */
+    override suspend fun add(timer: Timer): TimerId = lock.withLock {
+        val opened = open()
+        if (opened.reconciliation == TimerReconciliation.Locked) throw IllegalStateException("timer add before unlock")
+        val id = repository.get().upsert(timer)
+        alarms.sync { opened.store.all() }
+        id
+    }
+
+    /**
+     * A user edit (Timer tab, running-timer notification). A Ringing timer is refused here: its Stop and +1 min
+     * belong to [TimerRingingStore], and a stale tap must not change a ring the user is already answering.
+     */
+    override suspend fun edit(
+        id: TimerId,
+        command: String,
+        onlyIf: (Timer) -> Boolean,
+        transition: (Timer, TimerAnchor) -> TimerTransition,
+    ): TimerTransition = lock.withLock {
+        val store = open().store
+        val timer = store.get(id) ?: return@withLock refuse(command, id, "no_timer")
+        if (timer.runState == TimerRunState.Ringing) return@withLock refuse(command, id, "ringing")
+        if (!onlyIf(timer)) return@withLock refuse(command, id, "precondition")
+        when (val result = transition(timer, clock.now())) {
+            is TimerTransition.Applied -> {
+                store.save(result.timer)
+                alarms.sync { store.all() }
+                AlarmLog.event("timer_edited", "command" to command, "timerId" to id.value)
+                result
+            }
+
+            TimerTransition.Removed -> {
+                // The mirror has no delete: a timer removed before first unlock would come back on the next boot.
+                if (store is MirrorStore) return@withLock refuse(command, id, "locked")
+                store.delete(id)
+                alarms.sync { store.all() }
+                AlarmLog.event("timer_edited", "command" to command, "timerId" to id.value)
+                result
+            }
+
+            TimerTransition.NoOp, TimerTransition.NotOffered -> {
+                AlarmLog.event(
+                    "timer_command_ignored",
+                    "command" to command,
+                    "timerId" to id.value,
+                    "reason" to result.javaClass.simpleName.lowercase(),
+                )
+                result
+            }
+        }
+    }
+
+    private fun refuse(command: String, id: TimerId, reason: String): TimerTransition {
+        AlarmLog.event("timer_command_ignored", "command" to command, "timerId" to id.value, "reason" to reason)
+        return TimerTransition.NoOp
+    }
+
     private suspend fun discover(store: TimerStore, afterBoot: Boolean, trigger: String): TimerSyncResult {
         val now = clock.now()
         var missed = 0
@@ -187,6 +250,8 @@ class TimerDiscovery @Inject constructor(
         suspend fun get(id: TimerId): Timer? = all().find { it.id == id }
 
         suspend fun save(timer: Timer)
+
+        suspend fun delete(id: TimerId)
     }
 
     /** Room's writes mirror themselves and re-arm (RoomTimerRepository); the final sync here covers no-change passes. */
@@ -199,6 +264,10 @@ class TimerDiscovery @Inject constructor(
 
         override suspend fun save(timer: Timer) {
             timers.upsert(timer)
+        }
+
+        override suspend fun delete(id: TimerId) {
+            timers.delete(id)
         }
     }
 
@@ -214,5 +283,8 @@ class TimerDiscovery @Inject constructor(
         override suspend fun save(timer: Timer) {
             mirror.put(timer.toMirrored())
         }
+
+        /** Refused by [edit] before it gets here: the mirror has no delete, and nothing on this path may build Room. */
+        override suspend fun delete(id: TimerId): Unit = error("timer $id cannot be deleted before first unlock")
     }
 }
