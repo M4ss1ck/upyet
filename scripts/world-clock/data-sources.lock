@@ -1,0 +1,49 @@
+# World clock data sources, ADR 0011. Read by scripts/world-clock/generate.py, never by the build.
+# Exactly four inputs: Natural Earth 10m populated places, Natural Earth 110m land, GeoNames cities5000,
+# and the IANA time zone database (zone.tab plus backward, two files of one release).
+# A refresh moves this file, the three assets in app/src/main/res/raw/ and nothing else, in one PR.
+
+[files.ne_populated_places]
+input = "Natural Earth 10m populated places"
+url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_populated_places.geojson"
+filename = "ne_10m_populated_places.geojson"
+sha256 = "9b8e3de09048ef00dfc70357dbb9fa324493f214b5e0ae4daf1aa79a8d10116b"
+version = "v5.1.2"
+retrieved = "2026-10-27"
+licence = "Public domain"
+
+[files.ne_land]
+input = "Natural Earth 110m land"
+url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_110m_land.geojson"
+filename = "ne_110m_land.geojson"
+sha256 = "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9"
+version = "v5.1.2"
+retrieved = "2026-10-27"
+licence = "Public domain"
+
+[files.geonames_cities5000]
+input = "GeoNames cities5000"
+url = "https://download.geonames.org/export/dump/cities5000.zip"
+filename = "cities5000.zip"
+sha256 = "53c265f85cb3289d435a1ab089df4673343f28839088bcc736d7685fb810129d"
+version = "daily dump, cities5000.txt dated 2026-10-27 03:43"
+retrieved = "2026-10-27"
+licence = "CC BY 4.0"
+
+[files.tzdata_zone_tab]
+input = "IANA time zone database"
+url = "https://raw.githubusercontent.com/eggert/tz/2026e/zone.tab"
+filename = "zone.tab"
+sha256 = "e2e8e31c4e10f44576c79345e76060591dbb3eef6ce14e006afc8a373caa9593"
+version = "2026e"
+retrieved = "2026-10-27"
+licence = "Public domain"
+
+[files.tzdata_backward]
+input = "IANA time zone database"
+url = "https://raw.githubusercontent.com/eggert/tz/2026e/backward"
+filename = "backward"
+sha256 = "b8296b9ef1ece72d813878132c0f17e2c52b26af6004eeb9c37d049b64cd9401"
+version = "2026e"
+retrieved = "2026-10-27"
+licence = "Public domain"
