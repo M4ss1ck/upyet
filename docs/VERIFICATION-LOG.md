@@ -35,6 +35,48 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.3.0
+
+Lane: mixed (automated + adb)   Build: 0.3.0 (300)   Package: `dev.upyet.debug`
+
+The 0.3.0 release gate (#48): `core-path`, `timer-core-path` and the every-release smoke subset. Emulator run,
+so a regression result only; the AVD was started with `-camera-front emulated` and has no lock PIN, so no row
+here says anything about the keyguard. Automated: `connectedDebugAndroidTest`, 182 tests, all pass. The adb
+scenarios used the debug `SCHEDULE` / `TIMER` receivers with evidence on, read `logcat -s UpYet`, `dumpsys` and
+the Room tables, and tapped through `uiautomator`. The signed release APK (`dev.upyet`, 0.3.0 / 300) was built
+with `scripts/build-android-release.sh` but not installed.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| core-path | PASS | `CorePathFlowTest` (automated lane). Regression result: no keyguard on this AVD |
+| timer-core-path | FAIL, then PASS after the fix | 4 of 4 timer rings with the preview hidden (the default) finalized `FAILED`/`UNKNOWN`, 0 bytes: see findings. With the fix, 2 of 2 `RECORDED` (1.40 MB, 1.47 MB), occurrence `source=TIMER`, outcome `STOPPED`; a third ring toggling the preview on and off mid-recording kept one segment, 665 frames over 22.2 s |
+| doze | PASS | stepped to deep `IDLE` with the battery unplugged and the screen off; `alarm_triggered` on time, clip `RECORDED`. A first attempt with `force-idle` alone stopped at `INACTIVE` and is not counted |
+| process-killed | PASS | `kill -9` on the app pid (as root; `am kill` does not kill a non-cached process), new pid rang, clip `RECORDED` |
+| camera-denied | PASS | `CAMERA` revoked: rang, dismissed, segment `SKIPPED` / `PERMISSION_DENIED` |
+| snooze | PASS | Snooze 9 minutes: `alarm_snoozed`, SNOOZE alarm fired at 17:21:37.587 for 17:21:37.582, child occurrence linked to its parent, both clips `RECORDED`. The screen was awake (this AVD never times out), so the snooze ring came as a heads-up and the ringing screen was opened from it |
+| reboot-unlocked | PASS | `adb reboot`, `alarms_rescheduled scheduled=1` after boot, rang, recorded, dismissed |
+| core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`: the ringing screen above a real keyguard and a playable clip in History needs a person and a phone. Owed on a physical device before the `v0.3.0` tag |
+| timer-core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`: the timer ringing screen above a real keyguard, the "Timer" badge and a playable clip in History needs a person and a phone. Owed on a physical device before the `v0.3.0` tag |
+
+### Findings
+- Every timer recording with the preview hidden produced no video. `TimerRingingActivity` binds Preview and
+  VideoCapture together but composed `EvidencePreview` only while the preview toggle was on, which it is not by
+  default. CameraX waits for every bound use case's surface before it starts the capture session and gives up
+  after five seconds (`CXCP: Failed to get Surfaces: isActive=true, surfaces=[]`), so the encoder never saw a
+  frame and the Recorder finalized with `ERROR_NO_VALID_DATA`, persisted as `FAILED`/`UNKNOWN`. Showing the
+  preview inside those five seconds recorded normally; showing it later did not. Fixed: the timer screen keeps
+  `EvidencePreview` composed while any timer records and shrinks it to 1 dp when hidden, so the surface exists
+  and toggling resizes it instead of tearing it down. Pinned by
+  `TimerRingingScreenTest.theSlotIsComposedHiddenWhileRecordingWithThePreviewOff`, which fails on the old
+  condition. The alarm screen always shows its preview and never had the problem. The hidden 1 dp surface is a
+  speck a few pixels wide on screen.
+- No earlier entry records a timer clip that recorded: the timer slices were verified by instrumented screen
+  tests and recording-state logs, neither of which looks at the file. `timer-core-path` joining the smoke subset
+  is what caught it.
+- `process-killed` and `reboot-unlocked` in `TESTING.md` pointed to "the lane note below", which did not
+  exist, and the `am kill` recipe silently did nothing with the app in the foreground. Both lane notes are now
+  written under the matrix.
+
 ## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.2.0
 
 Lane: adb   Build: 0.2.0 (200)   Package: `dev.upyet.debug`

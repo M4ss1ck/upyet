@@ -160,7 +160,7 @@ and never by its position in this table, so rows can be added or reordered witho
 | `timer-boot-grace-window` | either | adb | with `FGS_BOOT_COMPLETED_RESTRICTIONS` enabled as the negative control, a timer due 0 to 60 s before boot completes rings through the immediate exact alarm discovery arms (`timer_expired` after `timer_discovery trigger=boot`), never from the boot receiver |
 | `timer-concurrent` | either | adb | two timers ringing at once: one notification (id 1101, title "2 timers ringing"), one sound, one wake lock (`dumpsys power` lists one `UpYet:timer_ringing`), and Stop all offered. The "one showing produces one occurrence" half: with Timer evidence on for both, History gains exactly one "Timer" entry listing both labels |
 | `timer-notification-actions` | physical | human-eyes | with the phone in use, the heads-up for one ringing timer offers Stop and +1 min, for several Stop all, and when any ringing timer has Timer evidence on, no action at all, only "Tap to open" |
-| `timer-core-path` | physical | human-eyes | a timer with Timer evidence on, set for +2 minutes; close the app and lock the screen. It rings at its end, the screen wakes, `TimerRingingActivity` shows above the keyguard with the recording badge, Stop ends the ring and finalizes the clip, and the phone stays locked. After unlocking, History shows the occurrence with the "Timer" badge, the outcome "Stopped" and a playable clip. Joins the every-release smoke subset at slice #48 |
+| `timer-core-path` | physical | human-eyes | a timer with Timer evidence on, set for +2 minutes; close the app and lock the screen. It rings at its end, the screen wakes, `TimerRingingActivity` shows above the keyguard with the recording badge, Stop ends the ring and finalizes the clip, and the phone stays locked. After unlocking, History shows the occurrence with the "Timer" badge, the outcome "Stopped" and a playable clip. Part of the every-release smoke subset since 0.3.0 |
 | `timer-evidence-mixed` | either | human-eyes | two timers ring together, one with Timer evidence on and one off: recording runs while the recording-on timer rings and stops when it is stopped, while the other keeps ringing; the showing leaves exactly one History entry ("Timer" badge, labelled with the recording-on timer only) whose outcome is set when the last timer stops. A showing where every ringing timer has Timer evidence off leaves nothing in History |
 | `timer-plus-one-mid-showing` | either | human-eyes | with a recording-on timer and a recording-off timer ringing, give the recording-on one +1 min: recording stops and the occurrence stays open. When it rings again a minute later, while the other still rings, it rejoins the same showing: a second segment on the same History entry, not a new entry. Once both are stopped, a later ring is a new entry |
 | `timer-evidence-permission-card` | either | human-eyes | with `CAMERA` denied (`adb shell pm revoke dev.upyet.debug android.permission.CAMERA`, or `dev.upyet` for a release install), turning on Settings > Timers > "Record when a timer rings", or a timer's Timer evidence, shows the disclosure card first, never the system camera dialog; "Not now" leaves the switch off, "Agree & continue" then shows the system dialog and the switch turns on only if it is granted. Turning either off never shows the card. Flipping the Settings switch changes no existing timer |
@@ -193,6 +193,13 @@ runner with it and leaves nothing to assert with.
 `camera-denied` could in principle be asserted by an instrumented flow that never grants the permission in
 the first place, but permission grants persist for the life of an install, so it would depend on running
 before any flow that grants `CAMERA`. Test order is not a thing to build correctness on; it stays `adb`.
+
+**`process-killed` and `reboot-unlocked`, lane notes.** `am kill` only kills a cached process, so with the app
+in the foreground or holding a service it is a no-op and the scenario proves nothing: check that `pidof` is
+empty or changed, and on an emulator use `adb root` then `adb shell kill -9 $(adb shell pidof "$PKG")`, which is
+what the low-memory killer does. For `reboot-unlocked` the device must reach the launcher without a credential
+(no PIN, or unlock it at once); expect `alarms_rescheduled` with the alarm counted in `scheduled` after boot,
+and the alarm in `dumpsys alarm` before it rings. A locked reboot is `reboot-no-unlock`.
 
 **Automated lane, today.** Only `core-path` currently exists as an instrumented flow
 (`CorePathFlowTest`). `screen-off-while-ringing`, `backgrounded-resumed` and `snooze` are marked
@@ -256,7 +263,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 
 | When | What must run |
 |---|---|
-| Every release | `core-path`, plus the smoke subset: `doze`, `process-killed`, `camera-denied`, `snooze`, `reboot-unlocked` |
+| Every release | `core-path`, plus the smoke subset: `timer-core-path`, `doze`, `process-killed`, `camera-denied`, `snooze`, `reboot-unlocked` |
 | Once before v1 | The full matrix, on a physical device for every `physical` row |
 | After v1 | Only the scenarios the changed subsystem re-triggers, per the map below |
 
@@ -370,8 +377,10 @@ adb shell dumpsys notification --noredact | grep -E -A12 "id=1101"
 adb shell dumpsys power | grep -c "UpYet:timer_ringing"     # expect 1 while any timer rings, 0 after
 adb logcat -d -s UpYet | grep -E "timer_(ringing_started|ring_stale|stopped|minute_added|stopped_all|ringing_ended)"
 
-# Kill the app process normally (alarms must survive this)
+# Kill the app process normally (alarms must survive this). `am kill` kills only a cached process; see the
+# process-killed lane note and confirm with pidof.
 adb shell am kill "$PKG"
+adb shell pidof "$PKG"                                 # expect nothing, or a new pid once it rings
 
 # Force stop (alarms are cancelled by the platform; app must recover on next launch). This is the
 # `force-stop-recovery` row: the dumpsys must list the alarm again only after the relaunch. On API 35 the

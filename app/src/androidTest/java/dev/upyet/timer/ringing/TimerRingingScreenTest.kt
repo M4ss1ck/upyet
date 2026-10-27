@@ -148,16 +148,28 @@ class TimerRingingScreenTest {
         compose.onAllNodesWithContentDescription("Unlock", substring = true, ignoreCase = true).assertCountEquals(0)
     }
 
-    @Test fun thePreviewToggleFiresItsCallbackAndTheSlotStaysHiddenUntilTurnedOn() {
-        show(previewVisible = false, preview = { Text("preview-slot") })
+    @Test fun thePreviewToggleFiresItsCallback() {
+        show(previewVisible = false)
 
         compose.onNodeWithContentDescription("Show camera preview").assertIsDisplayed().performClick()
 
         assertThat(calls).containsExactly("togglePreview")
-        compose.onNodeWithText("preview-slot").assertDoesNotExist()
     }
 
-    /** The preview is shown only while it is turned on AND a timer is recording; turning recording off hides it. */
+    /**
+     * Regression, found by the 0.3.0 release gate: the slot is also the camera's preview surface, and CameraX starts no
+     * capture session until every bound use case has one. A slot left out of the composition while the preview was
+     * hidden (the default) made every timer recording finalize with no data, so it must be composed, told it is
+     * hidden, whenever a timer records.
+     */
+    @Test fun theSlotIsComposedHiddenWhileRecordingWithThePreviewOff() {
+        show(previewVisible = false, preview = { visible -> Text(if (visible) "preview-shown" else "preview-hidden") })
+
+        compose.onNodeWithText("preview-hidden").assertExists()
+        compose.onNodeWithText("preview-shown").assertDoesNotExist()
+    }
+
+    /** The slot is told it is visible only while turned on; with no timer recording it is not composed at all. */
     @Test fun thePreviewSlotShowsOnlyWhileVisibleAndRecording() {
         val state = mutableStateOf(twoRinging(recordingOn = true))
         compose.setContent {
@@ -166,19 +178,20 @@ class TimerRingingScreenTest {
                     state = state.value,
                     evidence = EvidenceRecordingState.Recording(Instant.EPOCH, 65_000L),
                     previewVisible = true,
-                ) {
-                    Text("preview-slot")
+                ) { visible ->
+                    Text(if (visible) "preview-shown" else "preview-hidden")
                 }
             }
         }
 
-        compose.onNodeWithText("preview-slot").assertIsDisplayed()
+        compose.onNodeWithText("preview-shown").assertIsDisplayed()
         compose.onNodeWithContentDescription("Hide camera preview").assertIsDisplayed()
 
         state.value = twoRinging(recordingOn = false)
         compose.waitForIdle()
 
-        compose.onNodeWithText("preview-slot").assertDoesNotExist()
+        compose.onNodeWithText("preview-shown").assertDoesNotExist()
+        compose.onNodeWithText("preview-hidden").assertDoesNotExist()
     }
 
     @Test fun aBlankLabelShowsTimerAsTheTitleAndNoLengthLineWhenLengthIsUnknown() {
@@ -201,7 +214,7 @@ class TimerRingingScreenTest {
         evidence: EvidenceRecordingState = EvidenceRecordingState.Recording(Instant.EPOCH, 65_000L),
         locked: Boolean = false,
         previewVisible: Boolean = false,
-        preview: @Composable () -> Unit = {},
+        preview: @Composable (visible: Boolean) -> Unit = {},
     ) {
         compose.setContent {
             UpYetTheme {
@@ -216,7 +229,7 @@ class TimerRingingScreenTest {
         evidence: EvidenceRecordingState,
         locked: Boolean = false,
         previewVisible: Boolean = false,
-        preview: @Composable () -> Unit = {},
+        preview: @Composable (visible: Boolean) -> Unit = {},
     ) {
         TimerRingingScreen(
             state = state,

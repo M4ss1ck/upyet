@@ -72,7 +72,7 @@ fun TimerRingingScreen(
     onStop: (TimerId) -> Unit,
     onAddMinute: (TimerId) -> Unit,
     onStopAll: () -> Unit,
-    preview: @Composable () -> Unit = {},
+    preview: @Composable (visible: Boolean) -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize().background(RingingPalette.background)) {
         Box(
@@ -89,9 +89,11 @@ fun TimerRingingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                if (state.recordingOn && previewVisible) {
-                    preview()
-                    Spacer(Modifier.height(20.dp))
+                // Composed whenever a timer records, visible or not: the preview is also the camera's surface, and
+                // recording gets no frames without it (EvidencePreview).
+                if (state.recordingOn) {
+                    preview(previewVisible)
+                    if (previewVisible) Spacer(Modifier.height(20.dp))
                 }
                 state.focused?.let { FocusedTimer(it) }
             }

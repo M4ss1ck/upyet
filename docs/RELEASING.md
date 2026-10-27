@@ -65,7 +65,8 @@ gh release create vX.Y.Z \
 ```
 
 Release notes are the changelog section for that version and nothing else — do not write them twice and
-let the two drift.
+let the two drift. The one exception is Play's "What's new", which is too short for the section and gets a
+summary paragraph of it (see [Every release after that](#every-release-after-that)).
 
 ## Play submission
 
@@ -96,8 +97,31 @@ Play wants an **App Bundle**, not the APK:
 ./gradlew bundleRelease
 ```
 
-Upload `app/build/outputs/bundle/release/app-release.aab`, paste the changelog section as the release
-notes, and re-check two things that silently go stale:
+Upload `app/build/outputs/bundle/release/app-release.aab`, then write the release notes and re-check two
+things that silently go stale.
+
+**Release notes ("What's new").** Play caps them at 500 characters per language, so the changelog section
+does not fit and is not pasted. Write one paragraph per listing language (the listing is English only
+today) that says what that version's `CHANGELOG.md` section says, the "Changed" entries first: a user who
+upgrades is told what moved only here and in the changelog, never in the app. Paste it into **Release →
+Release notes** for the language. Check its length before pasting:
+
+```bash
+printf '%s' "<the paragraph>" | wc -m    # must print 500 or less
+```
+
+The paragraph for each release lives here, newest first, so the next one has a model and the wording is
+reviewed in the PR that cuts the version.
+
+- **0.3.0** (the drawer move, map #5 decision 2):
+
+  > UpYet is now a full Clock app. Four tabs, Alarms, World clock, Timer and Stopwatch, replace the old three,
+  > and change with a tap instead of a swipe. History, Settings and Reliability moved into the ☰ menu at the
+  > top left, which shows a red dot when a reliability check needs you; nothing was lost. Timers ring like
+  > alarms, on the lock screen too, and can record the same silent video when you turn that on per timer or
+  > in Settings › Timers. Off by default.
+
+Then the two checks:
 
 - **Data Safety** — still accurate? It changes the moment the app gains a permission or a way for data to
   leave. Adding `INTERNET` for any reason invalidates the entire declaration.
