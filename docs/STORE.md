@@ -21,8 +21,8 @@ video of your face" sounds like it must be declaring something.
 
 Play defines *collection* as transmitting user data off the device, and *sharing* as transferring it to a
 third party. UpYet does neither. It declares no `INTERNET` permission, so it is not merely policy that
-stops it — the app has no capability to transmit anything. Video, alarms, settings and the diagnostic log
-are written to app-private storage, excluded from cloud backup (`allowBackup=false`), and readable by no
+stops it — the app has no capability to transmit anything. Video, alarms, timers, the world clock's place
+list, the stopwatch, settings and the diagnostic log are written to app-private storage, excluded from cloud backup (`allowBackup=false`), and readable by no
 other app.
 
 Play's own guidance excludes from disclosure any data transferred solely by an explicit user action to an
@@ -34,7 +34,7 @@ user picks the receiving app. Neither is disclosable, and neither happens withou
 
 Declaring video as "collected but not shared" would be a safer-looking lie. It is a lie because nothing is
 collected, and it is not safer: the Data Safety section appears on the public store listing, so
-over-declaring tells every visitor that a local-only alarm clock collects video of them. That is the worst
+over-declaring tells every visitor that a local-only clock app collects video of them. That is the worst
 sentence this product's store page could contain, and it is false. Declare accurately.
 
 ### If a reviewer challenges it
@@ -48,29 +48,34 @@ The whole answer is one line in the manifest: there is no `INTERNET` permission.
 | --- | --- |
 | Does your app collect or share any of the required user data types? | **No** |
 | Is all of the user data collected by your app encrypted in transit? | n/a — nothing is transmitted |
-| Do you provide a way for users to request that their data is deleted? | **Yes** — delete a wake-up in-app, or uninstall |
+| Do you provide a way for users to request that their data is deleted? | **Yes** — delete a wake-up or a timer occurrence in-app, or uninstall |
 
 ## Sensitive-permission justifications
 
-Play requires a written justification for each of these in the Console, and both are the kind of
-declaration a reviewer reads closely.
+Play requires a written justification for each of these in the Console, and all three are the kind of
+declaration a reviewer reads closely. Each one names the timer case explicitly, because timers ring through
+the same permissions as alarms and a justification that only mentions alarms would be false.
 
 ### Camera
 
-> UpYet is an alarm clock whose core feature is video evidence that the user woke up and dismissed the
-> alarm. The front camera records silent video **only** while UpYet's own full-screen alarm screen is
-> visible and resumed — it is bound to that Activity's lifecycle and stops the moment the screen is no
-> longer visible. There is no background camera use, no camera foreground service, and no audio: UpYet
-> neither declares nor requests `RECORD_AUDIO`. The recording is written to app-private, non-backed-up
-> storage and never transmitted; the app declares no `INTERNET` permission. A camera failure never blocks
-> dismissing the alarm.
+> UpYet is a clock app (alarms, timers, world clock, stopwatch) whose core feature is video evidence that
+> the user woke up and dismissed the alarm. The front camera records silent video **only** while one of
+> UpYet's own full-screen ringing screens is visible and resumed: the alarm ringing screen, or the timer
+> ringing screen when the user has turned that timer's Timer evidence on (off unless the user turns it on). Recording
+> is bound to that Activity's lifecycle and stops the moment the screen is no longer visible. The world
+> clock and the stopwatch never use the camera. There is no background camera use, no camera foreground
+> service, and no audio: UpYet neither declares nor requests `RECORD_AUDIO`. The recording is written to
+> app-private, non-backed-up storage and never transmitted; the app declares no `INTERNET` permission. A
+> camera failure never blocks dismissing an alarm or stopping a timer.
 
 **Prominent disclosure.** Play requires an in-app disclosure shown before camera access begins, describing
 the data and its use, with affirmative consent that is not merely the system permission dialog. UpYet's is
 `PermissionOnboardingCard` on the alarm list — shown before the camera permission is ever requested, and
 therefore before any recording is possible. It is not dismissible-and-forgotten: it remains until the
 permissions are granted. The user's affirmative action is its button, which is what triggers the system
-dialog. See `docs/adr/0006`.
+dialog. Turning Timer evidence on, in the Settings Timers section or on a timer, shows the same card first
+while the camera permission is not granted, so the system camera dialog is never the first thing a user
+sees from either entry point. See `docs/adr/0006` and its 2026-10-24 amendment.
 
 The card is headed **"Before the camera turns on"** and reads, verbatim:
 
@@ -85,18 +90,25 @@ The button beneath it reads **"Agree & continue"**. This is `permission_onboardi
 
 ### USE_FULL_SCREEN_INTENT
 
-> UpYet is a replacement alarm clock — the primary, user-facing purpose of the app is to ring alarms at
-> times the user sets. The full-screen intent is used for exactly one thing: showing the ringing alarm
-> screen over the lock screen when an alarm fires, which is the defining behaviour of an alarm clock and
-> the use Android documents this permission for. It is never used for advertising, promotions, or any
-> notification that is not a currently-ringing alarm. UpYet does not bypass the keyguard: after the user
-> dismisses the alarm, the device remains locked.
+> UpYet replaces the phone's Clock app — its primary, user-facing purpose is to ring alarms and timers at
+> the times the user sets. The full-screen intent is used for exactly two notifications, both of them a
+> ringing clock: the alarm ringing screen when an alarm fires, and the timer ringing screen when a timer
+> the user started reaches zero. That is the defining behaviour of an alarm clock and a timer, and the use
+> Android documents this permission for. It is never used for advertising, promotions, or any notification
+> that is not a currently-ringing alarm or timer: the upcoming-alarm, running-timer, missed-timer and
+> stopwatch notifications carry no full-screen intent. UpYet does not bypass the keyguard: after the user
+> dismisses an alarm or stops a timer, the device remains locked.
 
 ### USE_EXACT_ALARM
 
-> UpYet's primary function is an alarm clock. Alarms must fire at the exact wall-clock time the user set;
-> an inexact alarm would make the product not work. Every exact alarm scheduled is a user-created alarm
-> occurrence, scheduled with `AlarmManager.setAlarmClock()`, which surfaces the next alarm to system UI.
+> UpYet's primary function is an alarm clock, and it replaces the phone's Clock app, timers included. Alarms
+> must fire at the exact wall-clock time the user set, and a timer must ring the moment its countdown
+> reaches zero; an inexact alarm would make either feature not work. UpYet schedules exactly two kinds of
+> exact alarm, both user-created: each alarm occurrence, with `AlarmManager.setAlarmClock()`, which
+> surfaces the next alarm to system UI; and one alarm for the earliest-ending running timer, with
+> `AlarmManager.setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)`, because a countdown is measured in
+> elapsed time and is not the device's next alarm clock, so it must not be shown as one. No other exact
+> alarm exists.
 
 ## Content rating questionnaire
 
@@ -123,20 +135,22 @@ UpYet: Alarm With Proof
 ### Short description (80 characters max)
 
 ```text
-Alarm clock that records proof you actually got up. Everything stays on your phone.
+Alarm clock that records proof you got up. Everything stays on your phone.
 ```
 
-(79 characters.)
+(74 characters. Play's limit is 80; recount with a script whenever this line changes.)
 
 ### Full description (4000 characters max)
 
 ```text
 Did you actually wake up, or did you dismiss the alarm in your sleep and never remember it?
 
-UpYet is a replacement alarm clock that answers that question. When an alarm rings, UpYet takes over
+UpYet is a replacement clock app that answers that question. When an alarm rings, UpYet takes over
 your lock screen with its own alarm screen — and while that screen is showing, the front camera records
 a short, silent video. Later, you open the app and watch yourself turning off the alarm. Or watch
 yourself not doing it.
+
+It replaces the rest of your Clock app too: a world clock, timers and a stopwatch, in the same app.
 
 EVERYTHING STAYS ON YOUR PHONE
 
@@ -160,10 +174,22 @@ interface. If recording fails, the alarm still rings and dismissing it still wor
 • Gradual volume ramp, and a warning when your alarm volume is turned down to nothing
 • Vibrate-only and fully silent alarms, for shared rooms and for deaf and hard-of-hearing users
 
+THE REST OF YOUR CLOCK
+
+• World clock: the places you pick, on a day-and-night world map, searchable from a list of cities bundled
+  in the app, so nothing is downloaded and your location is never read
+• Timers: as many as you need, running side by side, counting through a reboot and ringing over the
+  lock screen, with Stop, +1 min and Stop all
+• Stopwatch with laps, which keeps counting if the app is closed
+
+Timers can record too, when you turn it on: switch on Timer evidence for one timer, or for every new
+timer in Settings, and the timer's ringing screen records the same silent clip. Out of the box it is off.
+The world clock and the stopwatch never use the camera.
+
 THE HISTORY
 
 Every alarm becomes a wake-up in your history: when it rang, how many times you snoozed, when you finally
-dismissed it, and the video. A stats card answers "how am I doing" — how many wake-ups you got on the
+dismissed it, and the video. A timer that recorded appears in the same list with a Timer badge. A stats card answers "how am I doing" — how many wake-ups you got on the
 first ring, how many minutes you lost to snoozing, how many you missed entirely — over the last week, the
 last month, or all time.
 
@@ -177,9 +203,10 @@ means the claims on this page are checkable rather than promises: https://github
 
 PERMISSIONS
 
-Camera, to record the evidence while the alarm screen is visible — never in the background. Notifications
-and full-screen intent, to show the alarm over your lock screen. Alarms & reminders, because an alarm
-clock must fire at an exact time. Vibrate, and run-at-startup to restore your alarms after a reboot.
+Camera, to record the evidence while an alarm screen, or a timer screen with Timer evidence on, is
+visible — never in the background. Notifications and full-screen intent, to show a ringing alarm or timer
+over your lock screen. Alarms & reminders, because alarms and timers must fire at an exact time. Vibrate,
+and run-at-startup to restore your alarms and timers after a reboot.
 No microphone. No location. No files and media. No internet.
 ```
 

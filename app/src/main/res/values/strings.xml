@@ -65,7 +65,7 @@
     <string name="unnamed_alarm">Unnamed alarm</string>
     <string name="delete">Delete</string>
     <string name="reliability_exact">Exact alarms</string>
-    <string name="reliability_exact_explanation">Alarm clock scheduling access</string>
+    <string name="reliability_exact_explanation">Exact scheduling for alarms and timers</string>
     <string name="reliability_notifications">Notifications</string>
     <string name="reliability_notifications_explanation">Notifications must be enabled</string>
     <string name="reliability_fullscreen">Full-screen alerts</string>

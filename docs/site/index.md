@@ -5,8 +5,9 @@ permalink: /
 
 # UpYet
 
-An Android alarm clock that records video evidence that you actually woke up. Everything stays on the
-phone: no account, no backend, no analytics, and no network permission at all.
+An Android alarm clock that records video evidence that you actually woke up. It replaces your phone's
+Clock app too, with a world clock, timers and a stopwatch. Everything stays on the phone: no account, no
+backend, no analytics, and no network permission at all.
 
 - [Privacy policy](/upyet/privacy/)
 - [Source code, issues and releases](https://github.com/M4ss1ck/upyet)
