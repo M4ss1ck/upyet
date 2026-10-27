@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The world clock's offline place list (ADR 0011): about 5,700 cities with their Spanish names, each with a
+  time zone checked against the IANA list for its own country, plus a small world map outline, built into the
+  app so nothing is downloaded. Place data © GeoNames (CC BY 4.0), map and places made with Natural Earth,
+  time zone rules from the IANA Time Zone Database; the repository's `NOTICE` carries the attributions. The
+  world clock screen that uses them arrives separately.
+
 - The Stopwatch tab: a large dial with a sweeping second hand and a minute sub-dial, big digits, round Lap,
   Start/Pause and Reset buttons, and a lap list (lap, split, total) oldest first. It keeps counting, laps
   included, when Android kills the app, and starts from zero after a reboot. While it runs, one quiet
