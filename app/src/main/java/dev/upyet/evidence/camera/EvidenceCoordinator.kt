@@ -217,7 +217,7 @@ constructor(
         val durationMs = event.recordingStats.recordedDurationNanos / NANOS_PER_MILLISECOND
         val hasFile = file.isFile && file.length() > 0L
         val (status, errorCode) = statusForFinalize(event.error, hasFile, durationMs)
-        if (!hasFile) file.delete()
+        if (!keepsRecordedFile(hasFile, owned = segment != null)) file.delete()
         segment?.let { pending ->
             val now = timeProvider.now()
             // CameraX can finalize a recording that never reported Start - a camera error, or a stop

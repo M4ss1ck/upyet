@@ -35,6 +35,11 @@ class EvidenceSession(
     // activityVisibleAt is the first time the screen was shown, so a re-show after a screen-off must not move it.
     private val markedVisible = mutableSetOf<OccurrenceId>()
 
+    // The recorder is one process-wide engine both ringing screens drive, so only a session that started it may
+    // stop or release it: an alarm ringing over a timer screen resumes before the timer screen stops, and an
+    // unconditional release there would take the camera from the alarm.
+    private var started = false
+
     /**
      * Requests recording on every resume and releases the camera on every stop, so a screen-off or a trip to
      * the background ends one segment and the next resume opens another. [currentRequest] is read at resume
@@ -62,16 +67,19 @@ class EvidenceSession(
         if (occurrenceId != null && markedVisible.add(occurrenceId)) {
             scope.launch { sink.markActivityVisible(occurrenceId, timeProvider.now()) }
         }
+        started = true
         scope.launch { recorder.start(host, occurrenceId, request.evidenceEnabled, sink) }
     }
 
     fun onHidden() {
+        if (!started) return
+        started = false
         recorder.stop()
         recorder.release()
     }
 
     /** The user ended the ring: CameraX finalizes the segment asynchronously and the ring command never waits for it. */
     fun stopRecording() {
-        recorder.stop()
+        if (started) recorder.stop()
     }
 }

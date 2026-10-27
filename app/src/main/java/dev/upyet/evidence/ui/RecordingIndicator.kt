@@ -31,8 +31,17 @@ import dev.upyet.core.ui.theme.RingingPalette
 import dev.upyet.evidence.camera.EvidenceRecordingState
 import dev.upyet.evidence.domain.EvidenceErrorCode
 
+/**
+ * The recording status both ringing screens show: a pulsing dot, words and the elapsed time while recording, never
+ * colour alone. [unavailableLabel] lets a screen word why it is not recording in its own terms; the states and the
+ * elapsed time stay this component's.
+ */
 @Composable
-fun RecordingIndicator(state: EvidenceRecordingState, modifier: Modifier = Modifier) {
+fun RecordingIndicator(
+    state: EvidenceRecordingState,
+    modifier: Modifier = Modifier,
+    unavailableLabel: @Composable (EvidenceErrorCode) -> String = { errorLabel(it) },
+) {
     val (label, showDot, elapsed) = when (state) {
         EvidenceRecordingState.Idle -> Triple(stringResource(R.string.evidence_unavailable), false, null)
 
@@ -46,7 +55,7 @@ fun RecordingIndicator(state: EvidenceRecordingState, modifier: Modifier = Modif
 
         is EvidenceRecordingState.Finished -> Triple(stringResource(R.string.evidence_finished), false, null)
 
-        is EvidenceRecordingState.Unavailable -> Triple(errorLabel(state.errorCode), false, null)
+        is EvidenceRecordingState.Unavailable -> Triple(unavailableLabel(state.errorCode), false, null)
     }
     // Created unconditionally so the animation API is never called from inside a conditional; the value
     // is only ever applied to the dot, which is itself only emitted while recording.

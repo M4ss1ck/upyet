@@ -99,15 +99,48 @@ class EvidenceSessionTest {
     }
 
     @Test fun hidingStopsThenReleases() {
+        session.onVisible(TestHost(), EvidenceRequest(OccurrenceId(7), evidenceEnabled = true))
+        events.clear()
+
         session.onHidden()
 
         assertThat(events).containsExactly("stop", "release").inOrder()
     }
 
     @Test fun stopRecordingStopsWithoutRelease() {
+        session.onVisible(TestHost(), EvidenceRequest(OccurrenceId(7), evidenceEnabled = true))
+        events.clear()
+
         session.stopRecording()
 
         assertThat(events).containsExactly("stop")
+    }
+
+    /**
+     * The recorder is one process-wide engine both ringing screens drive. A screen that never asked it to start -
+     * a timer showing with Timer evidence off, or one still loading - must not stop or release it, because the
+     * camera may be another screen's: an alarm ringing over that timer screen resumes before the timer screen stops.
+     */
+    @Test fun aSessionThatNeverStartedTheRecorderNeverStopsOrReleasesIt() {
+        val host = resumableHost()
+        session.bind(host) { null }
+        host.lifecycle.currentState = Lifecycle.State.RESUMED
+
+        session.stopRecording()
+        host.lifecycle.currentState = Lifecycle.State.CREATED
+        session.onHidden()
+
+        assertThat(events).isEmpty()
+    }
+
+    @Test fun hidingTwiceReleasesOnce() {
+        session.onVisible(TestHost(), EvidenceRequest(OccurrenceId(7), evidenceEnabled = true))
+        events.clear()
+
+        session.onHidden()
+        session.onHidden()
+
+        assertThat(events).containsExactly("stop", "release").inOrder()
     }
 
     @Test fun hostResumingStartsWithRequestEvaluatedAtResume() {

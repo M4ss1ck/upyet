@@ -6,9 +6,9 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.upyet.MainActivity
 import dev.upyet.R
 import dev.upyet.core.notifications.AlarmNotifications
+import dev.upyet.timer.ringing.TimerRingingActivity
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,11 +78,8 @@ class TimerNotifications @Inject constructor(@ApplicationContext private val con
         return builder.build()
     }
 
-    /**
-     * `TimerRingingActivity` lands in slice #38 and replaces this target. Until then the ringing surface is the
-     * app itself: the notification still rings, its actions still work, and nothing here bypasses the keyguard.
-     */
-    private fun screenIntent(): Intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /** The timer ringing screen; it shows over the keyguard and never dismisses it (AGENTS.md §7). */
+    private fun screenIntent(): Intent = Intent(context, TimerRingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /**
      * Only one heads-up variant shows at a time, so one request code per action is enough: the extras of the
