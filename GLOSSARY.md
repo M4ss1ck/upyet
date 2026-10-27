@@ -39,6 +39,18 @@ The silent front-camera video recorded while the ringing screen is visible, plus
 is local-only and never blocks dismissal.
 _Avoid_: Recording, footage, proof
 
+**Snooze**:
+Delaying an alarm occurrence that is already ringing: the ring ends and a new occurrence, chained to it in
+the same wake-up, rings after the alarm's snooze length. A ringing that times out may snooze on its own
+while the alarm allows snoozing.
+_Avoid_: Skip (a skip suppresses an occurrence that has not rung yet), +1 min (that belongs to a timer)
+
+**No snooze**:
+An alarm whose ringing can only be dismissed: no Snooze button, no automatic snooze when it times out. It
+is the alarm's own choice, alongside the snooze lengths, and the default for new alarms can be set to it.
+Changing the alarm to no snooze does not cancel a snooze already pending; that ring is the last one.
+_Avoid_: Disable snooze, snooze lock, max snoozes zero
+
 **Skip next**:
 A one-shot suppression of a recurring alarm's next occurrence, after which the alarm resumes on its own.
 A skip lapses the moment the occurrence it suppressed would have rung, not at the end of that day: from
