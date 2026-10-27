@@ -8,6 +8,7 @@ import dev.upyet.evidence.domain.OccurrenceOutcome
 import dev.upyet.evidence.domain.OccurrenceRepository
 import dev.upyet.evidence.domain.TimerAttribution
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 
 /**
@@ -31,6 +32,9 @@ class FakeOccurrenceRepository : OccurrenceRepository {
     var sweepFailure: Throwable? = null
 
     var createFailure: Throwable? = null
+
+    /** What [observeOccurrences] emits: rows a test says Room already holds, such as one `USER_UNLOCKED` reconciled. */
+    var rows: List<AlarmOccurrence> = emptyList()
     var updateFailure: Throwable? = null
 
     private var nextId = 1L
@@ -66,7 +70,7 @@ class FakeOccurrenceRepository : OccurrenceRepository {
 
     override suspend fun updateSegment(segment: EvidenceSegment) = error("segments are not part of this fake")
 
-    override fun observeOccurrences(): Flow<List<AlarmOccurrence>> = error("unused")
+    override fun observeOccurrences(): Flow<List<AlarmOccurrence>> = flowOf(rows)
 
     override fun observeOccurrence(id: OccurrenceId): Flow<AlarmOccurrence?> = error("unused")
 

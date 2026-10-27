@@ -6,8 +6,6 @@ import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.core.logging.AlarmLog
-import dev.upyet.evidence.domain.OccurrenceOutcome
-import dev.upyet.evidence.domain.OccurrenceRepository
 import dev.upyet.timer.scheduling.TimerDiscovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -19,9 +17,7 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class UserUnlockedReceiver : BroadcastReceiver() {
-    @Inject lateinit var pendingStore: PendingOccurrenceStore
-
-    @Inject lateinit var occurrenceRepository: OccurrenceRepository
+    @Inject lateinit var pendingReconciler: PendingOccurrenceReconciler
 
     @Inject lateinit var rescheduler: AlarmRescheduler
 
@@ -38,9 +34,10 @@ class UserUnlockedReceiver : BroadcastReceiver() {
                 if (!userUnlockState.isUserUnlocked()) return@launch
                 reconcileAlarms()
             } finally {
-                // Timers have their own mirror, so a timer record never reaches the alarm code. After the
-                // alarms, because alarm reliability outranks timers, and even when they throw. Discovery
-                // reconciles the mirror into Room first, then moves overdue timers to Missed and re-arms.
+                // The timer mirror is its own store; pending timer occurrences were dispatched by source in
+                // reconcileAlarms and never reach the alarm code. After the alarms, because alarm reliability
+                // outranks timers, and even when they throw. Discovery reconciles the mirror into Room first,
+                // then moves overdue timers to Missed and re-arms.
                 reconcileTimers()
                 pending.finish()
                 scope.cancel()
@@ -49,15 +46,10 @@ class UserUnlockedReceiver : BroadcastReceiver() {
     }
 
     private suspend fun reconcileAlarms() {
-        pendingStore.all().forEach { record ->
-            val id = occurrenceRepository.createOccurrence(record.alarmId, record.scheduledFor, record.triggeredAt, null)
-            val outcome = runCatching { OccurrenceOutcome.valueOf(record.outcome) }.getOrDefault(OccurrenceOutcome.ERROR)
-            occurrenceRepository.completeOccurrence(id, record.dismissedAt, outcome)
-            // These alarms rang before first unlock, so the service could not reach the alarm store
-            // to retire them. A snoozed one is still due to ring and keeps its place.
-            if (outcome != OccurrenceOutcome.SNOOZED) rescheduler.retireIfOneTime(record.alarmId)
-        }
-        pendingStore.clear()
+        // Dispatches on each record's source: only alarm records name a one-time alarm to retire (ADR 0010).
+        val result = pendingReconciler.reconcile()
+        AlarmLog.event("pending_occurrences_reconciled", "alarms" to result.alarms, "timers" to result.timers)
+        result.alarmsToRetire.forEach { rescheduler.retireIfOneTime(it) }
         rescheduler.rescheduleAll()
     }
 

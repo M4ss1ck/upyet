@@ -6,6 +6,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.upyet.alarm.data.RoomAlarmRepository
 import dev.upyet.alarm.domain.AlarmRepository
+import dev.upyet.core.directboot.PendingOccurrenceStore
+import dev.upyet.core.directboot.PendingOccurrences
 import dev.upyet.core.time.SystemTimeProvider
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.data.AppEvidenceFileStore
@@ -29,6 +31,10 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindEvidenceThumbnailExtractor(extractor: MediaMetadataThumbnailExtractor): EvidenceThumbnailExtractor
+
+    /** Direct-Boot-safe: device-protected SharedPreferences, never Room (AGENTS.md §11). */
+    @Binds
+    abstract fun bindPendingOccurrences(store: PendingOccurrenceStore): PendingOccurrences
 
     @Binds
     abstract fun bindTimeProvider(provider: SystemTimeProvider): TimeProvider
