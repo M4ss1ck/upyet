@@ -21,12 +21,24 @@ dev.upyet
 │   ├── data        Room entities/DAOs, EvidenceFileStore, RetentionCleaner
 │   ├── camera      EvidenceSession (shared by both ringing screens), EvidenceCoordinator (CameraX)
 │   └── ui          recording indicator, evidence player
-├── history/ui      occurrence list + detail
+├── history/ui      occurrence list + detail (alarm and timer occurrences, Timer badge)
+├── timer
+│   ├── domain      pure Kotlin: Timer, run-state transitions, remaining-time math from both anchors
+│   ├── data        Room entities/mapper, RoomTimerRepository (mirrors to device-protected storage)
+│   ├── scheduling  TimerScheduler (one exact alarm), TimerReceiver, TimerDiscovery, running/missed notices
+│   ├── playback    TimerPlaybackService, one sound/vibration/wake lock for every ringing timer
+│   ├── ringing     TimerRingingActivity, TimerRingingViewModel, timer occurrence for the showing
+│   └── ui          timer list + wheel editor
+├── worldclock
+│   ├── domain      pure Kotlin: city search index, solar position for the night band, list rows
+│   ├── data        bundled gazetteer + land outline loaders (res/raw, ADR 0011)
+│   └── ui          map card, place list, drag reorder, city picker
+├── intents         platform AlarmClock intents (SET_ALARM, SET_TIMER, DISMISS_*), ringing surfaces
 ├── stopwatch
 │   ├── domain      pure Kotlin: Stopwatch (anchor, accumulated time, laps), ports
 │   ├── data        StopwatchController, DataStore store, boot count, ongoing notice (id 1104)
 │   └── ui          dial, digits, round buttons, lap list
-├── settings        DataStore-backed settings + UI
+├── settings        DataStore-backed settings (incl. the world clock list) + UI, Data sources screen
 ├── reliability/ui  diagnostics screen
 ├── core            time, database, directboot, notifications, logging, ui theme
 └── navigation      NavHost and routes
@@ -204,7 +216,10 @@ composables; navigation confined to the NavHost. The ringing screen additionally
 
 * **Exact alarms.** Only `setAlarmClock()` gives an alarm-clock-grade, Doze-exempt, user-visible
   alarm. It also surfaces the next alarm to the system UI. `USE_EXACT_ALARM` is appropriate because
-  this app's primary function is an alarm clock.
+  this app's primary function is an alarm clock, and it replaces the system Clock app, whose timers need
+  exact alarms too. Timers are the one exact alarm that is not `setAlarmClock()`: the earliest-ending timer
+  gets `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` (ADR 0009), because a countdown is not the
+  device's next alarm and must not be reported as one.
 * **Background activity starts are restricted.** The supported route to a lock-screen alarm UI is a
   high-importance notification with a full-screen intent, plus `setShowWhenLocked`/`setTurnScreenOn` on
   the Activity. Overlays, accessibility services and keyguard dismissal are prohibited.

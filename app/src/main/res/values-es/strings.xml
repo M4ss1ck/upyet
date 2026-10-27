@@ -68,7 +68,7 @@
     <string name="unnamed_alarm">Alarma sin nombre</string>
     <string name="delete">Eliminar</string>
     <string name="reliability_exact">Alarmas exactas</string>
-    <string name="reliability_exact_explanation">Acceso a la programación de alarmas</string>
+    <string name="reliability_exact_explanation">Programación exacta de alarmas y temporizadores</string>
     <string name="reliability_notifications">Notificaciones</string>
     <string name="reliability_notifications_explanation">Las notificaciones deben estar activadas</string>
     <string name="reliability_fullscreen">Avisos a pantalla completa</string>

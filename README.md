@@ -1,10 +1,12 @@
 # UpYet
 
 A native Android alarm clock that records **video evidence that you actually dismissed the alarm**.
+It replaces the phone's Clock app: Alarms, World clock, Timer and Stopwatch.
 
 When an alarm rings, UpYet shows its own alarm screen over the lock screen and — only while that screen
 is visible — records a short silent video from the front camera. Later you can open the app and answer the
-question *"did I actually wake up and dismiss that alarm?"*
+question *"did I actually wake up and dismiss that alarm?"* A timer can record the same way when you turn
+its Timer evidence on; the global switch is off by default and new timers take its value. The world clock and the stopwatch never use the camera.
 
 Everything stays on the device: no account, no backend, no analytics, no network permission at all.
 
@@ -21,6 +23,12 @@ and a full-screen-intent notification opens `RingingActivity` over the keyguard.
 bound to that Activity's lifecycle; a camera, storage, database or UI failure is recorded as a status and
 never blocks dismissal. Alarm-critical state is mirrored into device-protected storage so alarms still ring
 after a reboot with no unlock.
+
+Timers take the same reliability path without sharing its state: one exact
+`AlarmManager.setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` alarm for the earliest-ending timer
+(ADR 0009), their own `mediaPlayback` service and their own ringing screen, which drives the same evidence
+component when Timer evidence is on (ADR 0010). The world clock runs on a place list bundled in the APK
+(ADR 0011) and the stopwatch on stored anchors; neither holds a service or touches the camera.
 
 Read [`AGENTS.md`](AGENTS.md) for the binding engineering rules, [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 for how and why it is built this way, and [`docs/TESTING.md`](docs/TESTING.md) for the test matrix.
@@ -83,6 +91,12 @@ available under the same terms.
 
 Dependencies are Apache-2.0 / MIT-family (AndroidX, Google, JetBrains), which combine into a GPLv3 work
 one-way: their code may be used here, but this project's terms govern the result.
+
+## Data sources
+
+The world clock bundles place and map data from GeoNames (CC BY 4.0), Natural Earth (public domain) and the
+IANA Time Zone Database (public domain). The full attribution and the changes made are in [`NOTICE`](NOTICE)
+and on the in-app Settings → About → Data sources screen.
 
 ## Stack
 
