@@ -527,6 +527,32 @@ Claims must be labelled honestly: *compile-verified*, *unit-tested*, *emulator-t
 *physical-device-tested*, or *reasoned but unverified*. Never claim device verification that
 did not happen. Keep planning artifacts (`docs/superpowers/**`) local; do not commit them.
 
+## 19a. Orchestrator context budget (Claude Code)
+
+Every turn re-sends the whole session, so a line read or written in the orchestrating session is paid on
+every later turn. Nine `/implement` runs (2026-10-24 to 26) started at ~60k tokens and peaked at 118k to
+286k over 77 to 230 turns. The growth was the orchestrator itself: reading whole source files and persisted
+outputs (30-50k tokens), writing the production code while workers only got tests and reviews (15-25k), and
+the thinking carried across that many turns. When a session orchestrates:
+
+1. **Explore through `mini-explorer`.** "How does X work" and "where is Y" go to a worker that returns a
+   brief of 40 lines or fewer with `file:line` references. The orchestrator reads only the ranges it edits
+   or verifies.
+2. **Delegate the writing, production code included.** Each unit gets signatures, behavior, the invariant
+   involved and the exact test command. If a unit is too judgment-heavy for haiku, pass `model: "sonnet"` on
+   that Agent call rather than writing it in the orchestrator. Review results with `git diff --stat` and
+   targeted hunks, not by re-reading files.
+3. **Never re-read a persisted output whole** (`.../tool-results/*.txt`): grep it or rerun the command
+   narrower. Gradle runs use `-q ... 2>&1 | tail -n 30`; failures come from grepping the test XML.
+4. **Fewer, larger turns.** Batch independent calls in one message.
+5. **Checkpoint at ~150k.** Finish the current unit, commit it on the task branch, push, and tell the user;
+   a fresh session resuming from the PR and the issue is cheaper than another 100 turns.
+
+`.claude/hooks/read_budget.py` enforces rules 1 and 3 in the main session only (subagents are exempt):
+it denies a `Read` or `cat` of a file over 200 lines without a range, a `sed -n` range over 200 lines, and
+any whole read of a persisted output. `python3 .claude/hooks/context_report.py` prints start and peak
+context per session, the number this section is meant to bring down.
+
 ## 20. Explicitly prohibited approaches
 
 * WorkManager / `setRepeating()` / in-process timers (`Handler`, `java.util.Timer`, coroutine

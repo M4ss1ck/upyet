@@ -10,3 +10,6 @@ build/
 local.properties
 /docs/superpowers/
 .kotlin/
+
+# Python bytecode from .claude/hooks tests
+__pycache__/
