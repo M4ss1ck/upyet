@@ -300,18 +300,18 @@
     <string name="settings_data_sources_summary">Where the place names, time zones and map outline come from, and their licences</string>
     <string name="data_sources_intro">The world clock uses this data, bundled inside the app. Nothing is downloaded while you use it.</string>
     <string name="data_sources_geonames_name">Place data © GeoNames</string>
-    <string name="data_sources_geonames_supplies">Each place\'s time zone.</string>
+    <string name="data_sources_geonames_supplies">Each place\'s time zone and, where Natural Earth has none, its GeoNames id.</string>
     <string name="data_sources_geonames_licence">Licence: Creative Commons Attribution 4.0 (CC BY 4.0)</string>
     <string name="data_sources_geonames_changes">Changes made: records were matched to Natural Earth places by id, or by name, country and distance. Zones were canonicalised through IANA backward links and validated against IANA zone.tab. No other GeoNames field was kept.</string>
     <string name="data_sources_geonames_url" translatable="false">https://www.geonames.org/</string>
     <string name="data_sources_cc_by_url" translatable="false">https://creativecommons.org/licenses/by/4.0/</string>
     <string name="data_sources_natural_earth_name">Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com</string>
-    <string name="data_sources_natural_earth_supplies">Place names, coordinates and population, and the world map land outline.</string>
+    <string name="data_sources_natural_earth_supplies">Place names, coordinates and population (ne_10m_populated_places) and the world map land outline (ne_110m_land).</string>
     <string name="data_sources_natural_earth_licence">Licence: Public domain</string>
     <string name="data_sources_natural_earth_url" translatable="false">https://www.naturalearthdata.com/about/terms-of-use/</string>
     <string name="data_sources_iana_name">IANA Time Zone Database</string>
     <string name="data_sources_iana_supplies">Time zone rules: zone.tab and backward.</string>
-    <string name="data_sources_iana_licence">Licence: Public domain</string>
+    <string name="data_sources_iana_licence">Licence: Public domain (zone.tab and backward)</string>
     <string name="data_sources_iana_url" translatable="false">https://www.iana.org/time-zones</string>
     <string name="world_clock_attribution">Place data © GeoNames, CC BY 4.0. Made with Natural Earth.</string>
     <string name="world_clock_add_place">Add place</string>

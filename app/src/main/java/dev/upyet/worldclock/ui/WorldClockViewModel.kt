@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
-import java.util.IllformedLocaleException
 import java.util.Locale
 import javax.inject.Inject
 
@@ -102,12 +101,13 @@ class WorldClockViewModel @Inject constructor(
         viewModelScope.launch { repository.add(id) }
     }
 
-    /** Index is read from the stored order, so undo can put the place back where it was. A place not stored is a no-op. */
+    /**
+     * The repository reports where the place stood, so undo can put it back there. A place not stored is a no-op.
+     * Undo holds one removal: a second removal replaces the first, as a snackbar shows one message at a time.
+     */
     fun onRemove(id: Long) {
         viewModelScope.launch {
-            val index = repository.cityIds.first().indexOf(id)
-            if (index < 0) return@launch
-            repository.remove(id)
+            val index = repository.remove(id) ?: return@launch
             pendingUndo.value = RemovedPlace(geonamesId = id, index = index)
             selectedId.update { if (it == id) null else it }
         }
@@ -151,14 +151,8 @@ class WorldClockViewModel @Inject constructor(
     private fun countryNames(isoA2: String): Set<String> = listOf(Locale.getDefault(), Locale.ENGLISH, Locale.forLanguageTag("es"))
         .mapTo(mutableSetOf()) { countryName(isoA2, it) }
 
-    private fun countryName(isoA2: String, locale: Locale): String = try {
-        Locale.Builder().setRegion(isoA2).build().getDisplayCountry(locale)
-    } catch (e: IllformedLocaleException) {
-        isoA2
-    }
-
     private fun readyStates(catalog: Catalog): Flow<WorldClockUiState> {
-        // Labels are per zone and never change within a process, so each zone is asked once per subscription.
+        // ICU is asked once per zone per subscription; a language change is picked up on the next subscription.
         val labels = HashMap<ZoneId, String?>()
         fun label(zone: ZoneId): String? =
             if (labels.containsKey(zone)) labels[zone] else zoneLabeler.label(zone, Locale.getDefault()).also { labels[zone] = it }

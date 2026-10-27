@@ -7,8 +7,8 @@ import java.util.Locale
 /**
  * Accent-insensitive offline search over the bundled gazetteer (issue #15: city and country, sorted by population).
  *
- * The keys are normalized once here, not per query: a query runs over about 5,700 cities on the UI thread while the
- * user types, and re-folding every name on each keystroke is the cost this class exists to avoid.
+ * The keys are normalized once here, not per query: a query runs over about 5,700 cities on every keystroke while
+ * the user types, and re-folding every name on each keystroke is the cost this class exists to avoid.
  *
  * Ranking is a tier first and population second. A user typing "san" wants the cities that start with it ahead of
  * the big cities where it only occurs mid-word ("Pusan"), so the tier outranks population.

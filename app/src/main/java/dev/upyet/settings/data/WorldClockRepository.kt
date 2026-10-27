@@ -33,10 +33,18 @@ constructor(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    suspend fun remove(id: Long) {
+    /**
+     * Returns the position [id] held, read in the same edit that removes it so an undo cannot restore it to a stale
+     * slot; null when it was not stored.
+     */
+    suspend fun remove(id: Long): Int? {
+        var removedAt: Int? = null
         dataStore.edit { preferences ->
-            preferences.write(decode(preferences[Keys.cityIds]) - id)
+            val ids = decode(preferences[Keys.cityIds])
+            removedAt = ids.indexOf(id).takeIf { it >= 0 }
+            preferences.write(ids - id)
         }
+        return removedAt
     }
 
     /** Undo-remove re-inserts at the remembered position; an out-of-range index clamps to the ends. */

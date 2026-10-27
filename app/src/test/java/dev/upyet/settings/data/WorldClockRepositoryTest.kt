@@ -48,8 +48,9 @@ class WorldClockRepositoryTest {
         repository.add(7)
         repository.add(30)
 
-        repository.remove(7)
+        val removedAt = repository.remove(7)
 
+        assertThat(removedAt).isEqualTo(1)
         assertThat(repository.cityIds.first()).containsExactly(12L, 30L).inOrder()
     }
 
@@ -58,8 +59,9 @@ class WorldClockRepositoryTest {
         val repository = WorldClockRepository(FakeDataStore(emptyPreferences()))
         repository.add(12)
 
-        repository.remove(99)
+        val removedAt = repository.remove(99)
 
+        assertThat(removedAt).isNull()
         assertThat(repository.cityIds.first()).containsExactly(12L)
     }
 
