@@ -60,6 +60,11 @@ precisely which environment and why.
   labelled "Last snooze", a silenced stream is explained on the ringing screen, the maximum-snoozes
   setting renders and reports every option including Unlimited, and a snooze chain collapses into one
   history row carrying its count, its elapsed time and its final outcome.
+* Compose, timer ringing (`TimerRingingScreenTest`): Stop, +1 min and Stop all present, enabled and wired to the
+  focused timer in every camera state (unavailable, in use, permission denied, before first unlock, preparing,
+  recording), the recording badge's wording per state with the dot and elapsed time while recording, no badge when
+  every ringing timer has Timer evidence off, a queue chip moving the focus, Stop all only with two or more ringing,
+  the lock glyph with no unlock action, and the preview toggle.
 
 ### What the emulator taught us
 

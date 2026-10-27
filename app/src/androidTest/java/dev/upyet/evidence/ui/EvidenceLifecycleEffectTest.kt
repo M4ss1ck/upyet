@@ -81,14 +81,29 @@ class EvidenceLifecycleEffectTest {
         var shown by mutableStateOf(true)
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides host) {
-                if (shown) EvidenceLifecycleEffect(session, ringing = false, currentRequest = { live })
+                if (shown) EvidenceLifecycleEffect(session, ringing = true, currentRequest = { live })
             }
         }
+        compose.runOnIdle { assertThat(events).containsExactly("start:7") }
         compose.runOnIdle { events.clear() }
 
         compose.runOnIdle { shown = false }
 
         compose.runOnIdle { assertThat(events).containsExactly("stop", "release").inOrder() }
+    }
+
+    /** The recorder is shared with the other ringing screen, so a screen that never started it leaves it alone. */
+    @Test fun leavingCompositionWithoutHavingRecordedReleasesNothing() {
+        var shown by mutableStateOf(true)
+        compose.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides host) {
+                if (shown) EvidenceLifecycleEffect(session, ringing = false, currentRequest = { live })
+            }
+        }
+
+        compose.runOnIdle { shown = false }
+
+        compose.runOnIdle { assertThat(events).isEmpty() }
     }
 
     private fun showResumed() {

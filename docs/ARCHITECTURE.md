@@ -160,6 +160,13 @@ flowchart LR
   the Hilt singletons, because sharing the alarm's `MediaPlayer` would let a timer silence a ringing alarm.
   `TimerNotifications` posts id 1101 on `timer_ringing`; its heads-up offers Stop and +1 min, or Stop all,
   only while no ringing timer has Timer evidence on (issue #14). It never calls `cancelUpcoming()`.
+* The timer ringing screen (AGENTS.md §9a, issue #14 variant C) lives in `timer/ringing/`. The ringing
+  notification's full-screen and content intents open `TimerRingingActivity` (Direct-Boot aware,
+  `showWhenLocked`, `turnScreenOn`, screen kept on, keyguard never dismissed). `TimerRingingViewModel` reads
+  `TimerRingingRegistry` and sends Stop, +1 min and Stop all to the service through `TimerRingingCommands`;
+  the pure `timerRingingState` picks the focused timer (the user's choice while it rings, otherwise the one
+  that started ringing last) and the queue. Recording runs while any ringing timer has Timer evidence on and
+  stops when the last of them leaves (ADR 0010). A showing with every toggle off never touches the recorder.
 * Occurrences that fire while locked are appended to a device-protected pending list and merged into
   Room when the user unlocks.
 * CameraX before first unlock is best-effort only: when it cannot initialize, the occurrence records
@@ -201,6 +208,8 @@ composables; navigation confined to the NavHost. The ringing screen additionally
   `activityVisibleAt` mark, the recording state the UI renders) and takes the host lifecycle and the
   `EvidenceSink` that receives the occurrence's segments as parameters, so the alarm and timer ringing
   screens share it rather than each carrying a copy (AGENTS.md §10, ADR 0010).
+  The CameraX engine behind it is one process-wide singleton, so a session that never started it never
+  stops or releases it: an alarm ringing over a timer screen resumes before the timer screen stops.
 * **Direct Boot.** Credential-protected storage is unreadable before first unlock, so the alarm path
   cannot depend on Room.
 * **Force stop.** A force-stopped app loses its alarms and cannot restart itself; Android offers no

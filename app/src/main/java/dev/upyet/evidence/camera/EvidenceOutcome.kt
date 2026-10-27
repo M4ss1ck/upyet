@@ -33,3 +33,10 @@ fun statusForFinalize(errorCode: Int, hasFile: Boolean, durationMs: Long): Pair<
         else -> EvidenceStatus.FAILED to EvidenceErrorCode.UNKNOWN
     }
 }
+
+/**
+ * A finished recording is kept only when it has content and an occurrence owns it. A recording with no occurrence
+ * has no segment row, so History could never show it and retention could never delete it (AGENTS.md §12); it is
+ * deleted instead of being left behind in `noBackupFilesDir`.
+ */
+fun keepsRecordedFile(hasFile: Boolean, owned: Boolean): Boolean = hasFile && owned

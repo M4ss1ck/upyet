@@ -38,4 +38,12 @@ class EvidenceOutcomeTest {
         assertThat(statusForFinalize(-1, true, 1L)).isEqualTo(EvidenceStatus.FAILED to EvidenceErrorCode.UNKNOWN)
         assertThat(statusForFinalize(99, false, 0L)).isEqualTo(EvidenceStatus.FAILED to EvidenceErrorCode.UNKNOWN)
     }
+
+    @Test
+    fun aRecordedFileIsKeptOnlyWhenAnOccurrenceOwnsIt() {
+        assertThat(keepsRecordedFile(hasFile = true, owned = true)).isTrue()
+        // No segment row points at it, so neither History nor retention could ever reach or delete it.
+        assertThat(keepsRecordedFile(hasFile = true, owned = false)).isFalse()
+        assertThat(keepsRecordedFile(hasFile = false, owned = true)).isFalse()
+    }
 }

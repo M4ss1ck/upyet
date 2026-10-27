@@ -43,6 +43,17 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.UpYet.Ringing"
             tools:targetApi="27" />
+        <activity
+            android:name=".timer.ringing.TimerRingingActivity"
+            android:exported="false"
+            android:directBootAware="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.UpYet.Ringing"
+            tools:targetApi="27" />
         <service
             android:name=".alarm.playback.AlarmPlaybackService"
             android:exported="false"
