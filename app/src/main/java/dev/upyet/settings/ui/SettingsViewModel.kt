@@ -82,6 +82,7 @@ class SettingsViewModel @Inject constructor(
     fun setMaxSnoozes(value: Int) = viewModelScope.launch { repository.setMaxSnoozes(value) }
     fun setVibration(value: Boolean) = viewModelScope.launch { repository.setDefaultVibrationEnabled(value) }
     fun setEvidence(value: Boolean) = viewModelScope.launch { repository.setEvidenceEnabledByDefault(value) }
+    fun setTimerEvidence(value: Boolean) = viewModelScope.launch { repository.setTimerEvidenceByDefault(value) }
 
     fun setUpcomingAlarmLead(value: Int) = viewModelScope.launch {
         repository.setUpcomingAlarmLeadMinutes(value)
@@ -99,6 +100,7 @@ class SettingsViewModel @Inject constructor(
                     "maxSnoozes" to settings.maxSnoozes.toString(),
                     "defaultVibrationEnabled" to settings.defaultVibrationEnabled.toString(),
                     "evidenceEnabledByDefault" to settings.evidenceEnabledByDefault.toString(),
+                    "timerEvidenceByDefault" to settings.timerEvidenceByDefault.toString(),
                     "upcomingAlarmLeadMinutes" to settings.upcomingAlarmLeadMinutes.toString(),
                     "statsWindow" to settings.statsWindow.name,
                 )

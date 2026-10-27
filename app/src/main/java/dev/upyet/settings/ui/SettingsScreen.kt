@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Snooze
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -51,15 +53,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upyet.BuildConfig
 import dev.upyet.R
 import dev.upyet.alarm.domain.SnoozeBudget
+import dev.upyet.core.ui.CameraGate
+import dev.upyet.core.ui.CameraGateHost
 import dev.upyet.core.ui.components.PrimaryButton
 import dev.upyet.core.ui.components.RowDivider
 import dev.upyet.core.ui.components.SectionLabel
 import dev.upyet.core.ui.components.SettingsRow
 import dev.upyet.core.ui.components.UpYetCard
 import dev.upyet.core.ui.components.UpYetTopBar
+import dev.upyet.core.ui.rememberCameraGate
 import dev.upyet.reliability.domain.ReliabilitySummary
 import dev.upyet.settings.data.AppLanguage
 import dev.upyet.settings.data.RetentionPolicy
+
+internal const val TIMER_EVIDENCE_DEFAULT_SWITCH_TAG = "settings_timer_evidence_default"
 
 @Composable
 fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
@@ -78,6 +85,7 @@ fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: Set
                 onMaxSnoozes = viewModel::setMaxSnoozes,
                 onVibration = viewModel::setVibration,
                 onEvidence = viewModel::setEvidence,
+                onTimerEvidence = viewModel::setTimerEvidence,
                 onRetention = viewModel::setRetention,
                 onLanguage = viewModel::setLanguage,
                 onUpcomingAlarmLead = viewModel::setUpcomingAlarmLead,
@@ -95,11 +103,14 @@ fun SettingsContent(
     onMaxSnoozes: (Int) -> Unit = {},
     onVibration: (Boolean) -> Unit = {},
     onEvidence: (Boolean) -> Unit = {},
+    onTimerEvidence: (Boolean) -> Unit = {},
     onRetention: (RetentionPolicy) -> Unit = {},
     onLanguage: (AppLanguage) -> Unit = {},
     onUpcomingAlarmLead: (Int) -> Unit = {},
     onShareDiagnostics: () -> Unit = {},
+    cameraGate: CameraGate = rememberCameraGate(),
 ) {
+    CameraGateHost(cameraGate)
     // Scrollable: this screen grows with every new setting and must never hide one below the fold.
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
@@ -229,6 +240,23 @@ fun SettingsContent(
                     }
                 }
             }
+        }
+
+        SectionLabel(stringResource(R.string.settings_timers), Modifier.padding(top = 16.dp, bottom = 2.dp))
+        UpYetCard {
+            SettingsRow(
+                title = stringResource(R.string.timer_evidence_by_default),
+                subtitle = stringResource(R.string.timer_evidence_by_default_summary),
+                icon = Icons.Filled.Timer,
+                trailing = {
+                    Switch(
+                        checked = state.settings?.timerEvidenceByDefault == true,
+                        modifier = Modifier.testTag(TIMER_EVIDENCE_DEFAULT_SWITCH_TAG),
+                        // Turning it on is consent to the camera, so the disclosure comes before the system dialog (ADR 0010).
+                        onCheckedChange = { on -> if (on) cameraGate.whenGranted { onTimerEvidence(true) } else onTimerEvidence(false) },
+                    )
+                },
+            )
         }
 
         if (state.languageSupported) {

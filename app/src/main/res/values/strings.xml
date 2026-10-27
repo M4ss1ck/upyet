@@ -273,9 +273,12 @@
     <!-- Settings -->
     <string name="settings_defaults">Alarm defaults</string>
     <string name="settings_evidence">Evidence</string>
+    <string name="settings_timers">Timers</string>
     <string name="settings_about">About</string>
     <string name="about_local_only">No account, no network, no analytics. Everything stays on this phone.</string>
     <string name="evidence_by_default_summary">New alarms record evidence unless you turn it off</string>
+    <string name="timer_evidence_by_default">Record when a timer rings</string>
+    <string name="timer_evidence_by_default_summary">New timers start with Timer evidence on. Existing timers keep their own setting.</string>
     <string name="evidence_retention_summary">Older clips are deleted automatically</string>
     <string name="settings_general">General</string>
     <string name="settings_language">Language</string>

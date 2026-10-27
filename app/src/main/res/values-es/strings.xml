@@ -281,9 +281,12 @@
     <!-- Settings -->
     <string name="settings_defaults">Valores predeterminados</string>
     <string name="settings_evidence">Prueba</string>
+    <string name="settings_timers">Temporizadores</string>
     <string name="settings_about">Acerca de</string>
     <string name="about_local_only">Sin cuenta, sin red, sin analíticas. Todo se queda en este teléfono.</string>
     <string name="evidence_by_default_summary">Las alarmas nuevas graban prueba salvo que lo desactives</string>
+    <string name="timer_evidence_by_default">Grabar cuando suene un temporizador</string>
+    <string name="timer_evidence_by_default_summary">Los temporizadores nuevos empiezan con la prueba activada. Los que ya existen conservan su ajuste.</string>
     <string name="evidence_retention_summary">Los clips antiguos se eliminan automáticamente</string>
     <string name="settings_general">General</string>
     <string name="settings_language">Idioma</string>
