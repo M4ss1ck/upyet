@@ -48,4 +48,10 @@ class ClockIntentManifestTest {
         assertThat(info.directBootAware).isFalse()
         assertThat(info.exported).isTrue()
     }
+
+    // Two requests in quick succession must each get an instance; the second would otherwise be lost (see manifest).
+    @Test fun everyRequestGetsItsOwnTrampolineInstance() {
+        val info = context.packageManager.getActivityInfo(android.content.ComponentName(context, trampoline), 0)
+        assertThat(info.documentLaunchMode).isEqualTo(android.content.pm.ActivityInfo.DOCUMENT_LAUNCH_ALWAYS)
+    }
 }

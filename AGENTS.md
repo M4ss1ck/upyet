@@ -316,7 +316,7 @@ keyguard bypass.
   for a ringing alarm: through the existing ringing notification's full-screen intent, or its
   content intent when the platform shows the heads-up instead, never a background
   `startActivity()` (ADR 0007, amendment of 2026-10-24). A ringing timer with Timer evidence
-  off stops directly; a non-ringing timer named by the intent's data URI is reset, as the contract says
+  off stops directly; a non-ringing timer named by the intent's data URI is reset (never deleted), as the contract says
   (ADR 0007 amendment); without a data URI only ringing timers are affected.
 * Timestamps recorded per occurrence: `scheduledFor`, `triggeredAt`, `activityVisibleAt`,
   and per segment `recordingRequestedAt`, `recordingStartedAt?`, `recordingEndedAt?`,

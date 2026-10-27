@@ -1,5 +1,6 @@
 package dev.upyet.intents
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateFormat
 import android.widget.Toast
@@ -34,7 +35,7 @@ class ClockIntentActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.handleOnce(ClockIntentParser.parse(intent.action, intent.dataString, BundleIntentExtras(intent.extras)))
+        viewModel.handleOnce(parse(intent))
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 val effects = viewModel.effects.filterNotNull().first()
@@ -43,6 +44,8 @@ class ClockIntentActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun parse(intent: Intent) = ClockIntentParser.parse(intent.action, intent.dataString, BundleIntentExtras(intent.extras))
 
     private fun apply(effect: IntentEffect) {
         when (effect) {

@@ -35,6 +35,30 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.2.0
+
+Lane: adb   Build: 0.2.0 (200)   Package: `dev.upyet.debug`
+
+Branch `feat-alarmclock-intents` (#46). Emulator run, so a regression result only. Google Clock is also
+installed, so every command named the component (`-n dev.upyet.debug/dev.upyet.intents.ClockIntentActivity`);
+shell passed the `SET_ALARM` guard. A `SKIP_UI` toast ("Timer started") was seen on screen. Instrumented on the
+same AVD: `MigrationSmokeTest` 9 (including 5 -> 6), `UpYetDatabaseTest` 8, `TabsScreenTest` 14, all pass.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| set-timer-intent | PASS | `SKIP_UI` timer armed, launcher stayed on top; `timers.evidenceEnabled` 0 with the global switch off, 1 with it on |
+| timer-dismiss-intent | PASS | recording-off ringing timer: `timer_stopped`, notification 1101 gone. Recording-on, screen sent home: `TimerRingingActivity` resumed, `camera_bind_requested`, 1101 still posted. With `-d content://dev.upyet/timers/1` a Running timer went RUNNING -> IDLE |
+| voice-alarm | PASS | stored `voice=1`; dismissed from the ringing screen: `voice_alarm_deleted`, `alarms` empty, occurrence kept as DISMISSED. Prefilled editor (07:15, "Gym", Mon+Wed) stored nothing. Burst of three: see findings |
+| alarm-dismiss-intent | PASS | ringing (modes `next` and `label`): `RingingActivity` resumed, 1001 still posted. `all` over nine alarms: nothing changed, MainActivity opened. `time` 10 PM on a one-time alarm: `enabled=0`, row kept. Snoozed (`label`): nothing changed, snooze not cancelled. `SNOOZE_ALARM` resolves to nothing of ours |
+
+### Findings
+- A burst of three `SET_ALARM` commands created one alarm: the platform delivered the second and third
+  ("delivered to currently running top-most instance") to the first trampoline after it had finished, and
+  they were lost. Fixed with `documentLaunchMode="always"` on `ClockIntentActivity`; the same burst then
+  created three alarms. Pinned by `ClockIntentManifestTest`.
+- Bringing a ringing screen forward over the keyguard was not attempted: it needs the ringing screen in the
+  background while locked. Physical-device check.
+
 ## 2026-10-07 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.1.7
 
 Lane: automated   Build: 0.1.7 (107)   Package: `dev.upyet.debug`

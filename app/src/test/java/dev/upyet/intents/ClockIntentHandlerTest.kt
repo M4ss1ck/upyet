@@ -252,19 +252,30 @@ class ClockIntentHandlerTest {
     }
 
     @Test
-    fun `set alarm exact alarms unavailable disables the alarm and opens reliability`() = runTest {
+    fun `set alarm exact alarms unavailable removes the new alarm and opens reliability`() = runTest {
         val h = Harness()
         h.actions.scheduleResult = SchedulingResult.ExactAlarmsUnavailable
         val effects = h.handler.handle(setAlarm())
-        assertThat(h.alarms.stored.single().enabled).isFalse()
+        assertThat(h.alarms.stored).isEmpty()
         assertThat(effects).containsExactly(toast(R.string.alarm_scheduling_exact_unavailable), IntentEffect.OpenReliability).inOrder()
     }
 
     @Test
-    fun `set alarm failure disables the alarm and opens reliability`() = runTest {
+    fun `set alarm failure removes the new alarm and opens reliability`() = runTest {
         val h = Harness()
         h.actions.scheduleResult = SchedulingResult.Failed(IllegalStateException())
         val effects = h.handler.handle(setAlarm())
+        assertThat(h.alarms.stored).isEmpty()
+        assertThat(effects).containsExactly(toast(R.string.alarm_scheduling_failed), IntentEffect.OpenReliability).inOrder()
+    }
+
+    @Test
+    fun `set alarm failure on a reused alarm keeps the row and turns it off`() = runTest {
+        val existing = alarm(4, LocalTime.of(6, 45), enabled = false, label = "Gym", recurrence = Recurrence.Daily)
+        val h = Harness(listOf(existing))
+        h.actions.scheduleResult = SchedulingResult.Failed(IllegalStateException())
+        val effects = h.handler.handle(setAlarm(recurrence = Recurrence.Daily, label = "Gym"))
+        assertThat(h.alarms.stored.single().id).isEqualTo(AlarmId(4))
         assertThat(h.alarms.stored.single().enabled).isFalse()
         assertThat(effects).containsExactly(toast(R.string.alarm_scheduling_failed), IntentEffect.OpenReliability).inOrder()
     }
@@ -404,7 +415,7 @@ class ClockIntentHandlerTest {
     @Test
     fun `dismiss timer idle needs no edit`() = runTest {
         val h = Harness(timerList = listOf(timer(1, TimerRunState.Idle)))
-        assertThat(h.handler.handle(ClockIntent.DismissTimer(1))).containsExactly(toast(R.string.intent_timer_reset))
+        assertThat(h.handler.handle(ClockIntent.DismissTimer(1))).containsExactly(toast(R.string.intent_timer_not_running))
         assertThat(h.editor.commands).isEmpty()
     }
 

@@ -420,6 +420,7 @@
     <string name="intent_timer_started">Temporizador iniciado</string>
     <string name="intent_timer_stopped">Temporizador detenido</string>
     <string name="intent_timer_reset">Temporizador reiniciado</string>
+    <string name="intent_timer_not_running">Ese temporizador no está en marcha</string>
     <string name="intent_timer_none_ringing">Ningún temporizador está sonando</string>
     <string name="intent_timer_not_found">Ese temporizador ya no existe</string>
     <string name="intent_invalid_request">UpYet no ha podido entender esa solicitud</string>

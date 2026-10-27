@@ -414,6 +414,7 @@
     <string name="intent_timer_started">Timer started</string>
     <string name="intent_timer_stopped">Timer stopped</string>
     <string name="intent_timer_reset">Timer reset</string>
+    <string name="intent_timer_not_running">That timer is not running</string>
     <string name="intent_timer_none_ringing">No timer is ringing</string>
     <string name="intent_timer_not_found">That timer no longer exists</string>
     <string name="intent_invalid_request">UpYet could not understand that request</string>

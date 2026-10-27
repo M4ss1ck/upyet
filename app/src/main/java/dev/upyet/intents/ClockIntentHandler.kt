@@ -105,7 +105,9 @@ class ClockIntentHandler @Inject constructor(
             SchedulingResult.Scheduled -> listOf(IntentEffect.Toast(R.string.intent_alarm_set, time))
 
             else -> {
-                alarms.setEnabled(id, false)
+                // An alarm this request created was never confirmed by anyone, so it goes rather than lingering
+                // disabled; a reused alarm is the user's own and is only turned off, as the editor does.
+                if (existing == null) alarms.delete(id) else alarms.setEnabled(id, false)
                 schedulingFailure(result)
             }
         }
@@ -159,7 +161,7 @@ class ClockIntentHandler @Inject constructor(
             // The registry lags the store for a moment after a ring starts; the stored flag decides the same way.
             TimerRunState.Ringing -> stopOrBringForward(listOf(id to timer.evidenceEnabled))
 
-            TimerRunState.Idle -> listOf(IntentEffect.Toast(R.string.intent_timer_reset))
+            TimerRunState.Idle -> listOf(IntentEffect.Toast(R.string.intent_timer_not_running))
 
             is TimerRunState.Running, is TimerRunState.Paused, TimerRunState.Missed -> {
                 val result = timerEditor.edit(id, "intent_dismiss") { t, _ -> t.reset() }
