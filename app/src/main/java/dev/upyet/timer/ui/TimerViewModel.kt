@@ -15,6 +15,7 @@ import dev.upyet.timer.domain.TimerTransition
 import dev.upyet.timer.ringing.TimerRingingCommands
 import dev.upyet.timer.scheduling.TimerEditor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -66,6 +67,8 @@ class TimerViewModel @Inject constructor(
     private val seconds = savedStateHandle.getStateFlow(KEY_SECONDS, 0)
     private val label = savedStateHandle.getStateFlow(KEY_LABEL, "")
     private val recordOverride = savedStateHandle.getStateFlow<Boolean?>(KEY_RECORD, null)
+
+    private var startJob: Job? = null
 
     private val draft: Flow<Draft> =
         combine(hours, minutes, seconds, label, recordOverride) { h, m, s, l, record ->
@@ -128,7 +131,9 @@ class TimerViewModel @Inject constructor(
     fun onStart() {
         val length = draftLength()
         if (length.isZero) return
-        viewModelScope.launch {
+        // A second tap while the first creation is still being written would create a second timer.
+        if (startJob?.isActive == true) return
+        startJob = viewModelScope.launch {
             val now = clock.now()
             val evidence = recordOverride.value ?: settings.settings.first().timerEvidenceByDefault
             val created = Timer.create(

@@ -13,6 +13,7 @@ import dev.upyet.timer.domain.TimerRunState
 import dev.upyet.timer.domain.TimerTransition
 import dev.upyet.timer.ringing.TimerRingingCommands
 import dev.upyet.timer.scheduling.TimerEditor
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
@@ -115,6 +116,21 @@ class TimerViewModelTest {
         assertThat(h.viewModel.state.value.hours).isEqualTo(1)
         assertThat(h.viewModel.state.value.minutes).isEqualTo(5)
         observer.cancel()
+    }
+
+    @Test fun aSecondStartWhileTheFirstIsStillWritingAddsNothing() = runTest {
+        val h = Harness()
+        h.viewModel.onMinutes(5)
+        val gate = CompletableDeferred<Unit>()
+        h.editor.addGate = gate
+
+        h.viewModel.onStart()
+        h.viewModel.onStart()
+        runCurrent()
+        gate.complete(Unit)
+        runCurrent()
+
+        assertThat(h.repository.all).hasSize(1)
     }
 
     @Test fun startAtZeroAddsNothing() = runTest {
@@ -252,7 +268,11 @@ class TimerViewModelTest {
     private class FakeTimerEditor(private val repository: FakeTimerRepository, private val clock: TimerClock) : TimerEditor {
         val commands = mutableListOf<String>()
 
+        /** When set, [add] suspends until it completes: a slow database write. */
+        var addGate: CompletableDeferred<Unit>? = null
+
         override suspend fun add(timer: Timer): TimerId {
+            addGate?.await()
             val id = TimerId((repository.all.maxOfOrNull { it.id.value } ?: 0L) + 1)
             repository.upsert(
                 Timer.restore(id, timer.length, timer.label, timer.ringtoneUri, timer.evidenceEnabled, timer.runState, timer.createdAt),
