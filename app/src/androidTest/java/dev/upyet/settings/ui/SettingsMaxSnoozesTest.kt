@@ -75,6 +75,7 @@ class SettingsMaxSnoozesTest {
                         languageSupported = false,
                     ),
                     onReliability = {},
+                    onDataSources = {},
                     onMaxSnoozes = onMaxSnoozes,
                 )
             }

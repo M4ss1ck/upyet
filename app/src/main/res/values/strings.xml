@@ -133,7 +133,6 @@
     <string name="stopwatch_lap_split">Split</string>
     <string name="stopwatch_lap_total">Total</string>
     <string name="stopwatch_notification_running">Running</string>
-    <string name="clock_tool_coming_soon">Coming in a later update.</string>
     <string name="open_menu">Open menu</string>
     <string name="open_menu_action_needed">Open menu, reliability needs action</string>
     <string name="action_needed">Action needed</string>
@@ -297,6 +296,54 @@
     <string name="language_spanish">Español</string>
     <string name="diagnostic_report">Share a diagnostic report</string>
     <string name="diagnostic_report_summary">What the alarms did, plus your device and settings. No alarm names, and nothing is sent automatically.</string>
+    <string name="settings_data_sources">Data sources</string>
+    <string name="settings_data_sources_summary">Where the place names, time zones and map outline come from, and their licences</string>
+    <string name="data_sources_intro">The world clock uses this data, bundled inside the app. Nothing is downloaded while you use it.</string>
+    <string name="data_sources_geonames_name">Place data © GeoNames</string>
+    <string name="data_sources_geonames_supplies">Each place\'s time zone and, where Natural Earth has none, its GeoNames id.</string>
+    <string name="data_sources_geonames_licence">Licence: Creative Commons Attribution 4.0 (CC BY 4.0)</string>
+    <string name="data_sources_geonames_changes">Changes made: records were matched to Natural Earth places by id, or by name, country and distance. Zones were canonicalised through IANA backward links and validated against IANA zone.tab. No other GeoNames field was kept.</string>
+    <string name="data_sources_geonames_url" translatable="false">https://www.geonames.org/</string>
+    <string name="data_sources_cc_by_url" translatable="false">https://creativecommons.org/licenses/by/4.0/</string>
+    <string name="data_sources_natural_earth_name">Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com</string>
+    <string name="data_sources_natural_earth_supplies">Place names, coordinates and population (ne_10m_populated_places) and the world map land outline (ne_110m_land).</string>
+    <string name="data_sources_natural_earth_licence">Licence: Public domain</string>
+    <string name="data_sources_natural_earth_url" translatable="false">https://www.naturalearthdata.com/about/terms-of-use/</string>
+    <string name="data_sources_iana_name">IANA Time Zone Database</string>
+    <string name="data_sources_iana_supplies">Time zone rules: zone.tab and backward.</string>
+    <string name="data_sources_iana_licence">Licence: Public domain (zone.tab and backward)</string>
+    <string name="data_sources_iana_url" translatable="false">https://www.iana.org/time-zones</string>
+    <string name="world_clock_attribution">Place data © GeoNames, CC BY 4.0. Made with Natural Earth.</string>
+    <string name="world_clock_add_place">Add place</string>
+    <string name="world_clock_picker_title">Add a place</string>
+    <string name="world_clock_close_picker">Close</string>
+    <string name="world_clock_search_hint">Search for a city</string>
+    <string name="world_clock_picker_empty_query">Type a city name to see its time.</string>
+    <string name="world_clock_picker_no_results">No city matches your search.</string>
+    <string name="world_clock_added">Added</string>
+    <string name="world_clock_empty_title">No places yet</string>
+    <string name="world_clock_empty_hint">Tap the add button to follow the time somewhere else.</string>
+    <string name="world_clock_place_unavailable">Place unavailable</string>
+    <string name="world_clock_place_unavailable_explanation">This place is no longer in the bundled list or this phone\'s time zone data. Remove it?</string>
+    <string name="world_clock_remove">Remove</string>
+    <string name="world_clock_removed">%1$s removed</string>
+    <string name="world_clock_removed_generic">Place removed</string>
+    <string name="world_clock_undo">Undo</string>
+    <string name="world_clock_move_up">Move up</string>
+    <string name="world_clock_move_down">Move down</string>
+    <string name="world_clock_drag_handle">Drag to reorder</string>
+    <string name="world_clock_yesterday">Yesterday</string>
+    <string name="world_clock_today">Today</string>
+    <string name="world_clock_tomorrow">Tomorrow</string>
+    <string name="world_clock_same_time">same time</string>
+    <string name="world_clock_offset_hours">%1$s%2$d h</string>
+    <string name="world_clock_offset_hours_minutes">%1$s%2$d h %3$d min</string>
+    <string name="world_clock_offset_minutes">%1$s%2$d min</string>
+    <string name="world_clock_day_offset">%1$s, %2$s</string>
+    <string name="world_clock_zone_label">%1$s time</string>
+    <string name="world_clock_place_name">%1$s, %2$s</string>
+    <string name="world_clock_row_description">%1$s. %2$s. %3$s</string>
+    <plurals name="world_clock_map_description"><item quantity="one">World map with %1$d place</item><item quantity="other">World map with %1$d places</item></plurals>
 
     <!-- Reliability -->
     <string name="reliability_checks">Checks</string>

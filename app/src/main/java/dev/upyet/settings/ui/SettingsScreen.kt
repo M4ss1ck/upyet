@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Vibration
@@ -69,7 +70,12 @@ import dev.upyet.settings.data.RetentionPolicy
 internal const val TIMER_EVIDENCE_DEFAULT_SWITCH_TAG = "settings_timer_evidence_default"
 
 @Composable
-fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onReliability: () -> Unit,
+    onDataSources: () -> Unit,
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Changing the language recreates the activity but retains this ViewModel, and the system's own per-app
     // language screen can change it too, so the stored value is re-read on every configuration change.
@@ -81,6 +87,7 @@ fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: Set
             SettingsContent(
                 state = state,
                 onReliability = onReliability,
+                onDataSources = onDataSources,
                 onSnooze = viewModel::setSnooze,
                 onMaxSnoozes = viewModel::setMaxSnoozes,
                 onVibration = viewModel::setVibration,
@@ -99,6 +106,7 @@ fun SettingsScreen(onReliability: () -> Unit, onBack: () -> Unit, viewModel: Set
 fun SettingsContent(
     state: SettingsUiState,
     onReliability: () -> Unit,
+    onDataSources: () -> Unit,
     onSnooze: (Int) -> Unit = {},
     onMaxSnoozes: (Int) -> Unit = {},
     onVibration: (Boolean) -> Unit = {},
@@ -301,6 +309,14 @@ fun SettingsContent(
                 icon = Icons.Filled.BugReport,
                 showChevron = true,
                 onClick = { onShareDiagnostics() },
+            )
+            RowDivider()
+            SettingsRow(
+                title = stringResource(R.string.settings_data_sources),
+                subtitle = stringResource(R.string.settings_data_sources_summary),
+                icon = Icons.Filled.Public,
+                showChevron = true,
+                onClick = onDataSources,
             )
         }
 

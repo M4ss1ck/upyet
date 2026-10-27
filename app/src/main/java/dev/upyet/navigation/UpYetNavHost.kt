@@ -10,6 +10,7 @@ import dev.upyet.alarm.ui.AlarmEditorScreen
 import dev.upyet.history.ui.HistoryScreen
 import dev.upyet.history.ui.OccurrenceDetailScreen
 import dev.upyet.reliability.ui.ReliabilityScreen
+import dev.upyet.settings.ui.DataSourcesScreen
 import dev.upyet.settings.ui.SettingsScreen
 
 /** Route names. The start destination is [TABS], so every launch lands on Alarms. */
@@ -18,6 +19,7 @@ internal object Routes {
     const val HISTORY = "history"
     const val SETTINGS = "settings"
     const val RELIABILITY = "reliability"
+    const val DATA_SOURCES = "data_sources"
 }
 
 @Composable
@@ -60,6 +62,7 @@ fun UpYetNavHost() {
             ),
         ) { OccurrenceDetailScreen(onBack = { navController.popBackStack() }) }
         composable(Routes.RELIABILITY) { ReliabilityScreen(onBack = { navController.popBackStack() }) }
+        composable(Routes.DATA_SOURCES) { DataSourcesScreen(onBack = { navController.popBackStack() }) }
         composable(Routes.HISTORY) {
             HistoryScreen(
                 onOpen = { navController.navigate("occurrence/$it") },
@@ -69,6 +72,7 @@ fun UpYetNavHost() {
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 onReliability = { navController.navigate(Routes.RELIABILITY) },
+                onDataSources = { navController.navigate(Routes.DATA_SOURCES) },
                 onBack = { navController.popBackStack() },
             )
         }

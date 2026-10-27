@@ -34,7 +34,7 @@ class SettingsLanguageTest {
 
     private fun setContent(state: SettingsUiState, onLanguage: (AppLanguage) -> Unit = {}) {
         compose.setContent {
-            UpYetTheme { SettingsContent(state = state, onReliability = {}, onLanguage = onLanguage) }
+            UpYetTheme { SettingsContent(state = state, onReliability = {}, onDataSources = {}, onLanguage = onLanguage) }
         }
     }
 

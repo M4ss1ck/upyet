@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -12,9 +13,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
@@ -53,6 +56,24 @@ class TabsScreenTest {
         compose.waitForIdle()
         compose.onNodeWithText("content ALARMS").assertExists()
         navItem("Alarms").assertIsSelected()
+    }
+
+    @Test fun swipingRightOpensTheDrawerOnAlarms() {
+        setShell()
+        compose.onRoot().performTouchInput { swipeRight() }
+        compose.waitForIdle()
+        compose.onNodeWithText("History").assertIsDisplayed()
+    }
+
+    /** A start-to-end swipe removes a world clock row; it must not open the drawer as well. */
+    @Test fun swipingRightDoesNotOpenTheDrawerOnWorldClock() {
+        setShell()
+        navItem("World clock").performClick()
+        compose.onRoot().performTouchInput { swipeRight() }
+        compose.waitForIdle()
+        compose.onNodeWithText("History").assertIsNotDisplayed()
+        openDrawer()
+        compose.onNodeWithText("History").assertIsDisplayed()
     }
 
     @Test fun hamburgerOpensDrawerWithThreeDestinations() {
