@@ -76,7 +76,7 @@ class TimerViewModel @Inject constructor(
         }
 
     /**
-     * Re-emits the rows once a second only while a timer runs, so the countdowns move. A list with nothing running
+     * Re-emits the rows every [DISPLAY_TICK_MS] only while a timer runs, so the countdowns move. A list with nothing running
      * emits once and stays quiet. The ticker is a display refresh and nothing else (AGENTS.md §6a).
      */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -153,7 +153,7 @@ class TimerViewModel @Inject constructor(
 
     fun onStartTimer(id: TimerId) = edit(id, "start") { timer, now -> timer.start(now) }
 
-    fun onResume(id: TimerId) = edit(id, "start") { timer, now -> timer.start(now) }
+    fun onResume(id: TimerId) = edit(id, "resume") { timer, now -> timer.start(now) }
 
     fun onPause(id: TimerId) = edit(id, "pause") { timer, now -> timer.pause(now) }
 

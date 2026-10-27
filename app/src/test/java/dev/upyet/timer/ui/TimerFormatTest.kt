@@ -3,6 +3,7 @@ package dev.upyet.timer.ui
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.Duration
+import java.util.Locale
 
 class TimerFormatTest {
     @Test fun belowAnHourOmitsHours() {
@@ -24,5 +25,10 @@ class TimerFormatTest {
 
     @Test fun fractionsTruncate() {
         assertThat(formatTimerDuration(Duration.ofMillis(5999))).isEqualTo("0:05")
+    }
+
+    @Test fun digitsFollowTheLocale() {
+        assertThat(formatTimerDuration(Duration.ofSeconds(309), Locale.forLanguageTag("ar-EG"))).isEqualTo("\u0665:\u0660\u0669")
+        assertThat(formatTimerDuration(Duration.ofSeconds(309), Locale.US)).isEqualTo("5:09")
     }
 }

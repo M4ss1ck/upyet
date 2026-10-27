@@ -236,7 +236,7 @@ class TimerViewModelTest {
         h.viewModel.onDelete(TimerId(1))
         runCurrent()
         assertThat(h.repository.all).isEmpty()
-        assertThat(h.editor.commands).containsExactly("pause", "start", "reset", "delete").inOrder()
+        assertThat(h.editor.commands).containsExactly("pause", "resume", "reset", "delete").inOrder()
     }
 
     @Test fun countdownRefreshesWhileATimerRuns() = runTest {

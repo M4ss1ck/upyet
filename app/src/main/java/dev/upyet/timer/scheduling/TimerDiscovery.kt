@@ -148,7 +148,7 @@ class TimerDiscovery @Inject constructor(
      */
     override suspend fun add(timer: Timer): TimerId = lock.withLock {
         val opened = open()
-        if (opened.reconciliation == TimerReconciliation.Locked) throw IllegalStateException("timer add before unlock")
+        check(opened.reconciliation != TimerReconciliation.Locked) { "timer add before unlock" }
         val id = repository.get().upsert(timer)
         alarms.sync { opened.store.all() }
         id

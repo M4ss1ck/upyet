@@ -107,7 +107,9 @@ fun TimerScreen(viewModel: TimerViewModel = hiltViewModel()) {
             onRecordNewTimer = { on ->
                 if (on) gate.whenGranted { viewModel.onRecordNewTimer(true) } else viewModel.onRecordNewTimer(false)
             },
-            onStart = viewModel::onStart,
+            // The new timer's switch can be on without a tap, seeded from the global default: Start is then
+            // the moment Timer evidence turns on, so it goes through the disclosure too.
+            onStart = { if (viewModel.state.value.recordNewTimer) gate.whenGranted(viewModel::onStart) else viewModel.onStart() },
             onStartTimer = viewModel::onStartTimer,
             onPause = viewModel::onPause,
             onResume = viewModel::onResume,
