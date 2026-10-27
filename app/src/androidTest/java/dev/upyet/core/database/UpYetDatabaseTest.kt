@@ -62,8 +62,9 @@ class UpYetDatabaseTest {
                     9,
                     true,
                     null,
-                    1,
-                    2,
+                    voice = false,
+                    createdAt = 1,
+                    updatedAt = 2,
                 ),
             )
         val occurrenceId =

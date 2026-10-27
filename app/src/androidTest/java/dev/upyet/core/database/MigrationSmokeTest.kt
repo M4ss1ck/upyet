@@ -217,6 +217,29 @@ class MigrationSmokeTest {
 
     @Test
     @Throws(IOException::class)
+    fun migratesFrom5To6AddsVoiceDefaultingToFalseAndKeepsAlarms() {
+        helper.createDatabase("migration-test-5-6", 5).apply {
+            execSQL(
+                "INSERT INTO alarms (id, minuteOfDay, enabled, label, recurrenceType, weekdayMask, soundUri, " +
+                    "soundEnabled, vibrationEnabled, snoozeMinutes, evidenceEnabled, skipNextOnEpochDay, createdAt, updatedAt) " +
+                    "VALUES (1, 450, 1, 'Wake', 'ONE_TIME', 0, 'content://ring', 1, 1, 9, 0, NULL, 100, 200)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate("migration-test-5-6", 6, true, *UpYetDatabase.MIGRATIONS)
+        // An alarm that existed before voice alarms was made by the user, so it must read back as not voice.
+        db.query("SELECT voice, label, soundUri FROM alarms WHERE id = 1").use { cursor ->
+            assert(cursor.moveToFirst())
+            assert(cursor.getInt(0) == 0)
+            assert(cursor.getString(1) == "Wake")
+            assert(cursor.getString(2) == "content://ring")
+        }
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
     fun migratesFrom1To5() {
         helper.createDatabase("migration-test-1-5", 1).apply {
             execSQL(

@@ -178,6 +178,7 @@ class AlarmEditorViewModel @Inject constructor(
         val now = timeProvider.now()
         val existing = alarmId?.let { repository.getAlarm(AlarmId(it)) }
         val current = _state.value
+        // Saving from the editor always clears voice: an alarm the user edits is never a voice alarm.
         val alarm = Alarm(
             id = AlarmId(alarmId ?: 0),
             time = current.time,

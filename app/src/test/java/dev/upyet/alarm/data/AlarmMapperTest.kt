@@ -57,12 +57,55 @@ class AlarmMapperTest {
             9,
             false,
             LocalDate.parse("2027-01-15"),
-            Instant.ofEpochMilli(100),
-            Instant.ofEpochMilli(200),
+            voice = false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
         )
 
         assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
         assertThat(alarm.toEntity().skipNextOnEpochDay).isEqualTo(LocalDate.parse("2027-01-15").toEpochDay())
+    }
+
+    /** A voice alarm (GLOSSARY.md) must keep its flag through Room, or the retirement would never see it. */
+    @Test
+    fun roundTripsVoiceFlag() {
+        val alarm = Alarm(
+            id = AlarmId(42),
+            time = LocalTime.of(7, 30),
+            enabled = true,
+            label = "Wake",
+            recurrence = Recurrence.OneTime,
+            soundUri = null,
+            vibrationEnabled = true,
+            snoozeMinutes = 9,
+            evidenceEnabled = false,
+            voice = true,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.toEntity().voice).isTrue()
+        assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
+    }
+
+    @Test
+    fun voiceDefaultsToFalse() {
+        val alarm = Alarm(
+            id = AlarmId(42),
+            time = LocalTime.of(7, 30),
+            enabled = true,
+            label = "Wake",
+            recurrence = Recurrence.OneTime,
+            soundUri = null,
+            vibrationEnabled = true,
+            snoozeMinutes = 9,
+            evidenceEnabled = false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
+        )
+
+        assertThat(alarm.voice).isFalse()
+        assertThat(alarm.toEntity().toDomain().voice).isFalse()
     }
 
     @Test
@@ -79,8 +122,9 @@ class AlarmMapperTest {
             9,
             false,
             null,
-            Instant.ofEpochMilli(100),
-            Instant.ofEpochMilli(200),
+            voice = false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
         )
 
         assertThat(alarm.toEntity().toDomain()).isEqualTo(alarm)
@@ -101,8 +145,9 @@ class AlarmMapperTest {
             9,
             false,
             LocalDate.parse("2027-01-15"),
-            Instant.ofEpochMilli(100),
-            Instant.ofEpochMilli(200),
+            voice = false,
+            createdAt = Instant.ofEpochMilli(100),
+            updatedAt = Instant.ofEpochMilli(200),
         )
 
         val roundTripped = alarm.toEntity().toDomain()

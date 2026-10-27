@@ -49,7 +49,7 @@ class UserUnlockedReceiver : BroadcastReceiver() {
         // Dispatches on each record's source: only alarm records name a one-time alarm to retire (ADR 0010).
         val result = pendingReconciler.reconcile()
         AlarmLog.event("pending_occurrences_reconciled", "alarms" to result.alarms, "timers" to result.timers)
-        result.alarmsToRetire.forEach { rescheduler.retireIfOneTime(it) }
+        result.alarmsToRetire.forEach { rescheduler.retireIfOneTime(it.alarmId, it.dismissed) }
         rescheduler.rescheduleAll()
     }
 

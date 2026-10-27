@@ -16,6 +16,8 @@ data class Alarm(
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,
     val skipNextOn: LocalDate? = null,
+    /** A one-time alarm an assistant created without its editor; deleted once dismissed (GLOSSARY.md, Voice alarm). */
+    val voice: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

@@ -32,6 +32,7 @@ fun AlarmEntity.toDomain(): Alarm = Alarm(
     snoozeMinutes = snoozeMinutes,
     evidenceEnabled = evidenceEnabled,
     skipNextOn = skipNextOnEpochDay?.let(LocalDate::ofEpochDay),
+    voice = voice,
     createdAt =
     java.time.Instant.ofEpochMilli(
         createdAt,
@@ -57,6 +58,7 @@ fun Alarm.toEntity(): AlarmEntity {
         snoozeMinutes = snoozeMinutes,
         evidenceEnabled = evidenceEnabled,
         skipNextOnEpochDay = skipNextOn?.toEpochDay(),
+        voice = voice,
         createdAt = createdAt.toEpochMilli(),
         updatedAt = updatedAt.toEpochMilli(),
     )
