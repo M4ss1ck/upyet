@@ -77,7 +77,7 @@ class TimerRingingActivity : ComponentActivity() {
                     onStop = viewModel::stop,
                     onAddMinute = viewModel::addMinute,
                     onStopAll = viewModel::stopAll,
-                    preview = { EvidencePreview(surfaceRequest) },
+                    preview = { visible -> EvidencePreview(surfaceRequest, visible) },
                 )
                 // Keyed on recording, not just ringing: a recording-on timer joining a showing that was not recording
                 // starts a segment (ADR 0010); the ViewModel stops it when the last recording-on timer leaves.
