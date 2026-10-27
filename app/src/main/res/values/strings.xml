@@ -124,6 +124,15 @@
     <string name="world_clock">World clock</string>
     <string name="timer">Timer</string>
     <string name="stopwatch">Stopwatch</string>
+    <string name="stopwatch_start">Start</string>
+    <string name="stopwatch_resume">Resume</string>
+    <string name="stopwatch_pause">Pause</string>
+    <string name="stopwatch_lap">Lap</string>
+    <string name="stopwatch_reset">Reset</string>
+    <string name="stopwatch_lap_number">Lap %1$d</string>
+    <string name="stopwatch_lap_split">Split</string>
+    <string name="stopwatch_lap_total">Total</string>
+    <string name="stopwatch_notification_running">Running</string>
     <string name="clock_tool_coming_soon">Coming in a later update.</string>
     <string name="open_menu">Open menu</string>
     <string name="open_menu_action_needed">Open menu, reliability needs action</string>

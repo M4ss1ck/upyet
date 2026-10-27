@@ -49,6 +49,7 @@ import dev.upyet.R
 import dev.upyet.alarm.ui.AlarmListScreen
 import dev.upyet.core.ui.components.ActionNeededBadge
 import dev.upyet.core.ui.components.TabHeadline
+import dev.upyet.stopwatch.ui.StopwatchScreen
 import dev.upyet.timer.ui.TimerScreen
 import kotlinx.coroutines.launch
 
@@ -90,7 +91,9 @@ fun TabsScreen(
             // Listed one by one so each tool's slice gets a compiler prompt to replace its placeholder.
             ClockTab.TIMER -> TimerScreen()
 
-            ClockTab.WORLD_CLOCK, ClockTab.STOPWATCH -> ClockToolPlaceholder()
+            ClockTab.WORLD_CLOCK -> ClockToolPlaceholder()
+
+            ClockTab.STOPWATCH -> StopwatchScreen()
         }
     }
 }
