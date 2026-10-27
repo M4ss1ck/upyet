@@ -29,6 +29,13 @@ class TimerReceiverCommandTest {
     }
 
     @Test
+    fun theRunningNotificationActionsMapToTheirCommands() {
+        assertThat(TimerReceiverCommand.of("dev.upyet.action.TIMER_PAUSE")).isEqualTo(TimerReceiverCommand.PAUSE)
+        assertThat(TimerReceiverCommand.of("dev.upyet.action.TIMER_ADD_MINUTE")).isEqualTo(TimerReceiverCommand.ADD_MINUTE)
+        assertThat(TimerReceiverCommand.of("dev.upyet.action.TIMER_RESET")).isEqualTo(TimerReceiverCommand.RESET)
+    }
+
+    @Test
     fun aTimeZoneChangeReArmsNothing() {
         assertThat(TimerReceiverCommand.of("android.intent.action.TIMEZONE_CHANGED")).isNull()
     }

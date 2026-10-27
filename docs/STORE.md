@@ -75,9 +75,10 @@ dialog. See `docs/adr/0006`.
 The card is headed **"Before the camera turns on"** and reads, verbatim:
 
 > UpYet records silent video from the front camera — no sound, ever — and only while UpYet's own alarm
-> screen is on your display. It never records in the background. Clips are saved on this phone alone, are
-> never sent anywhere, and are deleted automatically after the time you choose in Settings, where you can
-> also turn recording off. Notifications let the alarm take over your lock screen.
+> screen is on your display. Timers can record too, if you turn it on. It never records in the background.
+> Clips are saved on this phone alone, are never sent anywhere, and are deleted automatically after the time
+> you choose in Settings, where you can also turn recording off. Notifications let the alarm take over your
+> lock screen.
 
 The button beneath it reads **"Agree & continue"**. This is `permission_onboarding_explanation` in
 `app/src/main/res/values/strings.xml`; if the string changes, change it here too.

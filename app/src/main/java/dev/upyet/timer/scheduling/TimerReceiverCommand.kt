@@ -19,6 +19,15 @@ enum class TimerReceiverCommand {
 
     /** `TIME_SET`: re-anchor running timers from the elapsed delta; the armed alarm does not move. */
     WALL_CLOCK_CHANGED,
+
+    /** The running-timer notification's Pause action (ADR 0012): a Running timer is frozen. */
+    PAUSE,
+
+    /** The running-timer notification's +1 min action: a Running timer gains a minute. */
+    ADD_MINUTE,
+
+    /** The running-timer notification's Reset action: a Running timer goes back to Idle at its full length. */
+    RESET,
     ;
 
     companion object {
@@ -30,6 +39,9 @@ enum class TimerReceiverCommand {
             Intent.ACTION_LOCKED_BOOT_COMPLETED, Intent.ACTION_BOOT_COMPLETED -> BOOT
             Intent.ACTION_MY_PACKAGE_REPLACED, ACTION_EXACT_ALARM_PERMISSION_CHANGED -> REARM
             Intent.ACTION_TIME_CHANGED -> WALL_CLOCK_CHANGED
+            TimerRunningActions.ACTION_PAUSE -> PAUSE
+            TimerRunningActions.ACTION_ADD_MINUTE -> ADD_MINUTE
+            TimerRunningActions.ACTION_RESET -> RESET
             else -> null
         }
     }

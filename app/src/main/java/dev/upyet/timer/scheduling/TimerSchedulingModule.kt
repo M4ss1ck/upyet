@@ -13,8 +13,14 @@ abstract class TimerSchedulingModule {
     abstract fun bindTimerRearm(discovery: TimerDiscovery): TimerRearm
 
     @Binds
+    abstract fun bindTimerEditor(discovery: TimerDiscovery): TimerEditor
+
+    @Binds
     abstract fun bindTimerScheduler(scheduler: AndroidTimerScheduler): TimerScheduler
 
     @Binds
     abstract fun bindTimerMissedNotices(notices: AndroidTimerMissedNotices): TimerMissedNotices
+
+    @Binds
+    abstract fun bindTimerRunningNotices(notices: AndroidTimerRunningNotices): TimerRunningNotices
 }

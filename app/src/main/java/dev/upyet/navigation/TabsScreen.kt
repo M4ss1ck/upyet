@@ -49,6 +49,7 @@ import dev.upyet.R
 import dev.upyet.alarm.ui.AlarmListScreen
 import dev.upyet.core.ui.components.ActionNeededBadge
 import dev.upyet.core.ui.components.TabHeadline
+import dev.upyet.timer.ui.TimerScreen
 import kotlinx.coroutines.launch
 
 /** The four Clock tools, in the order the bottom bar shows them. Alarms is the launch tab. */
@@ -87,7 +88,9 @@ fun TabsScreen(
             ClockTab.ALARMS -> AlarmListScreen(onEdit = onEdit, onReliability = onReliability)
 
             // Listed one by one so each tool's slice gets a compiler prompt to replace its placeholder.
-            ClockTab.WORLD_CLOCK, ClockTab.TIMER, ClockTab.STOPWATCH -> ClockToolPlaceholder()
+            ClockTab.TIMER -> TimerScreen()
+
+            ClockTab.WORLD_CLOCK, ClockTab.STOPWATCH -> ClockToolPlaceholder()
         }
     }
 }

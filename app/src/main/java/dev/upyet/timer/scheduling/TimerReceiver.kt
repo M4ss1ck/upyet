@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
 import dev.upyet.core.logging.AlarmLog
+import dev.upyet.timer.domain.Timer
+import dev.upyet.timer.domain.TimerAnchor
+import dev.upyet.timer.domain.TimerRunState
+import dev.upyet.timer.domain.TimerTransition
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +49,12 @@ class TimerReceiver : BroadcastReceiver() {
                     TimerReceiverCommand.REARM -> discovery.rearm()
 
                     TimerReceiverCommand.WALL_CLOCK_CHANGED -> discovery.onWallClockChanged()
+
+                    TimerReceiverCommand.PAUSE -> editRunning(intent, command) { timer, now -> timer.pause(now) }
+
+                    TimerReceiverCommand.ADD_MINUTE -> editRunning(intent, command) { timer, now -> timer.addMinute(now) }
+
+                    TimerReceiverCommand.RESET -> editRunning(intent, command) { timer, _ -> timer.reset() }
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
@@ -56,5 +66,18 @@ class TimerReceiver : BroadcastReceiver() {
                 scope.cancel()
             }
         }
+    }
+
+    /**
+     * A notification action. Only a Running timer is touched: a tap that arrives after the timer paused, rang or
+     * was reset is a no-op, which [TimerDiscovery.edit] enforces under its lock.
+     */
+    private suspend fun editRunning(intent: Intent, command: TimerReceiverCommand, transition: (Timer, TimerAnchor) -> TimerTransition) {
+        val id = TimerRunningActions.timerId(intent)
+        if (id == null) {
+            AlarmLog.event("timer_action_malformed", "command" to command.name.lowercase())
+            return
+        }
+        discovery.edit(id, command.name.lowercase(), onlyIf = { it.runState is TimerRunState.Running }, transition = transition)
     }
 }

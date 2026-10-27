@@ -8,6 +8,7 @@ import dev.upyet.core.directboot.toMirrored
 import dev.upyet.testing.FakeTimerMirror
 import dev.upyet.testing.FakeTimerMissedNotices
 import dev.upyet.testing.FakeTimerRepository
+import dev.upyet.testing.FakeTimerRunningNotices
 import dev.upyet.testing.FakeTimerScheduler
 import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.timer.domain.Timer
@@ -54,7 +55,7 @@ class TimerDiscoveryTest {
             repository = repository,
             reconciler = TimerMirrorReconciler(mirror, repository, FakeUserUnlockState(unlocked), clock),
             clock = clock,
-            alarms = TimerAlarmSync(scheduler, notices, clock),
+            alarms = TimerAlarmSync(scheduler, notices, clock, FakeTimerRunningNotices()),
             handoff = { handedOff += it },
         )
     }
@@ -343,6 +344,130 @@ class TimerDiscoveryTest {
         discovery(mirror, roomNeverBuilt, unlocked = false).onWallClockChanged()
 
         assertThat(mirror.all()).isEqualTo(before)
+        assertThat(scheduler.armed).isEmpty()
+    }
+
+    // User edits (TimerEditor). Timers are anchored at afterReboot so the elapsed clock reads consistently.
+
+    @Test
+    fun anAppliedEditSavesAndArmsTheNewEnd() = runTest {
+        // 5 min left at 08:10, +1 min: 6 min left, zero at 08:16, elapsed 8 min.
+        val (repository, mirror) = roomOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        val result = discovery(mirror, { repository }, unlocked = true).edit(TimerId(1), "add_minute") { t, n -> t.addMinute(n) }
+
+        assertThat(result).isInstanceOf(TimerTransition.Applied::class.java)
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Running(Duration.ofMinutes(6), afterReboot))
+        assertThat(scheduler.armed.single()).isEqualTo(TimerAlarm(TimerId(1), Instant.parse("2026-10-26T08:16:00Z"), Duration.ofMinutes(8)))
+    }
+
+    @Test
+    fun aPauseThatLeavesNothingRunningCancelsTheAlarm() = runTest {
+        val (repository, mirror) = roomOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        discovery(mirror, { repository }, unlocked = true).edit(TimerId(1), "pause") { t, n -> t.pause(n) }
+
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Paused(Duration.ofMinutes(5)))
+        assertThat(scheduler.armed).isEmpty()
+        assertThat(scheduler.cancels).isEqualTo(1)
+    }
+
+    @Test
+    fun aRemovedEditDeletesFromRoomAndCancelsTheAlarm() = runTest {
+        val (repository, mirror) = roomOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        val result = discovery(mirror, { repository }, unlocked = true).edit(TimerId(1), "delete") { t, _ -> t.delete() }
+
+        assertThat(result).isEqualTo(TimerTransition.Removed)
+        assertThat(repository.getTimer(TimerId(1))).isNull()
+        assertThat(scheduler.armed).isEmpty()
+        assertThat(scheduler.cancels).isEqualTo(1)
+    }
+
+    @Test
+    fun anEditOnARingingTimerIsRefusedAndNothingIsSaved() = runTest {
+        val (repository, mirror) = roomOf(timer(1, TimerRunState.Ringing))
+
+        val result = discovery(mirror, { repository }, unlocked = true).edit(TimerId(1), "pause") { t, n -> t.pause(n) }
+
+        assertThat(result).isEqualTo(TimerTransition.NoOp)
+        assertThat(repository.upserts).isEqualTo(0)
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Ringing)
+        assertThat(scheduler.armed).isEmpty()
+        assertThat(scheduler.cancels).isEqualTo(0)
+    }
+
+    @Test
+    fun anEditWhosePreconditionFailsIsRefusedAndNothingIsSaved() = runTest {
+        val (repository, mirror) = roomOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        val result = discovery(mirror, {
+            repository
+        }, unlocked = true).edit(TimerId(1), "pause", onlyIf = { it.runState is TimerRunState.Paused }) { t, n ->
+            t.pause(n)
+        }
+
+        assertThat(result).isEqualTo(TimerTransition.NoOp)
+        assertThat(repository.upserts).isEqualTo(0)
+        assertThat(repository.getTimer(TimerId(1))?.runState).isEqualTo(TimerRunState.Running(Duration.ofMinutes(5), afterReboot))
+    }
+
+    @Test
+    fun anEditOfAMissingTimerChangesNothing() = runTest {
+        val (repository, mirror) = roomOf()
+
+        val result = discovery(mirror, { repository }, unlocked = true).edit(TimerId(9), "pause") { t, n -> t.pause(n) }
+
+        assertThat(result).isEqualTo(TimerTransition.NoOp)
+        assertThat(repository.upserts).isEqualTo(0)
+        assertThat(scheduler.armed).isEmpty()
+    }
+
+    @Test
+    fun aPauseBeforeUnlockWritesTheMirrorAndNeverBuildsRoom() = runTest {
+        val mirror = lockedMirrorOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        val result = discovery(mirror, roomNeverBuilt, unlocked = false).edit(TimerId(1), "pause") { t, n -> t.pause(n) }
+
+        assertThat(result).isInstanceOf(TimerTransition.Applied::class.java)
+        val record = mirror.all().single()
+        assertThat(record.state.name).isEqualTo("PAUSED")
+        assertThat(record.remainingAtAnchor).isEqualTo(Duration.ofMinutes(5))
+    }
+
+    @Test
+    fun aDeleteBeforeUnlockIsRefusedAndTheMirrorKeepsTheTimer() = runTest {
+        val mirror = lockedMirrorOf(running(1, Duration.ofMinutes(5), at = afterReboot))
+
+        val result = discovery(mirror, roomNeverBuilt, unlocked = false).edit(TimerId(1), "delete") { t, _ -> t.delete() }
+
+        assertThat(result).isEqualTo(TimerTransition.NoOp)
+        assertThat(mirror.all().map { it.timerId }).containsExactly(TimerId(1))
+        assertThat(scheduler.cancels).isEqualTo(0)
+    }
+
+    @Test
+    fun addStoresAndArmsANewRunningTimer() = runTest {
+        val (repository, mirror) = roomOf()
+        val timer = running(1, Duration.ofMinutes(5), at = afterReboot)
+
+        val id = discovery(mirror, { repository }, unlocked = true).add(timer)
+
+        assertThat(id).isEqualTo(TimerId(1))
+        assertThat(repository.getTimer(TimerId(1))).isEqualTo(timer)
+        assertThat(scheduler.armed.single()).isEqualTo(TimerAlarm(TimerId(1), Instant.parse("2026-10-26T08:15:00Z"), Duration.ofMinutes(7)))
+    }
+
+    @Test
+    fun addBeforeUnlockThrowsAndArmsNothing() = runTest {
+        val mirror = lockedMirrorOf()
+
+        val failure = runCatching {
+            discovery(mirror, roomNeverBuilt, unlocked = false).add(running(1, Duration.ofMinutes(5), at = afterReboot))
+        }.exceptionOrNull()
+
+        assertThat(failure).isInstanceOf(IllegalStateException::class.java)
+        assertThat(failure).hasMessageThat().isEqualTo("timer add before unlock")
         assertThat(scheduler.armed).isEmpty()
     }
 }
