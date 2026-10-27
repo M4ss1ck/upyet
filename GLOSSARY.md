@@ -111,6 +111,13 @@ reliable path as an alarm, and its ring can record evidence and leave an **Occur
 only when its **Timer evidence** is on.
 _Avoid_: Countdown, alarm (an alarm is a wall-clock rule; a timer is a duration)
 
+**Ring time**:
+The wall-clock moment a running timer will reach zero, shown as "Rings at 07:42" on the timer list and in
+the running notification. Only a running timer has one: a paused timer's ring time would drift while it sits
+paused, so it shows none, and an idle, ringing or missed timer has nothing left to count down. It moves with
+every **+1 min**, pause, resume and reset.
+_Avoid_: End time, due time, deadline
+
 **Timer evidence**:
 The per-timer switch that decides whether that timer records while it rings. It takes the global "Record
 when a timer rings" switch at creation, and is the reason a timer can appear in History at all.

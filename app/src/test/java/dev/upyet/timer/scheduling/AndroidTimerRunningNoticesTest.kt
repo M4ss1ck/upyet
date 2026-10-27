@@ -11,12 +11,15 @@ import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerAnchor
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRunState
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import java.time.Duration
 import java.time.Instant
+import java.util.TimeZone
 
 /** ADR 0012: the running notice is id 1102 on `clock_tool_ongoing`, a silent ongoing chronometer with three actions. */
 @RunWith(RobolectricTestRunner::class)
@@ -42,6 +45,19 @@ class AndroidTimerRunningNoticesTest {
 
     private fun posted() = shadowOf(manager).getNotification(AlarmNotifications.NOTIFICATION_ID_TIMER_RUNNING)
 
+    private val defaultZone: TimeZone = TimeZone.getDefault()
+
+    /** The ring time is read in the system zone, so the tests pin it: 08:05 UTC is 8:05 AM in UTC. */
+    @Before
+    fun pinUtc() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+    }
+
+    @After
+    fun restoreZone() {
+        TimeZone.setDefault(defaultZone)
+    }
+
     @Test
     fun postsASilentOngoingChronometerCountingDownToItsEnd() {
         notices.show(show())
@@ -57,7 +73,7 @@ class AndroidTimerRunningNoticesTest {
         assertThat(posted.group).isNull()
         assertThat(posted.category).isEqualTo(Notification.CATEGORY_STOPWATCH)
         assertThat(posted.extras.getString(Notification.EXTRA_TITLE)).isEqualTo("Tea")
-        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT)).isNull()
+        assertThat(posted.extras.getCharSequence(Notification.EXTRA_TEXT).toString()).isEqualTo("Rings at 8:05 AM")
     }
 
     @Test
@@ -68,10 +84,21 @@ class AndroidTimerRunningNoticesTest {
     }
 
     @Test
-    fun otherRunningTimersAreCounted() {
+    fun ringTimeFollowsTheSystemZone() {
+        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+
+        notices.show(show())
+
+        // 08:05 UTC on 2026-10-26 is 04:05 in New York (EDT).
+        assertThat(posted().extras.getCharSequence(Notification.EXTRA_TEXT).toString()).isEqualTo("Rings at 4:05 AM")
+    }
+
+    @Test
+    fun otherRunningTimersAreJoinedAfterTheRingTime() {
         notices.show(show(alsoRunning = 2))
 
-        assertThat(posted().extras.getCharSequence(Notification.EXTRA_TEXT).toString()).isEqualTo("2 more timers running")
+        assertThat(posted().extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+            .isEqualTo("Rings at 8:05 AM · 2 more timers running")
     }
 
     @Test

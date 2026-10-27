@@ -410,6 +410,8 @@
     <string name="timer_untitled">Temporizador</string>
     <string name="timer_empty">Aún no hay temporizadores</string>
     <string name="timer_length">de %1$s</string>
+    <string name="timer_rings_at">Suena a las %1$s</string>
+    <string name="timer_rings_at_with_length">Suena a las %1$s · temporizador de %2$s</string>
     <string name="camera_disclosure_dismiss">Ahora no</string>
 
     <!-- Assistant intents -->

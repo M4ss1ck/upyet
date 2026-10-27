@@ -234,7 +234,7 @@ FGS.
   alarm that is no longer its own.
 * Elapsed-realtime alarms do not move when the wall clock changes: `TIME_SET` and
   `TIMEZONE_CHANGED` re-arm nothing, they recompute remaining time from the elapsed delta
-  and ignore a negative delta.
+  and ignore a negative delta. A zone change only re-posts the running notice so its ring time reads in the new zone.
 * Discovery (`LOCKED_BOOT_COMPLETED`, `USER_UNLOCKED`, app launch) moves a `Running` timer
   that is more than 60 s overdue to `Missed`: it does not ring, records nothing and waits
   under a low-importance notification. A timer 0 to 60 s overdue rings through an immediate

@@ -154,9 +154,9 @@
             </intent-filter>
         </receiver>
         <!--
-            The timer's one exact alarm and what re-arms it (AGENTS.md §6a). No TIMEZONE_CHANGED: both timer
-            anchors are zone-free, so a zone change re-arms nothing. USER_UNLOCKED stays on
-            UserUnlockedReceiver, which runs timer discovery after reconciling the mirror.
+            The timer's one exact alarm and what re-arms it (AGENTS.md §6a). TIMEZONE_CHANGED re-arms nothing: both
+            timer anchors are zone-free. It only re-posts the running notice, so its ring time reads in the new zone.
+            USER_UNLOCKED stays on UserUnlockedReceiver, which runs timer discovery after reconciling the mirror.
         -->
         <receiver
             android:name=".timer.scheduling.TimerReceiver"
@@ -168,6 +168,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>

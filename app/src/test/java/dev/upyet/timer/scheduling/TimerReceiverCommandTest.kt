@@ -36,8 +36,8 @@ class TimerReceiverCommandTest {
     }
 
     @Test
-    fun aTimeZoneChangeReArmsNothing() {
-        assertThat(TimerReceiverCommand.of("android.intent.action.TIMEZONE_CHANGED")).isNull()
+    fun aTimeZoneChangeOnlyReZonesTheRunningNotice() {
+        assertThat(TimerReceiverCommand.of("android.intent.action.TIMEZONE_CHANGED")).isEqualTo(TimerReceiverCommand.ZONE_CHANGED)
     }
 
     @Test
