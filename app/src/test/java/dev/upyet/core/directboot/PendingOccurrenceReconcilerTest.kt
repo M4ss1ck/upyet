@@ -48,7 +48,26 @@ class PendingOccurrenceReconcilerTest {
             RecordingOccurrenceRepository.Completed(OccurrenceId(1), dismissed, OccurrenceOutcome.DISMISSED),
         )
         assertThat(repo.segments).isEmpty()
-        assertThat(result.alarmsToRetire).containsExactly(AlarmId(7))
+        assertThat(result.alarmsToRetire).containsExactly(PendingOccurrenceReconciler.Retirement(AlarmId(7), dismissed = true))
+    }
+
+    @Test
+    fun aDismissedAlarmRecordRetiresWithDismissedTrue() = runTest {
+        val record = PendingOccurrence(AlarmId(7), scheduled, triggered, dismissed, "DISMISSED")
+
+        val result = reconciler(RecordingOccurrenceRepository(), FakePendingOccurrences(record)).reconcile()
+
+        assertThat(result.alarmsToRetire).containsExactly(PendingOccurrenceReconciler.Retirement(AlarmId(7), dismissed = true))
+    }
+
+    /** A timeout, or any other ended outcome, retires with dismissed = false so a voice alarm is only disabled. */
+    @Test
+    fun aTimedOutAlarmRecordRetiresWithDismissedFalse() = runTest {
+        val record = PendingOccurrence(AlarmId(7), scheduled, triggered, null, "TIMED_OUT")
+
+        val result = reconciler(RecordingOccurrenceRepository(), FakePendingOccurrences(record)).reconcile()
+
+        assertThat(result.alarmsToRetire).containsExactly(PendingOccurrenceReconciler.Retirement(AlarmId(7), dismissed = false))
     }
 
     @Test
@@ -125,7 +144,7 @@ class PendingOccurrenceReconcilerTest {
 
         val result = reconciler(repo, FakePendingOccurrences(alarm, timerRecord)).reconcile()
 
-        assertThat(result.alarmsToRetire).containsExactly(AlarmId(7)).inOrder()
+        assertThat(result.alarmsToRetire).containsExactly(PendingOccurrenceReconciler.Retirement(AlarmId(7), dismissed = false)).inOrder()
         assertThat(result.alarms).isEqualTo(1)
         assertThat(result.timers).isEqualTo(1)
         assertThat(repo.alarmsCreated).hasSize(1)

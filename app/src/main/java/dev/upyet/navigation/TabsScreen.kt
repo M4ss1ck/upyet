@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,7 +69,9 @@ internal enum class ClockTab(@StringRes val labelRes: Int, val icon: ImageVector
  * that is already gone.
  */
 @Composable
-fun TabsScreen(
+internal fun TabsScreen(
+    requestedTab: ClockTab?,
+    onTabRequestConsumed: () -> Unit,
     onEdit: (Long) -> Unit,
     onHistory: () -> Unit,
     onSettings: () -> Unit,
@@ -82,6 +85,8 @@ fun TabsScreen(
     }
     ClockShell(
         actionNeeded = !summary.allGood,
+        requestedTab = requestedTab,
+        onTabRequestConsumed = onTabRequestConsumed,
         onHistory = onHistory,
         onSettings = onSettings,
         onReliability = onReliability,
@@ -108,6 +113,8 @@ fun TabsScreen(
 @Composable
 internal fun ClockShell(
     actionNeeded: Boolean,
+    requestedTab: ClockTab?,
+    onTabRequestConsumed: () -> Unit,
     onHistory: () -> Unit,
     onSettings: () -> Unit,
     onReliability: () -> Unit,
@@ -116,6 +123,12 @@ internal fun ClockShell(
     var tab by rememberSaveable { mutableStateOf(ClockTab.ALARMS) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    LaunchedEffect(requestedTab) {
+        requestedTab?.let {
+            tab = it
+            onTabRequestConsumed()
+        }
+    }
 
     // One handler for the whole shell. Back closes an open drawer, then returns to Alarms from another tab. On
     // Alarms with the drawer closed it is disabled, so back leaves the app the way the platform expects.

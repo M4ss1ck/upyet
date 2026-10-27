@@ -156,6 +156,8 @@ class TabsScreenTest {
             UpYetTheme {
                 ClockShell(
                     actionNeeded = actionNeeded,
+                    requestedTab = null,
+                    onTabRequestConsumed = {},
                     onHistory = { calls += "history" },
                     onSettings = { calls += "settings" },
                     onReliability = { calls += "reliability" },

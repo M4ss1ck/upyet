@@ -236,3 +236,23 @@ composables; navigation confined to the NavHost. The ringing screen additionally
   operation with a metadata update.
 * **Single module** — the boundaries that matter here are package-level and lifecycle-level; extra
   Gradle modules would add build complexity without removing coupling.
+
+## 10. Assistant intents
+
+The platform `AlarmClock` intents (`SET_ALARM`, `SHOW_ALARMS`, `SET_TIMER`, `SHOW_TIMERS`, `DISMISS_ALARM`, `DISMISS_TIMER`)
+arrive at `ClockIntentActivity`, an exported translucent trampoline guarded by the normal-level
+`com.android.alarm.permission.SET_ALARM`. It is not `directBootAware` and does no storage work of its own. The flow runs one way:
+
+`ClockIntentActivity` → `ClockIntentParser` → `ClockIntent` → `ClockIntentHandler` → `IntentEffect`s → applied by the activity, which then finishes
+
+The parser is pure: extras in, `ClockIntent` out. The handler decides, reads state only through the ports in
+`ClockIntentPorts.kt`, and returns effects: a toast, open the Alarms or Timer tab, open the editor prefilled, open Reliability,
+or bring a ringing screen forward. A ringing screen is brought forward only by sending the ringing notification's own
+PendingIntent (`RingingSurfaces`, request codes 1001 for alarms and 1101 for timers), never by a background `startActivity()`
+(AGENTS §7). Dismissal never ends a wake-up in progress.
+
+A one-time alarm that `SET_ALARM` with `SKIP_UI` creates is a Voice alarm (`alarms.voice`, Room version 6). Dismissing its
+occurrence deletes it; a timeout only turns it off. History keeps the occurrence either way.
+
+The deliberate departures from the AlarmClock contract are recorded in ADR 0007: `SNOOZE_ALARM` is not declared, and
+`DISMISS_ALARM` never dismisses a ringing alarm. The `DISMISS_TIMER` rule is carried in AGENTS.md §10.

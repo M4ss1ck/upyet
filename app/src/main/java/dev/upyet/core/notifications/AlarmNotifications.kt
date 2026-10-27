@@ -75,13 +75,19 @@ class AlarmNotifications @Inject constructor(@ApplicationContext private val con
         description?.let { this.description = context.getString(it) }
     }
 
+    /**
+     * The one PendingIntent that opens [RingingActivity]. The notification's full-screen and content intents and
+     * the assistant `DISMISS_ALARM` path (ADR 0007) all send this same object, so its identity cannot drift.
+     */
+    fun ringingScreenIntent(): PendingIntent = PendingIntent.getActivity(
+        context,
+        NOTIFICATION_ID_RINGING,
+        Intent(context, RingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
     fun buildRingingNotification(alarmLabel: String?, isUserUnlocked: Boolean): Notification {
-        val activityIntent = PendingIntent.getActivity(
-            context,
-            NOTIFICATION_ID_RINGING,
-            Intent(context, RingingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+        val activityIntent = ringingScreenIntent()
         return NotificationCompat.Builder(context, CHANNEL_RINGING)
             .setSmallIcon(R.drawable.ic_alarm_notification)
             .setContentTitle(context.getString(R.string.alarm_ringing_title))

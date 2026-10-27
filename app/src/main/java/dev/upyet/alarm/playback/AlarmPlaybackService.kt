@@ -325,14 +325,16 @@ class AlarmPlaybackService : Service() {
                     if (!autoSnoozed) {
                         // The alarm has rung, so a one-time one is spent. Before first unlock the alarm store is
                         // out of reach; the pending occurrence carries it, and UserUnlockedReceiver retires it there.
-                        if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
+                        if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId, dismissed = false)
                         rescheduler.get().rescheduleAll()
                         AlarmLog.event("alarm_timed_out", "alarmId" to session.alarmId.value)
                     }
                 } else {
                     val dismissedAt = timeProvider.now()
                     complete(session, outcome, dismissedAt)
-                    if (session.isUserUnlocked) rescheduler.get().retireIfOneTime(session.alarmId)
+                    if (session.isUserUnlocked) {
+                        rescheduler.get().retireIfOneTime(session.alarmId, dismissed = outcome == OccurrenceOutcome.DISMISSED)
+                    }
                     rescheduler.get().rescheduleAll()
                     AlarmLog.event("alarm_dismissed", "alarmId" to session.alarmId.value)
                 }

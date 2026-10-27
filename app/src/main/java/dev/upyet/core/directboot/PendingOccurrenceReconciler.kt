@@ -17,8 +17,14 @@ class PendingOccurrenceReconciler @Inject constructor(
     private val pending: PendingOccurrences,
     private val repository: Lazy<OccurrenceRepository>,
 ) {
-    /** The one-time alarms that rang to an end before unlock, which the caller retires. Timers never appear here. */
-    data class Result(val alarmsToRetire: List<AlarmId>, val alarms: Int, val timers: Int)
+    /**
+     * The one-time alarms that rang to an end before unlock, which the caller retires. Timers never appear here.
+     * [Retirement.dismissed] tells the caller whether the user dismissed the ring, which decides whether a voice alarm
+     * is deleted or only disabled (GLOSSARY.md, Voice alarm).
+     */
+    data class Result(val alarmsToRetire: List<Retirement>, val alarms: Int, val timers: Int)
+
+    data class Retirement(val alarmId: AlarmId, val dismissed: Boolean)
 
     suspend fun reconcile(): Result {
         val records = pending.all()
@@ -36,14 +42,15 @@ class PendingOccurrenceReconciler @Inject constructor(
         return Result(retire, records.count { it is PendingOccurrence }, records.count { it is PendingTimerOccurrence })
     }
 
-    private suspend fun alarm(record: PendingOccurrence): AlarmId? {
+    private suspend fun alarm(record: PendingOccurrence): Retirement? {
         val repository = repository.get()
         val id = repository.createOccurrence(record.alarmId, record.scheduledFor, record.triggeredAt, null)
         val outcome = record.outcomeOr(OccurrenceOutcome.ERROR)
         repository.completeOccurrence(id, record.dismissedAt, outcome)
         // These alarms rang before first unlock, so the service could not reach the alarm store to retire them.
         // A snoozed one is still due to ring and keeps its place.
-        return record.alarmId.takeIf { outcome != OccurrenceOutcome.SNOOZED }
+        if (outcome == OccurrenceOutcome.SNOOZED) return null
+        return Retirement(record.alarmId, dismissed = outcome == OccurrenceOutcome.DISMISSED)
     }
 
     /**

@@ -95,7 +95,7 @@ class AlarmReschedulerTest {
                 FakeUpcomingAlarmScheduler(),
             )
 
-        rescheduler.retireIfOneTime(AlarmId(1))
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = true)
         rescheduler.rescheduleAll()
 
         assertThat(repository.stored.single().enabled).isFalse()
@@ -120,11 +120,108 @@ class AlarmReschedulerTest {
                 FakeUpcomingAlarmScheduler(),
             )
 
-        rescheduler.retireIfOneTime(AlarmId(1))
-        rescheduler.retireIfOneTime(AlarmId(2))
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = true)
+        rescheduler.retireIfOneTime(AlarmId(2), dismissed = true)
 
         assertThat(repository.enabledChanges).isEmpty()
         assertThat(repository.stored.map { it.enabled }).containsExactly(true, true)
+    }
+
+    /**
+     * A voice alarm (GLOSSARY.md) exists only to be heard once. Once its ring is dismissed the row goes, and both its
+     * main and snooze schedules are cancelled so nothing can ring for a deleted row. The occurrence it produced is not
+     * touched here: occurrences have no foreign key to alarms, so it stays in History with its evidence.
+     */
+    @Test
+    fun aDismissedVoiceOneTimeAlarmIsDeletedAndItsSchedulesCancelled() = runTest {
+        val repository = FakeAlarmRepository(listOf(alarm(1, true).copy(voice = true)))
+        val scheduler = FakeAlarmScheduler()
+        val rescheduler = AlarmRescheduler(
+            repository,
+            scheduler,
+            FixedTimeProvider(),
+            FakeUnlock(true),
+            FakeMirror(),
+            settings(),
+            FakeUpcomingAlarmScheduler(),
+        )
+
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = true)
+        rescheduler.rescheduleAll()
+
+        assertThat(repository.deleted).containsExactly(AlarmId(1))
+        assertThat(repository.stored).isEmpty()
+        assertThat(scheduler.cancelled).containsExactly(
+            AlarmId(1) to AlarmOccurrenceKind.MAIN,
+            AlarmId(1) to AlarmOccurrenceKind.SNOOZE,
+        ).inOrder()
+        assertThat(scheduler.scheduled).isEmpty()
+    }
+
+    /** A timeout is not a dismissal: the voice alarm stays on the list, disabled, so the user can turn it back on. */
+    @Test
+    fun aTimedOutVoiceOneTimeAlarmIsDisabledNotDeleted() = runTest {
+        val repository = FakeAlarmRepository(listOf(alarm(1, true).copy(voice = true)))
+        val scheduler = FakeAlarmScheduler()
+        val rescheduler = AlarmRescheduler(
+            repository,
+            scheduler,
+            FixedTimeProvider(),
+            FakeUnlock(true),
+            FakeMirror(),
+            settings(),
+            FakeUpcomingAlarmScheduler(),
+        )
+
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = false)
+
+        assertThat(repository.deleted).isEmpty()
+        assertThat(repository.stored.single().enabled).isFalse()
+        assertThat(repository.stored.single().voice).isTrue()
+        assertThat(scheduler.cancelled).isEmpty()
+    }
+
+    @Test
+    fun aDismissedNonVoiceOneTimeAlarmIsDisabledNotDeleted() = runTest {
+        val repository = FakeAlarmRepository(listOf(alarm(1, true)))
+        val rescheduler = AlarmRescheduler(
+            repository,
+            FakeAlarmScheduler(),
+            FixedTimeProvider(),
+            FakeUnlock(true),
+            FakeMirror(),
+            settings(),
+            FakeUpcomingAlarmScheduler(),
+        )
+
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = true)
+
+        assertThat(repository.deleted).isEmpty()
+        assertThat(repository.stored.single().enabled).isFalse()
+    }
+
+    /** Voice is only ever set on one-time alarms, but if a recurring one carried the flag it must still never be deleted. */
+    @Test
+    fun aDismissedRecurringAlarmIsUntouchedEvenWhenFlaggedVoice() = runTest {
+        val repeating = alarm(1, true).copy(voice = true, recurrence = Recurrence.Daily)
+        val repository = FakeAlarmRepository(listOf(repeating))
+        val scheduler = FakeAlarmScheduler()
+        val rescheduler = AlarmRescheduler(
+            repository,
+            scheduler,
+            FixedTimeProvider(),
+            FakeUnlock(true),
+            FakeMirror(),
+            settings(),
+            FakeUpcomingAlarmScheduler(),
+        )
+
+        rescheduler.retireIfOneTime(AlarmId(1), dismissed = true)
+
+        assertThat(repository.deleted).isEmpty()
+        assertThat(repository.enabledChanges).isEmpty()
+        assertThat(repository.stored.single().enabled).isTrue()
+        assertThat(scheduler.cancelled).isEmpty()
     }
 
     @Test
@@ -141,7 +238,7 @@ class AlarmReschedulerTest {
                 FakeUpcomingAlarmScheduler(),
             )
 
-        rescheduler.retireIfOneTime(AlarmId(99))
+        rescheduler.retireIfOneTime(AlarmId(99), dismissed = true)
 
         assertThat(repository.enabledChanges).isEmpty()
     }

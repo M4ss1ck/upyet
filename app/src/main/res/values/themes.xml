@@ -9,4 +9,12 @@
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowBackground">@color/brand_night</item>
     </style>
+    <!-- The intent trampoline shows nothing. Not Theme.NoDisplay: handling is asynchronous and NoDisplay must finish before onResume. -->
+    <style name="Theme.UpYet.Trampoline" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

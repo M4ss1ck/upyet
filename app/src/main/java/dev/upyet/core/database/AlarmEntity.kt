@@ -18,6 +18,7 @@ data class AlarmEntity(
     val snoozeMinutes: Int,
     val evidenceEnabled: Boolean,
     val skipNextOnEpochDay: Long? = null,
+    @ColumnInfo(defaultValue = "0") val voice: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
 )

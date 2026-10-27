@@ -14,6 +14,8 @@ import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.SchedulingResult
 import dev.upyet.core.directboot.MirroredRecurrence
 import dev.upyet.core.time.TimeProvider
+import dev.upyet.intents.AlarmPrefillCodec
+import dev.upyet.intents.AlarmSound
 import dev.upyet.settings.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +35,7 @@ private const val DEFAULT_TIME_STEP_MINUTES = 5
 private const val DEFAULT_TIME_MIN_LEAD_MINUTES = 2
 
 private const val KEY_ALARM_ID = "id"
+private const val KEY_PREFILL = "prefill"
 private const val KEY_DRAFT = "draft"
 private const val KEY_MINUTE_OF_DAY = "draft_minute_of_day"
 private const val KEY_LABEL = "draft_label"
@@ -82,10 +85,16 @@ class AlarmEditorViewModel @Inject constructor(
                 updateFromAlarm(existing)
             } else {
                 val defaults = settingsRepository.settings.first()
+                // A SET_ALARM request without SKIP_UI (ADR 0007). Nothing is saved until the user taps Save.
+                val prefill = AlarmPrefillCodec.decode(savedState.get<String>(KEY_PREFILL))
                 update {
                     it.copy(
-                        time = defaultTime(timeProvider.now(), timeProvider.zone()),
-                        vibration = defaults.defaultVibrationEnabled,
+                        time = prefill?.time ?: defaultTime(timeProvider.now(), timeProvider.zone()),
+                        recurrence = prefill?.recurrence ?: it.recurrence,
+                        label = prefill?.label ?: it.label,
+                        soundUri = (prefill?.sound as? AlarmSound.Uri)?.value,
+                        soundEnabled = prefill?.sound != AlarmSound.Silent,
+                        vibration = prefill?.vibrate ?: defaults.defaultVibrationEnabled,
                         snoozeMinutes = defaults.defaultSnoozeMinutes,
                         evidence = defaults.evidenceEnabledByDefault,
                         isLoaded = true,
@@ -178,6 +187,7 @@ class AlarmEditorViewModel @Inject constructor(
         val now = timeProvider.now()
         val existing = alarmId?.let { repository.getAlarm(AlarmId(it)) }
         val current = _state.value
+        // Saving from the editor always clears voice: an alarm the user edits is never a voice alarm.
         val alarm = Alarm(
             id = AlarmId(alarmId ?: 0),
             time = current.time,

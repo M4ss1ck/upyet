@@ -38,6 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   running timer; changing the time zone changes nothing. Ringing itself arrives with the timer playback
   service.
 
+- Assistant intents: UpYet answers the platform `AlarmClock` intents, so an assistant or another app can set an
+  alarm (`SET_ALARM`, with `SKIP_UI` to save it without opening the editor), set and start a timer (`SET_TIMER`),
+  open the Alarms or Timer tab, and dismiss an alarm or a timer (`DISMISS_ALARM`, `DISMISS_TIMER`). A one-time alarm
+  created this way is a Voice alarm: it is deleted once its occurrence is dismissed, and History keeps that
+  occurrence. Dismissal never ends a wake-up: a ringing alarm or a timer with Timer evidence on is brought back to
+  its ringing screen and keeps ringing, a snoozed alarm is refused, and a search that matches several alarms
+  changes nothing. `SNOOZE_ALARM` is deliberately not supported, so an assistant cannot snooze a wake-up past the
+  ringing screen (ADR 0007).
+
 ### Fixed
 - Launching the app now reschedules every enabled alarm, so an alarm cancelled by a force stop (which the
   platform does not announce) comes back the next time the app is opened instead of waiting for a reboot,

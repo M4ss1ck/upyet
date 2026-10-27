@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [AlarmEntity::class, AlarmOccurrenceEntity::class, EvidenceSegmentEntity::class, TimerEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -53,6 +53,12 @@ abstract class UpYetDatabase : RoomDatabase() {
                     // alarm occurrence because the source defaults to ALARM and the attribution stays NULL.
                     db.execSQL("ALTER TABLE alarm_occurrences ADD COLUMN source TEXT NOT NULL DEFAULT 'ALARM'")
                     db.execSQL("ALTER TABLE alarm_occurrences ADD COLUMN timerAttribution TEXT")
+                }
+            },
+            object : Migration(5, 6) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Existing alarms were never voice alarms, so the default of 0 is the truth for every row.
+                    db.execSQL("ALTER TABLE alarms ADD COLUMN voice INTEGER NOT NULL DEFAULT 0")
                 }
             },
         )

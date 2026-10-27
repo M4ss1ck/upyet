@@ -87,15 +87,29 @@ class AlarmRescheduler @Inject constructor(
     }
 
     /**
-     * Switches off a one-time alarm that has finished ringing.
+     * Retires a one-time alarm that has finished ringing.
      *
      * A one-time alarm is only a time of day - there is no date to say it is spent - so left enabled
      * the next reschedule rolls it to the same time tomorrow and it comes back as the next alarm.
      * Repeating alarms are untouched: rolling forward is the whole point of them.
+     *
+     * A voice alarm (GLOSSARY.md) that the user dismissed is deleted instead, with its pending snooze cancelled.
+     * Its occurrence keeps its evidence because occurrences have no foreign key to alarms. A timed-out voice alarm
+     * is only disabled, like any other one-time alarm, so it can still be found and turned back on.
+     *
+     * @param dismissed true only when the user dismissed the ring; a timeout passes false.
      */
-    suspend fun retireIfOneTime(alarmId: AlarmId) {
+    suspend fun retireIfOneTime(alarmId: AlarmId, dismissed: Boolean) {
         val alarm = alarmRepository.getAlarm(alarmId) ?: return
-        if (alarm.recurrence == Recurrence.OneTime) alarmRepository.setEnabled(alarmId, false)
+        if (alarm.recurrence != Recurrence.OneTime) return
+        if (alarm.voice && dismissed) {
+            alarmScheduler.cancel(alarmId, AlarmOccurrenceKind.MAIN)
+            alarmScheduler.cancel(alarmId, AlarmOccurrenceKind.SNOOZE)
+            alarmRepository.delete(alarmId)
+            AlarmLog.event("voice_alarm_deleted")
+        } else {
+            alarmRepository.setEnabled(alarmId, false)
+        }
     }
 
     private fun schedule(alarm: Alarm, now: Instant): SchedulingResult {

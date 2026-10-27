@@ -409,4 +409,19 @@
     <string name="timer_empty">Aún no hay temporizadores</string>
     <string name="timer_length">de %1$s</string>
     <string name="camera_disclosure_dismiss">Ahora no</string>
+
+    <!-- Assistant intents -->
+    <string name="intent_alarm_set">Alarma programada: %1$s</string>
+    <string name="intent_alarm_skipped">Próxima alarma omitida: %1$s</string>
+    <string name="intent_alarm_turned_off">Alarma desactivada: %1$s</string>
+    <string name="intent_alarm_snoozed">Esa alarma está pospuesta. Podrás descartarla cuando vuelva a sonar.</string>
+    <string name="intent_alarm_none_matched">No hay ninguna alarma que coincida</string>
+    <string name="intent_alarm_several_matched">Coincide más de una alarma. Elige una en Alarmas.</string>
+    <string name="intent_timer_started">Temporizador iniciado</string>
+    <string name="intent_timer_stopped">Temporizador detenido</string>
+    <string name="intent_timer_reset">Temporizador reiniciado</string>
+    <string name="intent_timer_not_running">Ese temporizador no está en marcha</string>
+    <string name="intent_timer_none_ringing">Ningún temporizador está sonando</string>
+    <string name="intent_timer_not_found">Ese temporizador ya no existe</string>
+    <string name="intent_invalid_request">UpYet no ha podido entender esa solicitud</string>
 </resources>
