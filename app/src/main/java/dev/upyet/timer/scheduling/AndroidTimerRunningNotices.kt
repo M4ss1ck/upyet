@@ -10,6 +10,9 @@ import dev.upyet.MainActivity
 import dev.upyet.R
 import dev.upyet.core.notifications.AlarmNotifications
 import dev.upyet.timer.domain.TimerId
+import dev.upyet.timer.ui.formatRingTime
+import dev.upyet.timer.ui.ringTimePattern
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,10 +44,7 @@ class AndroidTimerRunningNotices @Inject constructor(@ApplicationContext private
             .setWhen(notice.endsAt.toEpochMilli())
             .setShowWhen(true)
             .setContentIntent(contentIntent())
-        if (notice.alsoRunning > 0) {
-            val others = notice.alsoRunning
-            builder.setContentText(context.resources.getQuantityString(R.plurals.timer_running_others, others, others))
-        }
+        builder.setContentText(contentText(notice))
         builder
             .addAction(
                 0,
@@ -62,6 +62,23 @@ class AndroidTimerRunningNotices @Inject constructor(@ApplicationContext private
                 action(TimerRunningActions.ACTION_RESET, TimerRunningActions.REQUEST_CODE_RESET, id),
             )
         manager?.notify(AlarmNotifications.NOTIFICATION_ID_TIMER_RUNNING, builder.build())
+    }
+
+    /**
+     * The ring time, the one thing a running timer shows that the chronometer does not: "Rings at 7:42", then the
+     * other running timers joined with " · ". The zone is read now, so a re-post after `TIME_SET` shows the new
+     * local time; `TIMEZONE_CHANGED` re-posts nothing (no timer re-arm there, AGENTS.md §6a), so the shade keeps
+     * the old zone's time until the next timer change.
+     */
+    private fun contentText(notice: RunningNotice.Show): String {
+        val locale = context.resources.configuration.locales[0]
+        val ringsAt = context.getString(
+            R.string.timer_rings_at,
+            formatRingTime(notice.endsAt, ZoneId.systemDefault(), ringTimePattern(context), locale),
+        )
+        if (notice.alsoRunning == 0) return ringsAt
+        val others = notice.alsoRunning
+        return "$ringsAt · ${context.resources.getQuantityString(R.plurals.timer_running_others, others, others)}"
     }
 
     override fun cancel() {

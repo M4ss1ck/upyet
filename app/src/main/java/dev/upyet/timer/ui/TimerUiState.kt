@@ -3,6 +3,7 @@ package dev.upyet.timer.ui
 import androidx.compose.runtime.Immutable
 import dev.upyet.timer.domain.TimerId
 import java.time.Duration
+import java.time.Instant
 
 /**
  * The Timer tab: the wheels and the new timer's label and **Record when it rings** switch on top, every timer
@@ -37,6 +38,8 @@ data class TimerRowState(
     val remaining: Duration,
     val length: Duration,
     val evidenceEnabled: Boolean,
+    /** The wall-clock instant a Running timer reaches zero (`Timer.endsAt`); null in every other state, because a paused timer's ring time would drift. */
+    val ringsAt: Instant? = null,
 ) {
     val canStart: Boolean get() = tag == TimerTag.IDLE
     val canPause: Boolean get() = tag == TimerTag.RUNNING

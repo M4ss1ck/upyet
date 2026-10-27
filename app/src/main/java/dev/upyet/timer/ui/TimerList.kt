@@ -45,5 +45,6 @@ private fun Timer.toRow(tag: TimerTag, now: TimerAnchor): TimerRowState {
         remaining = Duration.ofSeconds(wholeSeconds),
         length = length,
         evidenceEnabled = evidenceEnabled,
+        ringsAt = if (tag == TimerTag.RUNNING) endsAt else null,
     )
 }

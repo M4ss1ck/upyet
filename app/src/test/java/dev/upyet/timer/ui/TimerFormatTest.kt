@@ -3,6 +3,8 @@ package dev.upyet.timer.ui
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 
 class TimerFormatTest {
@@ -30,5 +32,13 @@ class TimerFormatTest {
     @Test fun digitsFollowTheLocale() {
         assertThat(formatTimerDuration(Duration.ofSeconds(309), Locale.forLanguageTag("ar-EG"))).isEqualTo("\u0665:\u0660\u0669")
         assertThat(formatTimerDuration(Duration.ofSeconds(309), Locale.US)).isEqualTo("5:09")
+    }
+
+    @Test fun ringTimeFollowsThePatternInTheZone() {
+        val endsAt = Instant.parse("2026-10-27T07:42:00Z")
+
+        assertThat(formatRingTime(endsAt, ZoneId.of("UTC"), "HH:mm", Locale.US)).isEqualTo("07:42")
+        assertThat(formatRingTime(endsAt, ZoneId.of("America/New_York"), "HH:mm", Locale.US)).isEqualTo("03:42")
+        assertThat(formatRingTime(endsAt, ZoneId.of("UTC"), "h:mm a", Locale.US)).isEqualTo("7:42 AM")
     }
 }

@@ -5,6 +5,7 @@ import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerAnchor
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRunState
+import dev.upyet.timer.domain.TimerTransition
 import org.junit.Test
 import java.time.Duration
 import java.time.Instant
@@ -119,6 +120,68 @@ class TimerListTest {
         assertThat(row.length).isEqualTo(Duration.ofMinutes(3))
         assertThat(row.remaining).isEqualTo(Duration.ofSeconds(90))
         assertThat(row.evidenceEnabled).isTrue()
+    }
+
+    @Test fun ringsAtIsTheEndInstantOnlyWhileRunning() {
+        val rows = timerRows(
+            listOf(
+                timer(1, state = running(Duration.ofSeconds(30))),
+                timer(2, state = TimerRunState.Idle),
+                timer(3, state = TimerRunState.Paused(Duration.ofSeconds(30))),
+                timer(4, state = TimerRunState.Ringing),
+                timer(5, state = TimerRunState.Missed),
+            ),
+            now,
+        )
+
+        assertThat(rows.associate { it.id.value to it.ringsAt }).containsExactly(
+            1L,
+            now.wallClock.plusSeconds(30),
+            2L,
+            null,
+            3L,
+            null,
+            4L,
+            null,
+            5L,
+            null,
+        )
+    }
+
+    @Test fun ringsAtMatchesTheTimerEndsAt() {
+        val running = timer(1, state = running(Duration.ofSeconds(90)))
+
+        val row = timerRows(listOf(running), now).single()
+
+        assertThat(row.ringsAt).isEqualTo(running.endsAt)
+        assertThat(row.ringsAt).isEqualTo(now.wallClock.plusSeconds(90))
+    }
+
+    @Test fun ringsAtMovesWhenAddMinuteReanchorsTheTimer() {
+        val running = timer(1, state = running(Duration.ofSeconds(30)))
+        val later = TimerAnchor(now.elapsedRealtime.plusSeconds(10), now.wallClock.plusSeconds(10))
+        val extended = (running.addMinute(later) as TimerTransition.Applied).timer
+
+        val row = timerRows(listOf(extended), later).single()
+
+        // 20 s left at `later` plus one minute: 80 s from the wall clock at `later`.
+        assertThat(row.ringsAt).isEqualTo(later.wallClock.plusSeconds(80))
+        assertThat(row.ringsAt).isEqualTo(extended.endsAt)
+        assertThat(row.ringsAt).isNotEqualTo(running.endsAt)
+    }
+
+    @Test fun ringsAtDropsWhilePausedAndMovesOnResume() {
+        val running = timer(1, state = running(Duration.ofSeconds(30)))
+        val pausedAt = TimerAnchor(now.elapsedRealtime.plusSeconds(10), now.wallClock.plusSeconds(10))
+        val paused = (running.pause(pausedAt) as TimerTransition.Applied).timer
+
+        assertThat(timerRows(listOf(paused), pausedAt).single().ringsAt).isNull()
+
+        val resumedAt = TimerAnchor(now.elapsedRealtime.plusSeconds(100), now.wallClock.plusSeconds(100))
+        val resumed = (paused.start(resumedAt) as TimerTransition.Applied).timer
+
+        // 20 s were left at the pause; resuming at `resumedAt` puts the end 20 s after it.
+        assertThat(timerRows(listOf(resumed), resumedAt).single().ringsAt).isEqualTo(resumedAt.wallClock.plusSeconds(20))
     }
 
     private fun running(remaining: Duration) = TimerRunState.Running(remaining, now)
