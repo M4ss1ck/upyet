@@ -25,3 +25,10 @@ fun SnoozePolicy.encode(): Int = when (this) {
     SnoozePolicy.Off -> SnoozePolicy.OFF_ENCODED
     is SnoozePolicy.After -> minutes
 }
+
+/** The one rule for whether a ring offers snooze at all: the ringing screen, the notification and the service all read it. */
+val SnoozePolicy.allowsSnooze: Boolean
+    get() = when (this) {
+        SnoozePolicy.Off -> false
+        is SnoozePolicy.After -> true
+    }

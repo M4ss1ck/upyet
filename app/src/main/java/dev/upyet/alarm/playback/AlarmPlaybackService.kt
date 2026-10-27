@@ -15,11 +15,13 @@ import dev.upyet.alarm.domain.Alarm
 import dev.upyet.alarm.domain.AlarmId
 import dev.upyet.alarm.domain.AlarmRepository
 import dev.upyet.alarm.domain.AutoSnoozeDecision
+import dev.upyet.alarm.domain.ManualSnoozeDecision
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozeBudget
 import dev.upyet.alarm.domain.SnoozeCalculator
 import dev.upyet.alarm.domain.SnoozePolicy
 import dev.upyet.alarm.domain.VolumeRamp
+import dev.upyet.alarm.domain.allowsSnooze
 import dev.upyet.alarm.scheduling.AlarmOccurrenceKind
 import dev.upyet.alarm.scheduling.AlarmRescheduler
 import dev.upyet.alarm.scheduling.AlarmScheduler
@@ -96,7 +98,9 @@ class AlarmPlaybackService : Service() {
         ServiceCompat.startForeground(
             this,
             AlarmNotifications.NOTIFICATION_ID_RINGING,
-            notifications.buildRingingNotification(current?.label, unlocked),
+            // Before the session is published the snooze policy is unknown, so Snooze stays off until it is: offering it
+            // to a no-snooze alarm, even briefly, is the worse error (GLOSSARY.md, No snooze).
+            notifications.buildRingingNotification(current?.label, unlocked, current?.snooze?.allowsSnooze ?: false),
             foregroundServiceType(),
         )
         when (intent?.action) {
@@ -180,7 +184,7 @@ class AlarmPlaybackService : Service() {
             if (unlocked) {
                 getSystemService(NotificationManager::class.java)?.notify(
                     AlarmNotifications.NOTIFICATION_ID_RINGING,
-                    notifications.buildRingingNotification(session.label, true),
+                    notifications.buildRingingNotification(session.label, true, session.snooze.allowsSnooze),
                 )
             }
             if (soundOn) {
@@ -262,10 +266,21 @@ class AlarmPlaybackService : Service() {
             teardown()
             return
         }
-        if (session.budget.isExhausted) {
-            AlarmLog.event("snooze_denied", "alarmId" to session.alarmId.value, "reason" to "budget_exhausted")
-            finish(OccurrenceOutcome.TIMED_OUT)
-            return
+        when (ManualSnoozeDecision.decide(session.snooze, session.budget)) {
+            // Off has no Snooze action (GLOSSARY.md, No snooze). A tap that still arrives changes nothing: the ring
+            // continues, no outcome is written and nothing is scheduled.
+            ManualSnoozeDecision.Verdict.REJECT_OFF -> {
+                AlarmLog.event("snooze_rejected_off", "alarmId" to session.alarmId.value)
+                return
+            }
+
+            ManualSnoozeDecision.Verdict.DENY_BUDGET_EXHAUSTED -> {
+                AlarmLog.event("snooze_denied", "alarmId" to session.alarmId.value, "reason" to "budget_exhausted")
+                finish(OccurrenceOutcome.TIMED_OUT)
+                return
+            }
+
+            ManualSnoozeDecision.Verdict.ACCEPT -> Unit
         }
         // Playback stops first: snoozing must never wait on persistence or scheduling.
         stopPlayback()
@@ -286,7 +301,7 @@ class AlarmPlaybackService : Service() {
     /** Works before first unlock too: the alarm is then reconstructed from the device-protected mirror. */
     private suspend fun scheduleSnooze(session: RingingSession) {
         val alarm = resolveAlarm(session.alarmId, session.kind, session.isUserUnlocked) ?: return
-        // Off has no snooze action (issue #70); the ringing-screen behaviour for Off lands in the next unit.
+        // Off is rejected before this point, by ManualSnoozeDecision and AutoSnoozeDecision, so "alarm_snoozed" cannot follow it.
         val minutes = (session.snooze as? SnoozePolicy.After)?.minutes ?: return
         val triggerAt = SnoozeCalculator.snoozeAt(timeProvider.now(), minutes)
         val result = scheduler.schedule(
@@ -305,7 +320,7 @@ class AlarmPlaybackService : Service() {
     private suspend fun completeTimedOutWithAutoSnooze(session: RingingSession): Boolean {
         complete(session, OccurrenceOutcome.TIMED_OUT, dismissedAt = null)
         val now = timeProvider.now()
-        if (AutoSnoozeDecision.shouldAutoSnooze(session.budget, session.chainStartedAt, now)) {
+        if (AutoSnoozeDecision.shouldAutoSnooze(session.snooze, session.budget, session.chainStartedAt, now)) {
             scheduleSnooze(session)
             AlarmLog.event("alarm_auto_snoozed", "alarmId" to session.alarmId.value)
             return true

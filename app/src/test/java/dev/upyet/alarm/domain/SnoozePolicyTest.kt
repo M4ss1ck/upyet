@@ -29,6 +29,12 @@ class SnoozePolicyTest {
     }
 
     @Test
+    fun onlyAfterAllowsSnooze() {
+        assertThat(SnoozePolicy.Off.allowsSnooze).isFalse()
+        assertThat(SnoozePolicy.After(9).allowsSnooze).isTrue()
+    }
+
+    @Test
     fun afterRejectsNonPositiveMinutes() {
         assertThrows(IllegalArgumentException::class.java) { SnoozePolicy.After(0) }
         assertThrows(IllegalArgumentException::class.java) { SnoozePolicy.After(-5) }

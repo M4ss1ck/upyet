@@ -10,7 +10,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.upyet.alarm.domain.OccurrenceId
 import dev.upyet.alarm.domain.SnoozePolicy
+import dev.upyet.alarm.domain.allowsSnooze
 import dev.upyet.alarm.playback.AlarmPlaybackService
+import dev.upyet.alarm.playback.RingingSession
 import dev.upyet.alarm.playback.RingingSessionRegistry
 import dev.upyet.core.time.TimeProvider
 import dev.upyet.evidence.camera.EvidenceCoordinator
@@ -44,6 +46,8 @@ data class RingingUiState(
     val occurrenceId: OccurrenceId? = null,
     @StringRes val ringingNoteRes: Int? = null,
     val snoozeAllowed: Boolean = true,
+    /** False for an Off ring: no Snooze and no "last alarm" note either, since the budget never applied. */
+    val snoozeOffered: Boolean = true,
     val isLastSnooze: Boolean = false,
 ) {
     /** What the evidence component records for this ring; null until the service has published a session. */
@@ -54,6 +58,11 @@ data class RingingUiState(
         const val DEFAULT_SNOOZE_MINUTES = 9
     }
 }
+
+/** Off never offers Snooze; otherwise the budget decides. No session yet means the default, as before. */
+internal fun snoozeAllowedFor(session: RingingSession?): Boolean = session?.let { it.snooze.allowsSnooze && !it.budget.isExhausted } ?: true
+
+internal fun snoozeOfferedFor(session: RingingSession?): Boolean = session?.snooze?.allowsSnooze ?: true
 
 @HiltViewModel
 class RingingViewModel
@@ -99,7 +108,8 @@ constructor(
                 evidenceEnabled = session?.evidenceEnabled ?: false,
                 occurrenceId = session?.occurrenceId,
                 ringingNoteRes = session?.let { ringingNoteRes(it.soundEnabled, it.vibrationEnabled, it.isSilentAlarmStream) },
-                snoozeAllowed = session?.budget?.isExhausted?.not() ?: true,
+                snoozeAllowed = snoozeAllowedFor(session),
+                snoozeOffered = snoozeOfferedFor(session),
                 isLastSnooze = session?.budget?.isLastSnooze ?: false,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RingingUiState())

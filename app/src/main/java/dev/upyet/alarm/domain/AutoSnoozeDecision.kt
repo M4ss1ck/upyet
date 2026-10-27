@@ -10,9 +10,11 @@ object AutoSnoozeDecision {
 
     /**
      * Whether an unanswered ring should re-ring.
-     * [chainStartedAt] is when the MAIN alarm of this chain first triggered.
+     * [chainStartedAt] is when the MAIN alarm of this chain first triggered. A ring whose snooze is Off never re-rings:
+     * the user turned snooze off for the alarm, and an unanswered timeout must not bring it back.
      */
-    fun shouldAutoSnooze(budget: SnoozeBudget, chainStartedAt: Instant, now: Instant): Boolean {
+    fun shouldAutoSnooze(snooze: SnoozePolicy, budget: SnoozeBudget, chainStartedAt: Instant, now: Instant): Boolean {
+        if (!snooze.allowsSnooze) return false
         if (budget.isExhausted) return false
         if (Duration.between(chainStartedAt, now) >= MAX_AUTO_SNOOZE_WINDOW) return false
         return true

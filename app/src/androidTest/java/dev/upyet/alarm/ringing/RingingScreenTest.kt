@@ -56,6 +56,15 @@ class RingingScreenTest {
         compose.onNodeWithContentDescription("Dismiss alarm").assertIsEnabled().assertHasClickAction()
     }
 
+    /** An Off ring has no Snooze and no "last alarm" note, because the snooze budget never applied to it. */
+    @Test fun anOffRingOffersNoSnoozeAndNoLastAlarmNote() {
+        show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, snoozeAllowed = false, snoozeOffered = false))
+
+        compose.onNodeWithText("Snooze 9 minutes").assertDoesNotExist()
+        compose.onNodeWithText("Last alarm — no snoozes left").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Dismiss alarm").assertIsEnabled().assertHasClickAction()
+    }
+
     @Test fun theRingBeforeTheLastOneWarnsThatItIsTheLastSnooze() {
         show(RingingUiState(currentTime = LocalTime.of(7, 0), snoozeMinutes = 9, isLastSnooze = true))
 
