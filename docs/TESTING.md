@@ -134,7 +134,7 @@ and never by its position in this table, so rows can be added or reordered witho
 | `exact-alarm-revoked` | either | adb | reliability screen warns; alarms rescheduled on restore |
 | `timer-exact-revoked` | either | adb | revoking exact-alarm access warns on the reliability screen and arms no timer alarm, exact or inexact; on restore the timer is re-armed once (one `TIMER_EXPIRED` alarm, same trigger) and does not ring early or twice. Needs API 31 or 32: from API 33 `USE_EXACT_ALARM` cannot be revoked |
 | `timer-clock-change` | emulator-ok | adb | moving the wall clock re-anchors running timers from the elapsed delta and leaves the armed alarm's `whenElapsed` unchanged; `TIMEZONE_CHANGED` re-arms nothing (no `timer_` log line) |
-| `timer-missed` | either | adb | a `Running` timer found more than 60 s past its end moves to `Missed`, posts the low-importance `timer_missed` notice (id 1103) and never rings. Notice half owned by slice #35; the "Reset clears it" half needs the Timer tab and is re-run by slice #39 |
+| `timer-missed` | either | adb | a `Running` timer found more than 60 s past its end moves to `Missed`, posts the low-importance `timer_missed` notice (id 1103) and never rings. Notice half owned by slice #35; the "Reset clears it" half is the Timer tab's (slice #39): tapping Reset or delete on the Missed row removes the notice |
 | `timer-doze` | emulator-ok | adb | a timer ending while the device is forced idle rings, through `TimerPlaybackService` (`timer_ringing_started`); record how late against its end, never assert zero (see the note under the table) |
 | `timer-two-ending-close-in-doze` | emulator-ok | adb | two timers ending about 30 s apart while forced idle both ring, the second joining the first's ringing (`ringing=2`); record each one's lateness, never assert zero (see the note under the table) |
 | `timer-process-killed` | either | adb | `am kill` while a timer runs: it still rings at its end (`timer_expired`, then `timer_ringing_started`) |
@@ -241,6 +241,7 @@ the only ones that can judge the evidence itself. Record the run as one log entr
 | Storage (Room, `EvidenceFileStore`, retention) | `low-storage`, `delete-occurrence`, `retention-cleanup`, `history-thumbnail`, `reboot-no-unlock` |
 | Timer scheduling (`TimerScheduler`, `TimerReceiver`, `TimerDiscovery`, `TimerAlarmSync`) | `timer-exact-revoked`, `timer-clock-change`, `timer-missed`, `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window` |
 | Timer playback (`TimerPlaybackService`, `TimerRinging`, `TimerRingingRegistry`, `TimerNotifications`, wake lock) | `timer-doze`, `timer-two-ending-close-in-doze`, `timer-process-killed`, `timer-reboot-unlocked`, `timer-reboot-no-unlock`, `timer-boot-grace-window`, `timer-concurrent`, `timer-notification-actions`; the channel ids are checked with the notification-channels recipe in §5 |
+| Timer tab (`TimerScreen`, `TimerViewModel`, `TimerEditor`, running-timer notification) | `timer-missed` (its Reset half), the running-timer recipe in §5 |
 | UI (Compose screens, navigation, reliability screen) | `core-path`, `device-in-use`, `exact-alarm-revoked`, `notifications-disabled`, `delete-occurrence` |
 
 A scenario that is skipped is recorded as skipped, with the reason. Silence is not a pass.
@@ -313,6 +314,18 @@ adb shell appops set "$PKG" SCHEDULE_EXACT_ALARM allow
 # timer-missed: a 20 s timer, force stop (cancels its alarm), wait 90 s, relaunch. Expect
 # timer_discovery missed=1, notification id 1103 on timer_missed, and no timer_expired.
 adb shell dumpsys notification --noredact | grep -A12 "id=1103"
+# Its second half: Reset (or delete) on the Missed row in the Timer tab. Expect timer_edited command=reset,
+# and the same grep now empty.
+adb logcat -d -s UpYet | grep -E "timer_edited"
+
+# Running timer (slice #39, ADR 0012): start a timer in the Timer tab. Expect one notification id 1102 on
+# clock_tool_ongoing, ongoing, no group, a countdown chronometer (when = the timer's end) and the actions
+# Pause, +1 min and Reset; no UpYet wake lock and no UpYet foreground service while it runs. Pause, Reset
+# or the timer ringing removes 1102; +1 min moves `when` one minute later.
+adb shell dumpsys notification --noredact | grep -E -A16 "id=1102"
+adb shell dumpsys power | grep -c "UpYet:"                    # expect 0 while a timer only runs
+adb shell dumpsys activity services "$PKG" | grep -c ServiceRecord   # expect 0 while a timer only runs
+adb logcat -d -s UpYet | grep -E "timer_(edited|command_ignored)"
 
 # timer-boot-grace-window negative control (the `timer-boot-grace-window` row): with this compat change on, a
 # BOOT_COMPLETED receiver may not start a mediaPlayback foreground service, so a timer due inside the
