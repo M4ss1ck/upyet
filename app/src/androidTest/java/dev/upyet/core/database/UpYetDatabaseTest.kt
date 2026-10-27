@@ -11,10 +11,12 @@ import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerAnchor
 import dev.upyet.timer.domain.TimerId
 import dev.upyet.timer.domain.TimerRunState
+import dev.upyet.timer.scheduling.RunningNotice
 import dev.upyet.timer.scheduling.TimerAlarm
 import dev.upyet.timer.scheduling.TimerAlarmSync
 import dev.upyet.timer.scheduling.TimerArmResult
 import dev.upyet.timer.scheduling.TimerMissedNotices
+import dev.upyet.timer.scheduling.TimerRunningNotices
 import dev.upyet.timer.scheduling.TimerScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -235,6 +237,12 @@ class UpYetDatabaseTest {
 
                 override fun clear() = Unit
             },
-        ) { TimerAnchor(Duration.ZERO, Instant.EPOCH) },
+            { TimerAnchor(Duration.ZERO, Instant.EPOCH) },
+            object : TimerRunningNotices {
+                override fun show(notice: RunningNotice.Show) = Unit
+
+                override fun cancel() = Unit
+            },
+        ),
     )
 }

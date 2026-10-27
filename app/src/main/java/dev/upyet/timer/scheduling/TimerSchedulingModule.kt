@@ -20,4 +20,7 @@ abstract class TimerSchedulingModule {
 
     @Binds
     abstract fun bindTimerMissedNotices(notices: AndroidTimerMissedNotices): TimerMissedNotices
+
+    @Binds
+    abstract fun bindTimerRunningNotices(notices: AndroidTimerRunningNotices): TimerRunningNotices
 }

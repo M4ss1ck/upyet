@@ -8,6 +8,7 @@ import dev.upyet.core.directboot.toMirrored
 import dev.upyet.testing.FakeTimerMirror
 import dev.upyet.testing.FakeTimerMissedNotices
 import dev.upyet.testing.FakeTimerRepository
+import dev.upyet.testing.FakeTimerRunningNotices
 import dev.upyet.testing.FakeTimerScheduler
 import dev.upyet.testing.FakeUserUnlockState
 import dev.upyet.timer.domain.Timer
@@ -54,7 +55,7 @@ class TimerDiscoveryTest {
             repository = repository,
             reconciler = TimerMirrorReconciler(mirror, repository, FakeUserUnlockState(unlocked), clock),
             clock = clock,
-            alarms = TimerAlarmSync(scheduler, notices, clock),
+            alarms = TimerAlarmSync(scheduler, notices, clock, FakeTimerRunningNotices()),
             handoff = { handedOff += it },
         )
     }

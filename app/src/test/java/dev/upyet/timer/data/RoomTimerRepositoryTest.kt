@@ -7,6 +7,7 @@ import dev.upyet.core.directboot.MirroredTimer
 import dev.upyet.core.directboot.TimerMirror
 import dev.upyet.testing.FakeTimerMirror
 import dev.upyet.testing.FakeTimerMissedNotices
+import dev.upyet.testing.FakeTimerRunningNotices
 import dev.upyet.testing.FakeTimerScheduler
 import dev.upyet.timer.domain.Timer
 import dev.upyet.timer.domain.TimerAnchor
@@ -29,7 +30,8 @@ class RoomTimerRepositoryTest {
     private val dao = FakeTimerDao()
     private val mirror = FakeTimerMirror()
     private val scheduler = FakeTimerScheduler()
-    private val repository = RoomTimerRepository(dao, mirror, TimerAlarmSync(scheduler, FakeTimerMissedNotices()) { now })
+    private val repository =
+        RoomTimerRepository(dao, mirror, TimerAlarmSync(scheduler, FakeTimerMissedNotices(), { now }, FakeTimerRunningNotices()))
 
     private fun newTimer(minutes: Long) =
         Timer.create(TimerId(0), Duration.ofMinutes(minutes), "Tea", null, false, Instant.parse("2026-10-26T07:00:00Z"))
@@ -52,7 +54,8 @@ class RoomTimerRepositoryTest {
         val failingMirror = object : TimerMirror by FakeTimerMirror() {
             override fun put(record: MirroredTimer) = throw IOException("device-protected storage unavailable")
         }
-        val repository = RoomTimerRepository(dao, failingMirror, TimerAlarmSync(scheduler, FakeTimerMissedNotices()) { now })
+        val repository =
+            RoomTimerRepository(dao, failingMirror, TimerAlarmSync(scheduler, FakeTimerMissedNotices(), { now }, FakeTimerRunningNotices()))
 
         val thrown = runCatching { repository.upsert(newTimer(5).started()) }.exceptionOrNull()
 
