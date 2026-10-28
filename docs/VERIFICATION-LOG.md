@@ -35,6 +35,46 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.3.1
+
+Lane: mixed (automated + adb)   Build: 0.3.1 (301)   Package: `dev.upyet.debug`
+
+The 0.3.1 release gate: `core-path` and the every-release smoke subset, plus the two 0.3.1 changes and the
+upgrade from 0.3.0. Emulator run, so a regression result only; the AVD was started with `-camera-front
+emulated` and has no lock PIN, so no row here says anything about the keyguard. Automated:
+`connectedDebugAndroidTest`, 195 tests, all pass after the fix in the findings (194 of 195 before). The adb
+scenarios used the debug `SCHEDULE` / `TIMER` receivers with evidence on, turned the screen off before each
+alarm ring so the full-screen intent path ran, read `logcat -s UpYet` and the Room tables, and tapped through
+`uiautomator`. The signed release APK (`dev.upyet`, 0.3.1 / 301) was built with
+`scripts/build-android-release.sh` and installed over the published `v0.3.0` release APK.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| core-path | PASS | `CorePathFlowTest` (automated lane), also over a 0.3.0 database. Regression result: no keyguard on this AVD |
+| timer-core-path | PASS | 15 s timer, evidence on. The screen was awake, so it came as a heads-up and the ringing screen was opened from the notification. Stop: `RECORDED`, 1.16 MB, occurrence `source=TIMER`, outcome `STOPPED`, attribution "Debug timer" |
+| doze | PASS | screen off, battery unplugged, stepped to deep `IDLE` with `min_time_to_alarm` lowered (see findings). Rang 9 ms after `scheduledFor`, clip `RECORDED`, 1.07 MB. Two earlier attempts stuck at `INACTIVE` rang on time too but are not counted |
+| process-killed | PASS | `kill -9` on pid 8825 as root, the alarm rang in new pid 16507, clip `RECORDED` |
+| camera-denied | PASS | `CAMERA` revoked: rang, dismissed, segment `SKIPPED` / `PERMISSION_DENIED` |
+| snooze | PASS | Snooze 9 minutes: `alarm_snoozed`, SNOOZE ring 16 ms after its `scheduledFor`, child occurrence 8 linked to parent 7, both clips `RECORDED` |
+| reboot-unlocked | PASS | `adb reboot`, `alarms_rescheduled scheduled=1` after boot, rang, recorded, dismissed |
+| upgrade 0.3.0 → 0.3.1 (debug) | PASS | 0.3.0 debug built from the tag with one alarm: schema 6 → 7 on first launch, the alarm row kept with snooze 9, rescheduled, no crash |
+| upgrade 0.3.0 → 0.3.1 (release) | PASS | the `v0.3.0` GitHub release APK, then `upyet-0.3.1-release.apk` with `install -r`: same signature accepted, versionName 0.3.1, launches, no `FATAL EXCEPTION` |
+| timer ring time (#71) | PASS | 5:00 timer started 21:25:26: the row reads "Rings at 9:30 PM · 5:00 timer" and the notification "Rings at 9:30 PM". Zone America/Santiago → Asia/Tokyo: `timer_zone_changed`, notification "Rings at 9:30 AM"; back again: "9:30 PM" |
+| core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`. Owed on a physical device before the `v0.3.1` tag |
+| timer-core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`. Owed on a physical device before the `v0.3.1` tag |
+
+### Findings
+- `CorePathFlowTest` failed on this AVD with "A migration from 6 to 7 was required but not found". The app
+  was fine: `DatabaseModule` registers every migration. The test opens the app's own `upyet.db` with a bare
+  `Room.databaseBuilder`, and the AVD still had the schema 6 database the 0.3.0 gate left behind. On a clean
+  device the app creates schema 7 first and the test passes, which is why CI never saw it. Fixed: the test's
+  builder adds `UpYetDatabase.MIGRATIONS`. Reproduced by installing 0.3.0 debug (built from the tag) with
+  one alarm and running the test: fails without the fix, passes with it.
+- The doze recipe in `TESTING.md` (`force-idle` alone) never reaches deep `IDLE` with an alarm scheduled:
+  `DeviceIdleController` stays `INACTIVE` while a wake-from-idle alarm is due within `min_time_to_alarm`
+  (1 h here), and every `setAlarmClock()` alarm is one. This is why the 0.3.0 gate's first attempt stopped
+  at `INACTIVE`. The recipe now lowers the constant for the run and resets it afterwards.
+
 ## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.3.0
 
 Lane: mixed (automated + adb)   Build: 0.3.0 (300)   Package: `dev.upyet.debug`

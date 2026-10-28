@@ -394,10 +394,19 @@ adb shell am start -n "$PKG"/dev.upyet.MainActivity
 adb shell dumpsys alarm | grep -E -A 12 "\b${PKG}\b"      # expect the alarm back, same trigger time
 adb logcat -d -s UpYet | grep -E "launch_rescheduled|alarms_rescheduled"
 
-# Doze
-adb shell dumpsys deviceidle enable
-adb shell dumpsys deviceidle force-idle
-adb shell dumpsys deviceidle unforce && adb shell dumpsys deviceidle disable
+# Doze: reach deep IDLE with an alarm already scheduled. Deep doze never leaves INACTIVE while a
+# wake-from-idle alarm (every setAlarmClock() alarm) is due within min_time_to_alarm, 1 h on API 35, so
+# an alarm a few minutes out pins it there and force-idle alone does not help. Lower the constant for the
+# run, step until IDLE, and put everything back afterwards.
+adb shell settings put global device_idle_constants min_time_to_alarm=5000
+adb shell dumpsys battery unplug
+adb shell input keyevent KEYCODE_SLEEP                    # mScreenOn=false in `dumpsys deviceidle`
+adb shell dumpsys deviceidle enable deep
+for i in $(seq 1 12); do adb shell dumpsys deviceidle step deep; done   # until "Stepped to deep: IDLE"
+adb shell dumpsys deviceidle get deep                     # expect IDLE
+adb shell dumpsys battery reset
+adb shell dumpsys deviceidle unforce
+adb shell settings delete global device_idle_constants
 
 # Inspect scheduled alarms for exactly one package. The word boundary matters: without it the release
 # package's rows appear in a debug pass and vice versa.

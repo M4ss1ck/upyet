@@ -37,8 +37,16 @@ checked.
    an empty `[Unreleased]` behind.
 2. Edit `upyet.version` in `gradle.properties`. That is the only version edit — `versionCode`, the APK
    filename and the version shown in Settings all derive from it.
-3. Commit both together: `chore(release): X.Y.Z`.
-4. Tag it: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+3. Commit both together on a `release-X.Y.Z` branch: `chore(release): X.Y.Z`, and open a PR. Nothing is
+   pushed to `main` directly.
+4. Once the PR is merged, tag the merge commit on `main`, not the branch commit (a squash merge gives it a
+   new hash):
+
+   ```bash
+   git switch main && git pull --ff-only
+   git log -1 --oneline            # must be the chore(release): X.Y.Z merge
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   ```
 
 ## Building the artifact
 
@@ -112,6 +120,13 @@ printf '%s' "<the paragraph>" | wc -m    # must print 500 or less
 
 The paragraph for each release lives here, newest first, so the next one has a model and the wording is
 reviewed in the PR that cuts the version.
+
+- **0.3.1**:
+
+  > UpYet 0.3.1: a timer's +1 min is now a clear outlined button, and the time flashes when you tap it. An
+  > alarm can now have no snooze: pick Off in its snooze list and it rings with Dismiss only. Settings ›
+  > Default snooze can be Off too, for alarms you create afterwards; existing alarms keep their snooze. A
+  > running timer now shows when it will ring, on its row and in its notification.
 
 - **0.3.0** (the drawer move, map #5 decision 2):
 

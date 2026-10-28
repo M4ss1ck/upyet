@@ -54,9 +54,14 @@ class CorePathFlowTest {
      * A read-only view of the database the running app is writing to. A Hilt entry point cannot be used
      * from here: the androidTest source set is processed into its own Hilt component, so the application's
      * already-generated component does not implement anything declared in the test APK.
+     *
+     * The migrations match DatabaseModule's: on a device upgraded from an older build, `upyet.db` is still at
+     * the old schema when this opens it, and without them Room refuses to open it at all.
      */
     private val database: UpYetDatabase by lazy {
-        Room.databaseBuilder(context, UpYetDatabase::class.java, DATABASE_NAME).build()
+        Room.databaseBuilder(context, UpYetDatabase::class.java, DATABASE_NAME)
+            .addMigrations(*UpYetDatabase.MIGRATIONS)
+            .build()
     }
 
     /** Mirrors AppEvidenceFileStore's layout, which is not reachable from here for the same Hilt reason. */
