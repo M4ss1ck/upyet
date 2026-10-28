@@ -7,11 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-27
+
+### Changed
+- A timer's +1 min is now an outlined button you can see is a button, and the remaining time flashes when you
+  tap it so you can tell the minute was added.
+
 ### Added
 - An alarm can have no snooze: pick "Off" in the editor's snooze list and it rings with Dismiss only, on the
   ringing screen and in the notification, also before the phone is first unlocked. It never snoozes on its own
   when it times out, and the alarm list marks it "No snooze". Settings › Default snooze can be Off too, which
   applies to alarms created afterwards, including ones an assistant sets; existing alarms keep their snooze.
+
+- A running timer shows when it will ring: its row reads "Rings at 7:42 · 5:00 timer" and its notification
+  "Rings at 7:42", in the phone's 12 or 24 hour style. After a time zone change the notification shows the
+  ring time in the new zone; the timer itself still ends when it was going to.
 
 ## [0.3.0] - 2026-10-27
 
