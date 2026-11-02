@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The World clock now shows the next clock change: each place's row says when its offset from you next changes,
+  and the home time says when your own clocks next go forward or back.
+
+### Changed
+- World clock rows no longer say "Today". "Tomorrow" and "Yesterday" still appear when a place is on another day.
+
 ## [0.3.1] - 2026-10-27
 
 ### Changed

@@ -2,6 +2,8 @@ package dev.upyet.worldclock.ui
 
 import dev.upyet.worldclock.data.WorldCity
 import dev.upyet.worldclock.data.WorldLand
+import dev.upyet.worldclock.domain.ClockChange
+import dev.upyet.worldclock.domain.OffsetChange
 import dev.upyet.worldclock.domain.WorldClockRow
 import java.time.Instant
 import java.time.ZoneId
@@ -17,6 +19,8 @@ sealed interface WorldClockUiState {
         val homeLabel: String?,
         /** The map's home marker: the most populous place in the home zone. */
         val homeCity: WorldCity?,
+        /** The home zone's next clock change; null when none is coming. */
+        val homeClockChange: ClockChange?,
         val rows: List<WorldClockRowUi>,
         val land: WorldLand?,
         /** The highlighted row and map marker. */
@@ -26,8 +30,8 @@ sealed interface WorldClockUiState {
     ) : WorldClockUiState
 }
 
-/** One list line. [zoneLabel] is null for [WorldClockRow.Unavailable]. */
-data class WorldClockRowUi(val row: WorldClockRow, val zoneLabel: String?)
+/** One list line. [zoneLabel] is null for [WorldClockRow.Unavailable]; [offsetChange] is null there and when none is coming. */
+data class WorldClockRowUi(val row: WorldClockRow, val zoneLabel: String?, val offsetChange: OffsetChange? = null)
 
 /** A removed place and the position it held, so undo can put it back. */
 data class RemovedPlace(val geonamesId: Long, val index: Int)

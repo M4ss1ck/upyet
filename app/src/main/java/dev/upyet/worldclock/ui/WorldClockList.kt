@@ -144,6 +144,15 @@ private fun HomeTime(state: WorldClockUiState.Ready) {
         state.homeLabel?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        state.homeClockChange?.let {
+            Text(
+                homeClockChangeText(it),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag("world_clock_home_change"),
+            )
+        }
     }
 }
 

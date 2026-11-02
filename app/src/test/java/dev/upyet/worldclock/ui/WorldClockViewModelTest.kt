@@ -10,6 +10,8 @@ import dev.upyet.worldclock.data.WorldCity
 import dev.upyet.worldclock.data.WorldClockAssets
 import dev.upyet.worldclock.data.WorldLand
 import dev.upyet.worldclock.domain.WorldClockRow
+import dev.upyet.worldclock.domain.nextClockChange
+import dev.upyet.worldclock.domain.nextOffsetChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
@@ -77,6 +79,18 @@ class WorldClockViewModelTest {
         assertThat(ready.rows[0].zoneLabel).isEqualTo("Los Angeles")
         assertThat(ready.rows[1].row).isEqualTo(WorldClockRow.Unavailable(99L))
         assertThat(ready.rows[1].zoneLabel).isNull()
+    }
+
+    @Test fun readyStateCarriesTheHomeClockChangeAndEachPlacesOffsetChange() = runTest(dispatcher) {
+        val h = Harness(storedIds = listOf(2, 99))
+        h.watch(this)
+        runCurrent()
+
+        val ready = ready(h)
+        assertThat(ready.homeClockChange).isEqualTo(nextClockChange(ready.homeZone.rules, ready.now))
+        val place = ready.rows[0].row as WorldClockRow.Place
+        assertThat(ready.rows[0].offsetChange).isEqualTo(nextOffsetChange(place.city.zoneId.rules, ready.homeZone.rules, ready.now))
+        assertThat(ready.rows[1].offsetChange).isNull()
     }
 
     @Test fun unknownStoredIdIsUnavailableInPlaceAndNeverPruned() = runTest(dispatcher) {

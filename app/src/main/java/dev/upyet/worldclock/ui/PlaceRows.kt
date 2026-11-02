@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import dev.upyet.R
 import dev.upyet.core.ui.components.ClockText
 import dev.upyet.core.ui.rememberLocalized
+import dev.upyet.worldclock.domain.OffsetChange
 import dev.upyet.worldclock.domain.WorldClockRow
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -126,7 +127,7 @@ private fun PlaceRow(item: WorldClockRowUi, selected: Boolean, position: RowPosi
     val remove = stringResource(R.string.world_clock_remove)
     val moveUp = stringResource(R.string.world_clock_move_up)
     val moveDown = stringResource(R.string.world_clock_move_down)
-    val description = rowDescription(row)
+    val description = rowDescription(item)
     Column(
         Modifier
             .fillMaxWidth()
@@ -185,7 +186,7 @@ private fun PlaceRow(item: WorldClockRowUi, selected: Boolean, position: RowPosi
         ) {
             DragHandle(id, actions.reorder)
             when (row) {
-                is WorldClockRow.Place -> PlaceDetails(row, item.zoneLabel, Modifier.weight(1f))
+                is WorldClockRow.Place -> PlaceDetails(row, item.zoneLabel, item.offsetChange, Modifier.weight(1f))
                 is WorldClockRow.Unavailable -> UnavailableDetails(id, actions.onRemove, Modifier.weight(1f))
             }
             if (row is WorldClockRow.Place) {
@@ -198,10 +199,15 @@ private fun PlaceRow(item: WorldClockRowUi, selected: Boolean, position: RowPosi
 }
 
 @Composable
-private fun rowDescription(row: WorldClockRow): String? {
-    if (row !is WorldClockRow.Place) return null
+private fun rowDescription(item: WorldClockRowUi): String? {
+    val row = item.row as? WorldClockRow.Place ?: return null
     val formatter = rememberLocalized { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(it) }
-    return stringResource(R.string.world_clock_row_description, placeTitle(row.city), dayAndOffset(row), formatter.format(row.localTime))
+    return stringResource(
+        R.string.world_clock_row_description,
+        placeTitle(row.city),
+        placeOffsetDescription(row, item.offsetChange),
+        formatter.format(row.localTime),
+    )
 }
 
 @Composable
@@ -236,11 +242,15 @@ private fun DragHandle(id: Long, reorder: ReorderState) {
 }
 
 @Composable
-private fun PlaceDetails(row: WorldClockRow.Place, zoneLabel: String?, modifier: Modifier) {
+private fun PlaceDetails(row: WorldClockRow.Place, zoneLabel: String?, offsetChange: OffsetChange?, modifier: Modifier) {
     val zone = zoneLabelText(row, zoneLabel)
     Column(modifier.padding(vertical = 12.dp)) {
         Text(placeTitle(row.city), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(dayAndOffset(row), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            placeOffsetLine(row, offsetChange),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (zone != null) {
             Text(zone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
