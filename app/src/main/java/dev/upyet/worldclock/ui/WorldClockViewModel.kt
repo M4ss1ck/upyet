@@ -12,6 +12,8 @@ import dev.upyet.worldclock.data.WorldLand
 import dev.upyet.worldclock.domain.CitySearchIndex
 import dev.upyet.worldclock.domain.WorldClockRow
 import dev.upyet.worldclock.domain.homeCity
+import dev.upyet.worldclock.domain.nextClockChange
+import dev.upyet.worldclock.domain.nextOffsetChange
 import dev.upyet.worldclock.domain.worldClockRows
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
@@ -158,18 +160,24 @@ class WorldClockViewModel @Inject constructor(
             if (labels.containsKey(zone)) labels[zone] else zoneLabeler.label(zone, Locale.getDefault()).also { labels[zone] = it }
 
         return combine(minuteTicks(), repository.cityIds, selectedId, pendingUndo) { clock, ids, selected, undo ->
+            val homeRules = clock.zone.rules
             val rows = worldClockRows(ids, catalog.citiesById, clock.now, clock.zone).map { row ->
-                val zoneLabel = when (row) {
-                    is WorldClockRow.Place -> label(row.city.zoneId)
-                    is WorldClockRow.Unavailable -> null
+                when (row) {
+                    is WorldClockRow.Place -> WorldClockRowUi(
+                        row,
+                        label(row.city.zoneId),
+                        nextOffsetChange(row.city.zoneId.rules, homeRules, clock.now),
+                    )
+
+                    is WorldClockRow.Unavailable -> WorldClockRowUi(row, zoneLabel = null)
                 }
-                WorldClockRowUi(row, zoneLabel)
             }
             WorldClockUiState.Ready(
                 now = clock.now,
                 homeZone = clock.zone,
                 homeLabel = label(clock.zone),
                 homeCity = homeCity(catalog.cities, clock.zone),
+                homeClockChange = nextClockChange(homeRules, clock.now),
                 rows = rows,
                 land = catalog.land,
                 selectedId = selected,

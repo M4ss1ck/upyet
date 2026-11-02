@@ -91,6 +91,17 @@ _Avoid_: Foreground notification, running notification (neither is a foreground 
 A user-chosen list of places, each showing its current local time and its offset from the user's own.
 _Avoid_: Global time, time zones (a zone is what a place resolves to, not the feature)
 
+**Home time**:
+The current time and date in the zone the phone is set to, shown at the top of the World clock. Every place's
+offset is measured against it.
+_Avoid_: Current clock, local clock
+
+**Clock change**:
+A moment when a zone's clocks move forward or back. Most are daylight saving, but not all, and not all are an
+hour. A place's offset can change because of a clock change in either zone, and two zones changing together can
+leave it unchanged.
+_Avoid_: Hour change, DST, time change
+
 **Gazetteer**:
 The bundled, offline dataset behind World clock search and the map on that screen: place names in English and
 Spanish, coordinates, population, country, and the IANA zone each place resolves to, plus the land outline the

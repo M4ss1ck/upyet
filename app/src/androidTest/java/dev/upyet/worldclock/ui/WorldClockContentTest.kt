@@ -1,5 +1,6 @@
 package dev.upyet.worldclock.ui
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,13 +22,19 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.upyet.R
 import dev.upyet.core.ui.theme.UpYetTheme
+import dev.upyet.timer.ui.ringTimePattern
 import dev.upyet.worldclock.data.WorldCity
+import dev.upyet.worldclock.domain.ClockChange
 import dev.upyet.worldclock.domain.WorldClockRow
+import dev.upyet.worldclock.domain.nextClockChange
+import dev.upyet.worldclock.domain.nextOffsetChange
 import dev.upyet.worldclock.domain.worldClockRows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -61,7 +68,11 @@ class WorldClockContentTest {
             homeZone = homeZone,
             homeLabel = "Madrid",
             homeCity = null,
-            rows = worldClockRows(ids, byId, now, homeZone).map { WorldClockRowUi(it, zoneLabel = null) },
+            homeClockChange = nextClockChange(homeZone.rules, now),
+            rows = worldClockRows(ids, byId, now, homeZone).map { row ->
+                val place = row as? WorldClockRow.Place
+                WorldClockRowUi(row, zoneLabel = null, place?.let { nextOffsetChange(it.city.zoneId.rules, homeZone.rules, now) })
+            },
             land = null,
             selectedId = selectedId,
             pendingUndo = pendingUndo,
@@ -88,6 +99,9 @@ class WorldClockContentTest {
 
     private fun title(city: WorldCity) = string(R.string.world_clock_place_name, city.name, countryName(city.isoA2, locale))
 
+    private fun datePart(date: LocalDate, skeleton: String) =
+        DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale).format(date)
+
     private fun clock(time: LocalTime) = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(time)
 
     private fun customActionLabels(tag: String): List<String> =
@@ -103,11 +117,14 @@ class WorldClockContentTest {
         val state = ready(listOf(1, 2, 3))
         show(state)
         val day = string(R.string.world_clock_tomorrow)
-        val today = string(R.string.world_clock_today)
+        // Madrid's clocks go back on Oct 25, and none of these three changes first, so each offset grows by an hour.
+        val change = LocalDate.of(2026, 10, 25)
+        fun line(offset: String) = string(R.string.world_clock_offset_with_change, offset, "+1 h", datePart(change, "MMMd"))
         val expectedOffsets = mapOf(
-            1L to string(R.string.world_clock_day_offset, day, "+7 h"),
-            2L to string(R.string.world_clock_day_offset, today, "−9 h"),
-            3L to string(R.string.world_clock_day_offset, day, "+3 h 30 min"),
+            1L to line(string(R.string.world_clock_day_offset, day, "+7 h")),
+            // "Today" is gone: a place on the home date shows only its offset.
+            2L to line("−9 h"),
+            3L to line(string(R.string.world_clock_day_offset, day, "+3 h 30 min")),
         )
         state.rows.forEach { item ->
             val row = item.row as WorldClockRow.Place
@@ -119,7 +136,20 @@ class WorldClockContentTest {
         // The same facts reach a screen reader as one announcement per row.
         compose.onNodeWithTag("world_clock_row_1").assert(
             hasContentDescription(
-                string(R.string.world_clock_row_description, title(tokyo), expectedOffsets.getValue(1L), clock(LocalTime.of(5, 0))),
+                string(
+                    R.string.world_clock_row_description,
+                    title(tokyo),
+                    string(
+                        R.string.world_clock_offset_change_description,
+                        string(R.string.world_clock_day_offset, day, "+7 h"),
+                        string(
+                            R.string.world_clock_spoken_plus,
+                            context.resources.getQuantityString(R.plurals.world_clock_spoken_hours, 1, 1),
+                        ),
+                        datePart(change, "MMMMd"),
+                    ),
+                    clock(LocalTime.of(5, 0)),
+                ),
             ),
         )
     }
@@ -128,6 +158,50 @@ class WorldClockContentTest {
         show(ready(listOf(1)))
         compose.onNodeWithText("Madrid").assertIsDisplayed()
         compose.onNodeWithText(clock(LocalTime.of(22, 0)), substring = true).assertIsDisplayed()
+    }
+
+    @Test fun aRowWithoutAComingChangeShowsOnlyItsOffset() {
+        val state = ready(listOf(2))
+        show(state.copy(rows = state.rows.map { it.copy(offsetChange = null) }))
+        compose.onNodeWithText("−9 h").assertIsDisplayed()
+    }
+
+    @Test fun homeTimeSaysWhenItsClocksNextChangeBelowTheLocation() {
+        show(ready(listOf(1)))
+        val expected = context.resources.getQuantityString(
+            R.plurals.world_clock_home_change_back,
+            displayedHour(LocalTime.of(3, 0), DateFormat.is24HourFormat(context)),
+            "1 h",
+            datePart(LocalDate.of(2026, 10, 25), "EEEEMMMMd"),
+            DateTimeFormatter.ofPattern(ringTimePattern(context), locale).format(LocalTime.of(3, 0)),
+        )
+        compose.onNodeWithTag("world_clock_home_change").assert(hasText(expected)).assertIsDisplayed()
+        val location = compose.onNodeWithText("Madrid").fetchSemanticsNode().boundsInRoot
+        val change = compose.onNodeWithTag("world_clock_home_change").fetchSemanticsNode().boundsInRoot
+        assertThat(change.top).isAtLeast(location.bottom)
+    }
+
+    @Test fun homeTimeSaysForwardAndAPartialHourWhenItsClocksGoForwardThirtyMinutes() {
+        val change = ClockChange(30, LocalDateTime.of(2026, 10, 4, 2, 0))
+        show(ready(listOf(1)).copy(homeClockChange = change))
+        val expected = context.resources.getQuantityString(
+            R.plurals.world_clock_home_change_forward,
+            displayedHour(LocalTime.of(2, 0), DateFormat.is24HourFormat(context)),
+            "30 min",
+            datePart(LocalDate.of(2026, 10, 4), "EEEEMMMMd"),
+            DateTimeFormatter.ofPattern(ringTimePattern(context), locale).format(LocalTime.of(2, 0)),
+        )
+        compose.onNodeWithTag("world_clock_home_change").assert(hasText(expected))
+    }
+
+    @Test fun homeTimeShowsItsChangeLineWithoutALocation() {
+        show(ready(listOf(1)).copy(homeLabel = null))
+        compose.onNodeWithTag("world_clock_home_change").assertIsDisplayed()
+    }
+
+    @Test fun homeTimeHasNoChangeLineWhenNoChangeIsComing() {
+        show(ready(listOf(1)).copy(homeClockChange = null))
+        compose.onNodeWithTag("world_clock_home_change").assertDoesNotExist()
     }
 
     @Test fun unavailableRowShowsExplanationAndItsRemoveButtonRemoves() {
@@ -276,6 +350,11 @@ class WorldClockContentTest {
         compose.onNodeWithText(string(R.string.world_clock_day_offset, string(R.string.world_clock_tomorrow), "+7 h")).assertIsDisplayed()
         compose.onNodeWithText(clock(LocalTime.of(5, 0))).assertIsDisplayed()
         compose.onNodeWithText(string(R.string.world_clock_attribution)).assertIsDisplayed()
+    }
+
+    @Test fun pickerKeepsTodayAndHasNoClockChangeNote() {
+        showPicker(PickerUiState(query = "los", results = listOf(losAngeles)))
+        compose.onNodeWithText(string(R.string.world_clock_day_offset, string(R.string.world_clock_today), "−9 h")).assertIsDisplayed()
     }
 
     @Test fun pickerAddedCityIsMarkedAndCannotBeAddedAgain() {
