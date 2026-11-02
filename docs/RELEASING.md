@@ -121,6 +121,12 @@ printf '%s' "<the paragraph>" | wc -m    # must print 500 or less
 The paragraph for each release lives here, newest first, so the next one has a model and the wording is
 reviewed in the PR that cuts the version.
 
+- **0.4.0**:
+
+  > UpYet 0.4.0: World clock rows no longer say Today; Tomorrow and Yesterday still appear when a place
+  > is on another day. The World clock now shows the next clock change: each place's row says when its
+  > offset from you next changes, and the home time says when your own clocks next go forward or back.
+
 - **0.3.1**:
 
   > UpYet 0.3.1: a timer's +1 min is now a clear outlined button, and the time flashes when you tap it. An

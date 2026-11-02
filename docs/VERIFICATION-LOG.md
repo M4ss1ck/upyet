@@ -35,6 +35,50 @@ Lane: <automated | adb | human-eyes | mixed>   Build: <versionName> (<versionCod
 
 ## Runs
 
+## 2026-11-02 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.4.0
+
+Lane: mixed (automated + adb)   Build: 0.4.0 (400)   Package: `dev.upyet.debug`, `dev.upyet` for the upgrade
+
+The 0.4.0 release gate: `core-path` and the every-release smoke subset, plus the World clock change and the
+upgrade from 0.3.1. Emulator run, so a regression result only; the AVD was started with `-camera-front
+emulated` and has no lock PIN, so no row here says anything about the keyguard. Automated:
+`connectedDebugAndroidTest`, 201 tests, all pass on the second run (see findings). The adb scenarios used the
+debug `SCHEDULE` / `TIMER` receivers with evidence on, turned the screen off before each ring so the
+full-screen intent path ran, read `logcat -s UpYet` and the Room tables, and tapped through `uiautomator`.
+
+| Scenario | Result | Notes |
+|---|---|---|
+| core-path | PASS | `CorePathFlowTest` (automated lane). Regression result: no keyguard on this AVD |
+| timer-core-path | PASS | 15 s timer, evidence on, screen off: `TimerRingingActivity` focused, Stop: `RECORDED`, 0.93 MB, occurrence `source=TIMER`, outcome `STOPPED`, attribution "Debug timer" |
+| doze | PASS | screen off, battery unplugged, stepped to deep `IDLE`. Rang 31 ms after `scheduledFor`, clip `RECORDED`, 0.93 MB. The last state sampled, 1 s before the ring, was `IDLE_MAINTENANCE`, so the ring came after deep idle was reached but this run does not show it fired from inside `IDLE` |
+| process-killed | PASS | `kill -9` on pid 10661 as root, no pid left, the alarm rang in new pid 12469, clip `RECORDED` |
+| camera-denied | PASS | `CAMERA` revoked: rang, dismissed, segment `SKIPPED` / `PERMISSION_DENIED` |
+| snooze | PASS | Snooze 9 minutes: `alarm_snoozed`, SNOOZE ring 6 ms after its `scheduledFor`, child occurrence 6 linked to parent 5, both clips `RECORDED` |
+| reboot-unlocked | PASS | `adb reboot`, `alarms_rescheduled scheduled=1,skipped=6` for the debug package after boot, rang, recorded, dismissed |
+| upgrade 0.3.1 → 0.4.0 (release) | PASS | the `v0.3.1` GitHub release APK with one alarm, then `upyet-0.4.0-release.apk` with `install -r`: same signer, versionName 0.4.0, schema 7 kept, the alarm kept and rescheduled, it rang on time and recorded 1.02 MB, no `FATAL EXCEPTION` |
+| upgrade 0.3.1 → 0.4.0 (debug) | SKIPPED | No schema change since `v0.3.1` (version 7, `app/schemas` unchanged), and the release upgrade above covers the install path |
+| next clock change (World clock) | PASS | Home Santiago: "Clocks go back 1 h on Sunday, April 4, at 12:00 AM". London row: "+3 h (+1 h on Mar 28)", no "Today", spoken "Time difference changes by plus 1 hour on March 28" |
+| core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`. Owed on a physical device |
+| timer-core-path (physical) | SKIPPED | No physical device attached in this session. It is `physical` / `human-eyes`. Owed on a physical device |
+
+### Findings
+- The CI line fails locally on `WorldClockAssetTest.wholeFileParsesWithoutDroppingAnyRow` (940 of 941 unit
+  tests pass; spotless, lint and the debug build are clean). Gradle's daemon on this machine runs the
+  provisioned Temurin 21.0.7, tzdb 2025a, which lacks `America/Coyhaique` (the Coihaique row). The same file
+  resolves every row on tzdb 2026b. The app is correct: an old tzdb drops that row by design (ADR 0011). The
+  test depends on the build JVM's tzdb, so a stale local JDK fails it while CI, on a current JDK 17, passes.
+- The first `connectedDebugAndroidTest` run, started right after the emulator's cold boot, failed 28 of 201 in
+  four classes (`RingingScreenTest`, `AlarmEditorScreenTest`, `AlarmListScreenTest`, `CameraGateTest`), almost
+  all "No compose hierarchies found". The second run, on the same build with the device settled and awake,
+  passed 201 of 201. The cold boot is the likely cause, not a proven one.
+- `alarms_rescheduled scheduled=0` after a reboot came from the release package also installed on this AVD,
+  which had no alarms. `logcat -s UpYet` mixes both packages: read the pid.
+- After a reboot the debug alarm moved from 19:34:15 to 19:34:00: the alarm stores whole minutes and only the
+  debug receiver can ask for seconds. Alarms set in the UI are always on the minute.
+- World clock place search results still say "Today, +3 h". The 0.4.0 change is to list rows only.
+- `scripts/build-android-release.sh` needs `JAVA_HOME` on a JDK with `keytool`. The system Java here is a JRE,
+  so the build used `JAVA_HOME=~/.gradle/jdks/eclipse_adoptium-21-amd64-linux.2`.
+
 ## 2026-10-27 — emulator (`omnoku_pixel` AVD), Android 15 (API 35), debug 0.3.1
 
 Lane: mixed (automated + adb)   Build: 0.3.1 (301)   Package: `dev.upyet.debug`
